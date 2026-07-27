@@ -1,0 +1,21 @@
+{
+  "//": "Compiles schematics/ in place (index.ts -> index.js beside it) with plain tsc, CommonJS for the Node schematics engine. ng-package.json's `assets` then copies schematics/**/*.{js,json} into dist/. Mirrors feature-libs/*/tsconfig.schematics.json in Spartacus. `@spartacus/schematics` resolves from the ambient shim in typings/ (registry-gapped offline; a real dep at consumer runtime).",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "declaration": false,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmitOnError": true
+  },
+  "include": ["schematics/**/*.ts", "typings/spartacus-schematics.d.ts"],
+  "exclude": ["schematics/**/*.spec.ts", "schematics/*/files/**/*", "node_modules", "dist"]
+}

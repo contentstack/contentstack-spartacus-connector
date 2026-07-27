@@ -1,0 +1,153 @@
+/**
+ * Self-contained feature wiring (no dependency on Spartacus's feature registry).
+ * Generates an app-side `ContentstackFeatureModule` that imports the connector's
+ * `ContentstackCmsFeatureModule` and provides the `ContentstackConfig` from the
+ * `ng add` answers, then adds it to the app's `SpartacusFeaturesModule`.
+ */
+import {
+  Rule,
+  SchematicContext,
+  SchematicsException,
+  Tree,
+} from '@angular-devkit/schematics';
+import { addSymbolToNgModuleMetadata } from '@schematics/angular/utility/ast-utils';
+import { InsertChange } from '@schematics/angular/utility/change';
+import * as ts from 'typescript';
+import { SpartacusContentstackOptions } from './index';
+
+const PACKAGE = '@contentstack/contentstack-spartacus-connector';
+const FEATURE_MODULE_CLASS = 'ContentstackFeatureModule';
+/** Region key (schema) → `Region` enum member from `@contentstack/delivery-sdk`. */
+const REGION_MAP: Record<string, string> = {
+  US: 'US',
+  EU: 'EU',
+  'AZURE-NA': 'AZURE_NA',
+  'AZURE-EU': 'AZURE_EU',
+  'GCP-NA': 'GCP_NA',
+  'GCP-EU': 'GCP_EU',
+};
+
+export function configureContentstackFeature(
+  options: SpartacusContentstackOptions
+): Rule {
+  return (tree: Tree, context: SchematicContext): Tree => {
+    const sourceRoot = getSourceRoot(tree, options.project);
+    const featureDir = `${sourceRoot}/app/spartacus/features/contentstack`;
+    const featureModulePath = `${featureDir}/contentstack-feature.module.ts`;
+
+    // 1) Generate (or refresh) the app-side feature module from the answers.
+    const content = buildFeatureModule(options);
+    if (tree.exists(featureModulePath)) {
+      tree.overwrite(featureModulePath, content);
+    } else {
+      tree.create(featureModulePath, content);
+    }
+
+    // 2) Wire it into the app's SpartacusFeaturesModule.
+    const featuresModulePath = `${sourceRoot}/app/spartacus/spartacus-features.module.ts`;
+    if (!tree.exists(featuresModulePath)) {
+      context.logger.warn(
+        `[Contentstack] Could not find ${featuresModulePath}. ` +
+          `Generated ${featureModulePath}; import ${FEATURE_MODULE_CLASS} into your Spartacus features module manually.`
+      );
+      return tree;
+    }
+
+    const source = ts.createSourceFile(
+      featuresModulePath,
+      tree.read(featuresModulePath)!.toString('utf-8'),
+      ts.ScriptTarget.Latest,
+      true
+    );
+    const changes = addSymbolToNgModuleMetadata(
+      source,
+      featuresModulePath,
+      'imports',
+      FEATURE_MODULE_CLASS,
+      './features/contentstack/contentstack-feature.module'
+    );
+    const recorder = tree.beginUpdate(featuresModulePath);
+    for (const change of changes) {
+      if (change instanceof InsertChange) {
+        recorder.insertLeft(change.pos, change.toAdd);
+      }
+    }
+    tree.commitUpdate(recorder);
+
+    context.logger.info(
+      '[Contentstack] Feature wired. Next: import the Content Model Starter Pack with the Contentstack CLI —\n' +
+        '  csdx auth:login\n' +
+        `  csdx cm:stacks:import --stack-api-key <API_KEY> --data-dir ./node_modules/${PACKAGE}/import-export/starter-pack --yes\n` +
+        '  then publish the entries and fill any <PLACEHOLDER> config values. See the library GETTING_STARTED.md.'
+    );
+    return tree;
+  };
+}
+
+function getSourceRoot(tree: Tree, project?: string): string {
+  const raw = tree.read('angular.json');
+  if (!raw) {
+    throw new SchematicsException(
+      'angular.json not found — run this at the root of an Angular workspace.'
+    );
+  }
+  const workspace = JSON.parse(raw.toString('utf-8'));
+  const projects: Record<string, { root?: string; sourceRoot?: string }> =
+    workspace.projects ?? {};
+  const name =
+    project && projects[project] ? project : Object.keys(projects)[0];
+  const proj = name ? projects[name] : undefined;
+  if (!proj) {
+    throw new SchematicsException('No Angular project found in angular.json.');
+  }
+  return proj.sourceRoot ?? (proj.root ? `${proj.root}/src` : 'src');
+}
+
+function buildFeatureModule(options: SpartacusContentstackOptions): string {
+  const ph = (v: string | undefined, placeholder: string) =>
+    v && v.length ? v : placeholder;
+  const region = REGION_MAP[options.region ?? 'US'] ?? 'US';
+  const occFallback = options.occFallback !== false; // default true
+  const includeFallback = !!options.includeFallback;
+  const livePreviewLines = options.livePreview
+    ? `\n          livePreview: true,\n          previewToken: '${ph(
+        options.previewToken,
+        '<PREVIEW_TOKEN>'
+      )}',`
+    : '';
+
+  return `import { NgModule } from '@angular/core';
+import { provideConfig } from '@spartacus/core';
+import { Region } from '@contentstack/delivery-sdk';
+import {
+  ContentstackCmsFeatureModule,
+  ContentstackConfig,
+} from '${PACKAGE}';
+
+/**
+ * Contentstack CMS feature (hybrid: SAP Commerce is the base for every page;
+ * Contentstack overrides the slots you author). Generated by \`ng add\`.
+ * Fill any <PLACEHOLDER> values, then import the Content Model Starter Pack
+ * with the Contentstack CLI (csdx) — see the library's GETTING_STARTED.md.
+ */
+@NgModule({
+  imports: [ContentstackCmsFeatureModule],
+  providers: [
+    provideConfig(<ContentstackConfig>{
+      contentstack: {
+        delivery: {
+          apiKey: '${ph(options.apiKey, '<STACK_API_KEY>')}',
+          deliveryToken: '${ph(options.deliveryToken, '<DELIVERY_TOKEN>')}',
+          environment: '${ph(options.environment, '<ENVIRONMENT>')}',
+          region: Region.${region},${livePreviewLines}
+        },
+        cmsPageContentType: '${ph(options.cmsPageContentType, 'landing_page')}',
+        occFallback: ${occFallback},
+        includeFallback: ${includeFallback},
+      },
+    }),
+  ],
+})
+export class ${FEATURE_MODULE_CLASS} {}
+`;
+}

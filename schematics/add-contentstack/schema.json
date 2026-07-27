@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "ContentstackSchematics",
+  "title": "Contentstack Schematics",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "The name of the project to add the Contentstack feature to.",
+      "$default": { "$source": "projectName" }
+    },
+    "debug": {
+      "type": "boolean",
+      "description": "Display additional details during the running process.",
+      "default": false
+    },
+    "apiKey": {
+      "type": "string",
+      "description": "Contentstack stack API key (read-only, safe in a client bundle).",
+      "x-prompt": "[Contentstack] Stack API key? (leave blank to scaffold a placeholder)"
+    },
+    "deliveryToken": {
+      "type": "string",
+      "description": "Contentstack delivery token (read-only, scoped to the environment).",
+      "x-prompt": "[Contentstack] Delivery token? (leave blank to scaffold a placeholder)"
+    },
+    "environment": {
+      "type": "string",
+      "description": "Contentstack publishing environment (e.g. development, production).",
+      "x-prompt": "[Contentstack] Environment name? (leave blank to scaffold a placeholder)"
+    },
+    "region": {
+      "type": "string",
+      "description": "Contentstack data-center region.",
+      "enum": ["US", "EU", "AZURE-NA", "AZURE-EU", "GCP-NA", "GCP-EU"],
+      "default": "US",
+      "x-prompt": {
+        "message": "[Contentstack] Which data-center region is your stack in?",
+        "type": "list",
+        "items": [
+          { "value": "US", "label": "US (default)" },
+          { "value": "EU", "label": "EU" },
+          { "value": "AZURE-NA", "label": "Azure NA" },
+          { "value": "AZURE-EU", "label": "Azure EU" },
+          { "value": "GCP-NA", "label": "GCP NA" },
+          { "value": "GCP-EU", "label": "GCP EU" }
+        ]
+      }
+    },
+    "cmsPageContentType": {
+      "type": "string",
+      "description": "The Contentstack content type resolved for content/landing routes (incl. the homepage).",
+      "default": "landing_page",
+      "x-prompt": "[Contentstack] Page content type to resolve for content routes?"
+    },
+    "occFallback": {
+      "type": "boolean",
+      "description": "Hybrid mode: fall back to SAP Commerce (OCC) for any page/slot not authored in Contentstack.",
+      "default": true,
+      "x-prompt": "[Contentstack] Fall back to SAP (OCC) for content not in Contentstack? (recommended)"
+    },
+    "includeFallback": {
+      "type": "boolean",
+      "description": "Fall back to master-locale content for entries not localized in the active locale.",
+      "default": false,
+      "x-prompt": "[Contentstack] Fall back to master-locale content for untranslated entries?"
+    },
+    "livePreview": {
+      "type": "boolean",
+      "description": "Enable Contentstack Live Preview / Visual Builder wiring.",
+      "default": false,
+      "x-prompt": "[Contentstack] Enable Live Preview / Visual Builder?"
+    },
+    "previewToken": {
+      "type": "string",
+      "description": "Contentstack preview token (used only when Live Preview is enabled).",
+      "x-prompt": "[Contentstack] Preview token? (only needed for Live Preview; leave blank to scaffold a placeholder)"
+    }
+  },
+  "required": []
+}
