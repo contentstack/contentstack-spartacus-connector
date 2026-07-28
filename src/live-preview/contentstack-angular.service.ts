@@ -66,7 +66,10 @@ export class ContentstackAngularService {
    * session. There is no per-component subscribe/unsubscribe pair here (see
    * class doc) — callers are expected to re-fetch and re-render on trigger.
    */
-  onEntryChange(callback: OnEntryChangeCallback, config?: OnEntryChangeConfig): OnEntryChangeCallbackUID {
+  onEntryChange(
+    callback: OnEntryChangeCallback,
+    config?: OnEntryChangeConfig,
+  ): OnEntryChangeCallbackUID {
     return ContentstackLivePreview.onEntryChange(callback, config);
   }
 

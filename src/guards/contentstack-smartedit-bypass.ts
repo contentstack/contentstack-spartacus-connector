@@ -46,15 +46,13 @@ const SMART_EDIT_QUERY_PARAMS = ['cmsTicketId', 'cmsTicket', 'liveEditMode'];
  */
 export const smartEditBypassGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
-  state: RouterStateSnapshot
+  state: RouterStateSnapshot,
 ): boolean | UrlTree => {
   const router = inject(Router);
   const logger = inject(LoggerService);
   const params = route.queryParams ?? {};
 
-  const hasSmartEditParams = SMART_EDIT_QUERY_PARAMS.some(
-    (key) => params[key] != null
-  );
+  const hasSmartEditParams = SMART_EDIT_QUERY_PARAMS.some((key) => params[key] != null);
   if (!hasSmartEditParams) {
     return true;
   }
@@ -68,7 +66,7 @@ export const smartEditBypassGuard: CanActivateFn = (
   const path = state.url.split('?')[0];
   logger.warn(
     '[contentstack] Stripped SAP SmartEdit preview params from route; ' +
-      'rendering from Contentstack instead.'
+      'rendering from Contentstack instead.',
   );
   return router.createUrlTree([path], { queryParams: cleanedParams });
 };

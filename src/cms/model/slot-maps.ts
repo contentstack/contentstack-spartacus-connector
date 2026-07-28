@@ -120,7 +120,7 @@ export function toSlotName(fieldUid: string): string {
  * storefront's template/`LayoutConfig` declares that SAP position.
  */
 export function effectiveSlotMap(
-  additionalSlotFields?: Record<string, string>
+  additionalSlotFields?: Record<string, string>,
 ): Readonly<Record<string, string>> {
   return additionalSlotFields
     ? { ...SLOT_FIELD_TO_SAP_NAME, ...additionalSlotFields }
@@ -134,10 +134,7 @@ export function effectiveSlotMap(
  * Shared by the page normalizer (slot component data) and the field mapper (the
  * component's own `flexType`) so the two can't drift.
  */
-export function resolveFlexType(
-  fields: Record<string, unknown>,
-  typeCode: string
-): string {
+export function resolveFlexType(fields: Record<string, unknown>, typeCode: string): string {
   if (typeCode === 'CMSFlexComponent') {
     const flex = fields['flex_type'] ?? fields['flexType'];
     if (typeof flex === 'string' && flex.length) {

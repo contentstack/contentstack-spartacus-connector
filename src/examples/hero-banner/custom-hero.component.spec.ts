@@ -7,16 +7,14 @@ import { CustomHeroComponent } from './custom-hero.component';
 import { ContentstackHeroData } from './hero.model';
 
 class MockProductService {
-  get = jasmine
-    .createSpy('get')
-    .and.returnValue(
-      of<Product>({
-        code: '3755230',
-        name: 'Cordless Drill',
-        price: { formattedValue: '$149.00' },
-        stock: { stockLevelStatus: 'inStock' },
-      })
-    );
+  get = jasmine.createSpy('get').and.returnValue(
+    of<Product>({
+      code: '3755230',
+      name: 'Cordless Drill',
+      price: { formattedValue: '$149.00' },
+      stock: { stockLevelStatus: 'inStock' },
+    }),
+  );
 }
 
 class MockActiveCartFacade {
@@ -58,20 +56,11 @@ describe('CustomHeroComponent (hydration example)', () => {
 
   it('renders Contentstack copy alongside live SAP product data', () => {
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.cs-hero__headline')?.textContent).toContain(
-      'Power through any job'
-    );
+    expect(el.querySelector('.cs-hero__headline')?.textContent).toContain('Power through any job');
     // Product name + price come from the (mocked) SAP ProductService.
-    expect(el.querySelector('.cs-hero__product-name')?.textContent).toContain(
-      'Cordless Drill'
-    );
-    expect(el.querySelector('.cs-hero__product-price')?.textContent).toContain(
-      '$149.00'
-    );
-    expect(productService.get).toHaveBeenCalledWith(
-      '3755230',
-      ProductScope.DETAILS
-    );
+    expect(el.querySelector('.cs-hero__product-name')?.textContent).toContain('Cordless Drill');
+    expect(el.querySelector('.cs-hero__product-price')?.textContent).toContain('$149.00');
+    expect(productService.get).toHaveBeenCalledWith('3755230', ProductScope.DETAILS);
   });
 
   it('adds the hydrated SAP product to the cart', () => {

@@ -1,6 +1,10 @@
 import { Injectable } from '@angular/core';
 import { CmsBannerComponent, CmsBannerComponentMedia, Converter } from '@spartacus/core';
-import { ContentstackEntry, ContentstackFile, ContentstackReference } from '../../model/contentstack.model';
+import {
+  ContentstackEntry,
+  ContentstackFile,
+  ContentstackReference,
+} from '../../model/contentstack.model';
 import { isContentstackFile, isMediaContainer } from '../../model/type-guards';
 
 const BREAKPOINTS = ['desktop', 'mobile', 'tablet', 'widescreen'] as const;
@@ -17,9 +21,10 @@ const BREAKPOINTS = ['desktop', 'mobile', 'tablet', 'widescreen'] as const;
  *  3. a single direct `media` file field applied to every breakpoint.
  */
 @Injectable({ providedIn: 'root' })
-export class ContentstackCmsBannerComponentNormalizer
-  implements Converter<ContentstackEntry, CmsBannerComponent>
-{
+export class ContentstackCmsBannerComponentNormalizer implements Converter<
+  ContentstackEntry,
+  CmsBannerComponent
+> {
   convert(source: ContentstackEntry, target: CmsBannerComponent = {}): CmsBannerComponent {
     const container = source['media_container'] as ContentstackReference | undefined;
     if (isMediaContainer(container)) {

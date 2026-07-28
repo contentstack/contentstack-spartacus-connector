@@ -22,20 +22,36 @@ describe('type-guards', () => {
 
   it('isMediaContainer', () => {
     expect(
-      isMediaContainer({ uid: 'a', _content_type_uid: 'media_container', created_at: '2026-01-01T00:00:00.000Z' })
+      isMediaContainer({
+        uid: 'a',
+        _content_type_uid: 'media_container',
+        created_at: '2026-01-01T00:00:00.000Z',
+      }),
     ).toBe(true);
     expect(
-      isMediaContainer({ uid: 'a', _content_type_uid: 'nav_node', created_at: '2026-01-01T00:00:00.000Z' })
+      isMediaContainer({
+        uid: 'a',
+        _content_type_uid: 'nav_node',
+        created_at: '2026-01-01T00:00:00.000Z',
+      }),
     ).toBe(false);
     expect(isMediaContainer({ uid: 'a', _content_type_uid: 'media_container' })).toBe(false);
   });
 
   it('isNavigationNode', () => {
     expect(
-      isNavigationNode({ uid: 'a', _content_type_uid: 'nav_node', created_at: '2026-01-01T00:00:00.000Z' })
+      isNavigationNode({
+        uid: 'a',
+        _content_type_uid: 'nav_node',
+        created_at: '2026-01-01T00:00:00.000Z',
+      }),
     ).toBe(true);
     expect(
-      isNavigationNode({ uid: 'a', _content_type_uid: 'media_container', created_at: '2026-01-01T00:00:00.000Z' })
+      isNavigationNode({
+        uid: 'a',
+        _content_type_uid: 'media_container',
+        created_at: '2026-01-01T00:00:00.000Z',
+      }),
     ).toBe(false);
   });
 

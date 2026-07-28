@@ -21,19 +21,15 @@ import { isNavigationNode, isResolvedEntry } from '../../model/type-guards';
  * SAP-meaningful node id; Contentstack's own system `uid` is unrelated.
  */
 @Injectable({ providedIn: 'root' })
-export class ContentstackCmsNavigationComponentNormalizer
-  implements Converter<ContentstackEntry, CmsNavigationComponent>
-{
-  convert(
-    source: ContentstackEntry,
-    target: CmsNavigationComponent = {}
-  ): CmsNavigationComponent {
+export class ContentstackCmsNavigationComponentNormalizer implements Converter<
+  ContentstackEntry,
+  CmsNavigationComponent
+> {
+  convert(source: ContentstackEntry, target: CmsNavigationComponent = {}): CmsNavigationComponent {
     // Contentstack delivers reference fields as arrays even for a single
     // reference, so unwrap `[rootNode]` before resolving the tree.
     const raw = source['navigation_node'];
-    const node = (Array.isArray(raw) ? raw[0] : raw) as
-      | ContentstackReference
-      | undefined;
+    const node = (Array.isArray(raw) ? raw[0] : raw) as ContentstackReference | undefined;
     if (isNavigationNode(node)) {
       target.navigationNode = this.toNavigationNode(node);
     }
@@ -73,7 +69,7 @@ export class ContentstackCmsNavigationComponentNormalizer
   private resolvedList(value: unknown): ContentstackEntry[] {
     const list = Array.isArray(value) ? value : [];
     return list.filter((item): item is ContentstackEntry =>
-      isResolvedEntry(item as ContentstackReference)
+      isResolvedEntry(item as ContentstackReference),
     );
   }
 }

@@ -19,11 +19,17 @@ describe('ng-add schematic', () => {
 
   function baseAppTree(): Tree {
     const tree = Tree.empty();
-    tree.create('angular.json', JSON.stringify({ version: 1, projects: { app: { root: '', sourceRoot: 'src' } } }));
-    tree.create('package.json', JSON.stringify({ name: 'test-app', dependencies: { '@spartacus/core': '~2211.0.0' } }));
+    tree.create(
+      'angular.json',
+      JSON.stringify({ version: 1, projects: { app: { root: '', sourceRoot: 'src' } } }),
+    );
+    tree.create(
+      'package.json',
+      JSON.stringify({ name: 'test-app', dependencies: { '@spartacus/core': '~2211.0.0' } }),
+    );
     tree.create(
       FEATURES_MODULE,
-      `import { NgModule } from '@angular/core';\n\n@NgModule({\n  imports: [],\n})\nexport class SpartacusFeaturesModule {}\n`
+      `import { NgModule } from '@angular/core';\n\n@NgModule({\n  imports: [],\n})\nexport class SpartacusFeaturesModule {}\n`,
     );
     return tree;
   }
@@ -41,12 +47,14 @@ describe('ng-add schematic', () => {
         occFallback: true,
         includeFallback: true,
       },
-      baseAppTree()
+      baseAppTree(),
     );
 
     expect(tree.exists(FEATURE_MODULE)).toBe(true);
     const generated = tree.readText(FEATURE_MODULE);
-    expect(generated).toContain("import {\n  ContentstackCmsFeatureModule,\n  ContentstackConfig,\n} from '@contentstack/contentstack-spartacus-connector'");
+    expect(generated).toContain(
+      "import {\n  ContentstackCmsFeatureModule,\n  ContentstackConfig,\n} from '@contentstack/contentstack-spartacus-connector'",
+    );
     expect(generated).toContain('imports: [ContentstackCmsFeatureModule]');
     expect(generated).toContain('provideConfig(<ContentstackConfig>{');
     expect(generated).toContain("apiKey: 'blt123'");
@@ -58,7 +66,9 @@ describe('ng-add schematic', () => {
 
     // Wired into SpartacusFeaturesModule.
     const features = tree.readText(FEATURES_MODULE);
-    expect(features).toContain("import { ContentstackFeatureModule } from './features/contentstack/contentstack-feature.module'");
+    expect(features).toContain(
+      "import { ContentstackFeatureModule } from './features/contentstack/contentstack-feature.module'",
+    );
     expect(features).toContain('ContentstackFeatureModule');
 
     // Peer deps added to the app package.json.
@@ -70,7 +80,7 @@ describe('ng-add schematic', () => {
     const tree = await runner.runSchematic(
       'ng-add',
       { project: 'app', livePreview: true },
-      baseAppTree()
+      baseAppTree(),
     );
 
     const generated = tree.readText(FEATURE_MODULE);
@@ -84,13 +94,20 @@ describe('ng-add schematic', () => {
   });
 
   it('maps a hyphenated region key to the Region enum member', async () => {
-    const tree = await runner.runSchematic('ng-add', { project: 'app', region: 'AZURE-NA' }, baseAppTree());
+    const tree = await runner.runSchematic(
+      'ng-add',
+      { project: 'app', region: 'AZURE-NA' },
+      baseAppTree(),
+    );
     expect(tree.readText(FEATURE_MODULE)).toContain('region: Region.AZURE_NA');
   });
 
   it('fails fast when @spartacus/core is not installed', async () => {
     const tree = Tree.empty();
-    tree.create('angular.json', JSON.stringify({ version: 1, projects: { app: { root: '', sourceRoot: 'src' } } }));
+    tree.create(
+      'angular.json',
+      JSON.stringify({ version: 1, projects: { app: { root: '', sourceRoot: 'src' } } }),
+    );
     tree.create('package.json', JSON.stringify({ name: 'test-app', dependencies: {} }));
     await expect(runner.runSchematic('ng-add', { project: 'app' }, tree)).rejects.toThrow();
   });

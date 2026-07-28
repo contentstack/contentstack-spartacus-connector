@@ -44,10 +44,7 @@ import { ContentstackHeroData } from './hero.model';
         <span class="cs-hero__product-price" *ngIf="product.price as price">
           {{ price.formattedValue }}
         </span>
-        <span
-          class="cs-hero__product-stock"
-          *ngIf="product.stock?.stockLevelStatus as stockStatus"
-        >
+        <span class="cs-hero__product-stock" *ngIf="product.stock?.stockLevelStatus as stockStatus">
           {{ stockStatus }}
         </span>
         <button
@@ -81,8 +78,8 @@ export class CustomHeroComponent {
     switchMap((data) =>
       data?.product?.code
         ? this.productService.get(data.product.code, ProductScope.DETAILS)
-        : of(undefined)
-    )
+        : of(undefined),
+    ),
   );
 
   /** Add the hydrated SAP product to the active cart. */

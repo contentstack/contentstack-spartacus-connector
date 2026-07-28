@@ -20,6 +20,8 @@ import { ContentstackComponentDecorator } from './contentstack-component.decorat
   // injects `ComponentDecorator[]`), so the override must be registered with
   // `multi: true` — a plain single provider throws "Multi-providers mixed with
   // single providers for class ComponentDecorator" at render time.
-  providers: [{ provide: ComponentDecorator, useExisting: ContentstackComponentDecorator, multi: true }],
+  providers: [
+    { provide: ComponentDecorator, useExisting: ContentstackComponentDecorator, multi: true },
+  ],
 })
 export class ContentstackLivePreviewModule {}

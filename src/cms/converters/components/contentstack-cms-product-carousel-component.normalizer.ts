@@ -11,12 +11,13 @@ import { isString } from '../../model/type-guards';
  * `.split('/').pop()` extraction.
  */
 @Injectable({ providedIn: 'root' })
-export class ContentstackCmsProductCarouselComponentNormalizer
-  implements Converter<ContentstackEntry, CmsProductCarouselComponent>
-{
+export class ContentstackCmsProductCarouselComponentNormalizer implements Converter<
+  ContentstackEntry,
+  CmsProductCarouselComponent
+> {
   convert(
     source: ContentstackEntry,
-    target: CmsProductCarouselComponent = {}
+    target: CmsProductCarouselComponent = {},
   ): CmsProductCarouselComponent {
     const products = source['products'];
     if (Array.isArray(products)) {

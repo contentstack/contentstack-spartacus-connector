@@ -26,15 +26,13 @@ export function mergeStructures(
   base: CmsStructureModel | undefined,
   ...overrides: (CmsStructureModel | undefined)[]
 ): CmsStructureModel {
-  const layers = [base, ...overrides].filter(
-    (l): l is CmsStructureModel => !!l
-  );
+  const layers = [base, ...overrides].filter((l): l is CmsStructureModel => !!l);
   if (!layers.length) {
     return {};
   }
 
   // Slots — later layer wins per slot name.
-  const slots: { [key: string]: ContentSlotData } = {};
+  const slots: Record<string, ContentSlotData> = {};
   for (const layer of layers) {
     for (const [name, data] of Object.entries(layer.page?.slots ?? {})) {
       slots[name] = data;

@@ -53,8 +53,11 @@ export class ContentstackFieldMapper {
       case 'ProductReferencesComponent':
         return {
           title: fields['cms_title'] ?? fields['title'] ?? '',
-          productReferenceTypes: fields['reference_types'] ?? fields['productReferenceTypes'] ?? 'SIMILAR',
-          maximumNumberProducts: String(fields['max_products'] ?? fields['maximumNumberProducts'] ?? 5),
+          productReferenceTypes:
+            fields['reference_types'] ?? fields['productReferenceTypes'] ?? 'SIMILAR',
+          maximumNumberProducts: String(
+            fields['max_products'] ?? fields['maximumNumberProducts'] ?? 5,
+          ),
           displayProductTitles: String(fields['display_product_titles'] ?? 'true'),
           displayProductPrices: String(fields['display_product_prices'] ?? 'true'),
         };
@@ -67,9 +70,7 @@ export class ContentstackFieldMapper {
   /** Build a Spartacus media Image object from an absolute image URL + alt. */
   protected banner(fields: Record<string, unknown>): Record<string, unknown> {
     const url = (fields['image_url'] ?? fields['url']) as string | undefined;
-    const alt = (fields['alt_text'] ?? fields['altText'] ?? fields['name']) as
-      | string
-      | undefined;
+    const alt = (fields['alt_text'] ?? fields['altText'] ?? fields['name']) as string | undefined;
     const out: Record<string, unknown> = {
       urlLink: fields['url_link'] ?? fields['urlLink'] ?? '',
     };
@@ -93,13 +94,8 @@ export class ContentstackFieldMapper {
   }
 
   /** Drop our authoring-only keys so a passthrough doesn't leak them. */
-  protected stripAuthoringKeys(
-    fields: Record<string, unknown>
-  ): Record<string, unknown> {
-    const { type_code, slot, tab_components, ...rest } = fields as Record<
-      string,
-      unknown
-    >;
+  protected stripAuthoringKeys(fields: Record<string, unknown>): Record<string, unknown> {
+    const { type_code, slot, tab_components, ...rest } = fields as Record<string, unknown>;
     return rest;
   }
 }

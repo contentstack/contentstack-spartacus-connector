@@ -84,7 +84,11 @@ describe('mergeStructures', () => {
       ],
     };
     const csPage: CmsStructureModel = {
-      page: { slots: { Section2: { components: [{ uid: 'cs-promo', typeCode: 'SimpleBannerComponent' }] } } },
+      page: {
+        slots: {
+          Section2: { components: [{ uid: 'cs-promo', typeCode: 'SimpleBannerComponent' }] },
+        },
+      },
       components: [{ uid: 'cs-promo', typeCode: 'SimpleBannerComponent' }],
     };
 
@@ -103,7 +107,9 @@ describe('mergeStructures', () => {
         pageId: 'cs-landing',
         template: 'ContentPage1Template',
         type: 'ContentPage',
-        slots: { Section1: { components: [{ uid: 'cs-only', typeCode: 'SimpleBannerComponent' }] } },
+        slots: {
+          Section1: { components: [{ uid: 'cs-only', typeCode: 'SimpleBannerComponent' }] },
+        },
       },
       components: [{ uid: 'cs-only', typeCode: 'SimpleBannerComponent' }],
     };

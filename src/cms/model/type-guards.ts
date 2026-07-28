@@ -4,11 +4,7 @@
  * component-specific normalizers need.
  */
 
-import {
-  ContentstackEntry,
-  ContentstackFile,
-  ContentstackReference,
-} from './contentstack.model';
+import { ContentstackEntry, ContentstackFile, ContentstackReference } from './contentstack.model';
 
 export function isString(field: unknown): field is string {
   return typeof field === 'string';
@@ -22,19 +18,19 @@ export function isString(field: unknown): field is string {
  * expanded (`includeReference`/`.locale()`).
  */
 export function isResolvedEntry<T extends ContentstackEntry = ContentstackEntry>(
-  field: ContentstackReference | undefined | null
+  field: ContentstackReference | undefined | null,
 ): field is T {
   return !!field && typeof field === 'object' && isString((field as ContentstackEntry).created_at);
 }
 
 export function isMediaContainer(
-  field: ContentstackReference | undefined | null
+  field: ContentstackReference | undefined | null,
 ): field is ContentstackEntry {
   return isResolvedEntry(field) && field._content_type_uid === 'media_container';
 }
 
 export function isNavigationNode(
-  field: ContentstackReference | undefined | null
+  field: ContentstackReference | undefined | null,
 ): field is ContentstackEntry {
   return isResolvedEntry(field) && field._content_type_uid === 'nav_node';
 }

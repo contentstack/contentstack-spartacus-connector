@@ -9,18 +9,11 @@ import {
 import { isPlatformServer } from '@angular/common';
 import { Observable, defer, from, of } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
-import contentstack, {
-  QueryOperation,
-  Region,
-  type Stack,
-} from '@contentstack/delivery-sdk';
+import contentstack, { QueryOperation, Region, type Stack } from '@contentstack/delivery-sdk';
 import { LoggerService } from '@spartacus/core';
 import { ContentstackConfig } from '../config/contentstack-config';
 import { tagEntryTree } from '../live-preview/tag-entry-tree';
-import {
-  ContentstackCmsPageEntry,
-  ContentstackEntry,
-} from '../cms/model/contentstack.model';
+import { ContentstackCmsPageEntry, ContentstackEntry } from '../cms/model/contentstack.model';
 
 /**
  * The single seam between this library and Contentstack. Every network call to
@@ -46,7 +39,7 @@ export class ContentstackClientService {
     protected config: ContentstackConfig,
     protected transferState: TransferState,
     protected logger: LoggerService,
-    @Inject(PLATFORM_ID) protected platformId: object
+    @Inject(PLATFORM_ID) protected platformId: object,
   ) {}
 
   /** Lazily build (and memoize) the Delivery SDK stack from config. */
@@ -58,7 +51,7 @@ export class ContentstackClientService {
     if (!delivery?.apiKey || !delivery?.deliveryToken || !delivery?.environment) {
       throw new Error(
         '[ContentstackClientService] Missing Contentstack delivery credentials. ' +
-          'Provide contentstack.delivery.{apiKey,deliveryToken,environment} via provideConfig().'
+          'Provide contentstack.delivery.{apiKey,deliveryToken,environment} via provideConfig().',
       );
     }
     this._stack = contentstack.stack({
@@ -149,11 +142,11 @@ export class ContentstackClientService {
     slugField: string,
     slug: string,
     includeRefs: string[] = [],
-    locale?: string
+    locale?: string,
   ): Observable<ContentstackCmsPageEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackCmsPageEntry | undefined>(
-      `cs-page:${contentTypeUid}:${slugField}:${slug}:${csLocale ?? '*'}`
+      `cs-page:${contentTypeUid}:${slugField}:${slug}:${csLocale ?? '*'}`,
     );
     return this.withTransferState(key, () => {
       // `includeReference` lives on the Entries object (from `.entry()`), not on
@@ -191,11 +184,11 @@ export class ContentstackClientService {
     contentTypeUid: string,
     title?: string,
     includeRefs: string[] = [],
-    locale?: string
+    locale?: string,
   ): Observable<ContentstackCmsPageEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackCmsPageEntry | undefined>(
-      `cs-global:${contentTypeUid}:${title ?? '*'}:${csLocale ?? '*'}`
+      `cs-global:${contentTypeUid}:${title ?? '*'}:${csLocale ?? '*'}`,
     );
     return this.withTransferState(key, () => {
       // Resolve the shell's component references inline (same as the page path),
@@ -214,9 +207,7 @@ export class ContentstackClientService {
       if (title) {
         query.where('title', QueryOperation.EQUALS, title);
       }
-      return query
-        .find<ContentstackCmsPageEntry>()
-        .then((res) => res?.entries?.[0]);
+      return query.find<ContentstackCmsPageEntry>().then((res) => res?.entries?.[0]);
     });
   }
   /*
@@ -235,11 +226,11 @@ export class ContentstackClientService {
   getEntryByUid(
     contentTypeUid: string,
     uid: string,
-    locale?: string
+    locale?: string,
   ): Observable<ContentstackEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry | undefined>(
-      `cs-entry:${contentTypeUid}:${uid}:${csLocale ?? '*'}`
+      `cs-entry:${contentTypeUid}:${uid}:${csLocale ?? '*'}`,
     );
     return this.withTransferState(key, () => {
       let entry = this.stack.contentType(contentTypeUid).entry(uid);
@@ -257,14 +248,14 @@ export class ContentstackClientService {
   getEntriesByUids(
     contentTypeUid: string,
     uids: string[],
-    locale?: string
+    locale?: string,
   ): Observable<ContentstackEntry[]> {
     if (!uids.length) {
       return of([]);
     }
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry[]>(
-      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${csLocale ?? '*'}`
+      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${csLocale ?? '*'}`,
     );
     return this.withTransferState(key, () => {
       let entries = this.stack.contentType(contentTypeUid).entry();
@@ -293,7 +284,7 @@ export class ContentstackClientService {
   protected withTransferState<T>(
     key: StateKey<T>,
     factory: () => Promise<T>,
-    fallback?: T
+    fallback?: T,
   ): Observable<T> {
     if (this.transferState.hasKey(key)) {
       const cached = this.transferState.get<T>(key, fallback as T);
@@ -313,7 +304,7 @@ export class ContentstackClientService {
       }),
       // Persist server-fetched results for the browser to reuse on hydration.
       // (Applied via a tap-like map to keep types tight.)
-      this.persistOnServer(key, isServer)
+      this.persistOnServer(key, isServer),
     );
   }
 
@@ -330,7 +321,7 @@ export class ContentstackClientService {
           },
           error: (err) => subscriber.error(err),
           complete: () => subscriber.complete(),
-        })
+        }),
       );
   }
 }

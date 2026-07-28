@@ -1,5 +1,13 @@
 import { Injectable } from '@angular/core';
-import { CmsActions, CmsComponent, ContentSlotComponentData, LanguageService, PageContext, RoutingService, StateWithCms } from '@spartacus/core';
+import {
+  CmsActions,
+  CmsComponent,
+  ContentSlotComponentData,
+  LanguageService,
+  PageContext,
+  RoutingService,
+  StateWithCms,
+} from '@spartacus/core';
 import { Store } from '@ngrx/store';
 import type { EntryModel } from '@contentstack/utils';
 import { take } from 'rxjs/operators';
@@ -142,11 +150,14 @@ export class ContentstackLivePreviewService {
     // independent of `addEditableTags`' internal `$` key layout (that `$` is
     // used for per-FIELD binding via `CsEditableDirective`, not here).
     const entry = component.properties?.data as
-      | { uid?: string; _content_type_uid?: string; locale?: string }
-      | undefined;
+      { uid?: string; _content_type_uid?: string; locale?: string } | undefined;
     if (entry?.uid && entry._content_type_uid) {
       const locale = entry.locale ?? 'en-us';
-      renderer.setAttribute(element, 'data-cslp', `${entry._content_type_uid}.${entry.uid}.${locale}`);
+      renderer.setAttribute(
+        element,
+        'data-cslp',
+        `${entry._content_type_uid}.${entry.uid}.${locale}`,
+      );
     }
   }
 
@@ -163,7 +174,9 @@ export class ContentstackLivePreviewService {
     this.routingService
       .getPageContext()
       .pipe(take(1))
-      .subscribe((pageContext: PageContext) => this.dispatchComponentUpdate(updatedComponent, pageContext));
+      .subscribe((pageContext: PageContext) =>
+        this.dispatchComponentUpdate(updatedComponent, pageContext),
+      );
   }
 
   protected dispatchComponentUpdate(component: CmsComponent, pageContext: PageContext): void {

@@ -13,14 +13,27 @@ npm install
 
 ## Development workflow
 
-Before opening a pull request, make sure the standard checks pass:
+Before opening a pull request, make sure the standard checks pass. These are the
+same steps the CI workflow (`.github/workflows/ci.yml`) runs on every PR:
 
 ```bash
+npm run lint             # ESLint (must report 0 errors; warnings allowed)
+npm run format:check     # Prettier formatting check
 npm run typecheck        # strict type-check (must exit 0)
-npm test                 # unit tests (jest)
-npm run test:schematics  # ng add schematic tests
+npm run test:all         # unit tests + ng add schematic tests (jest)
 npm run build            # library + schematics build (ng-packagr)
 ```
+
+Auto-fixers:
+
+```bash
+npm run lint:fix         # apply ESLint autofixes
+npm run format           # reformat src/ + schematics/ with Prettier
+```
+
+> **CI note:** the CI job installs `@spartacus/*` from SAP's private RBSC
+> registry, so it needs a repo/org secret `RBSC_NPM_AUTH` (the registry `_auth`
+> token). Without it, `npm ci` in CI cannot fetch the Spartacus peers.
 
 ## Pull requests
 

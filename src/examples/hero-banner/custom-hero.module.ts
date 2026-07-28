@@ -17,13 +17,13 @@ import { CustomHeroComponent } from './custom-hero.component';
 @NgModule({
   imports: [CustomHeroComponent],
   providers: [
-    provideDefaultConfig(<CmsConfig>{
+    provideDefaultConfig({
       cmsComponents: {
         contentstack_hero_banner: {
           component: CustomHeroComponent,
         },
       },
-    }),
+    } as CmsConfig),
   ],
 })
 export class CustomHeroModule {}

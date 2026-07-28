@@ -24,7 +24,7 @@ describe('ContentstackCmsPageNormalizer', () => {
     new ContentstackCmsBannerComponentNormalizer(),
     new ContentstackCmsNavigationComponentNormalizer(),
     new ContentstackCmsProductCarouselComponentNormalizer(),
-    new ContentstackFieldMapper()
+    new ContentstackFieldMapper(),
   );
   const normalizer = new ContentstackCmsPageNormalizer(config, componentNormalizer);
 
@@ -93,11 +93,11 @@ describe('ContentstackCmsPageNormalizer', () => {
     const summary = result.page?.slots?.['Summary']?.components ?? [];
     // The flex component renders as its subtype; the plain component as its typeCode.
     expect(summary.find((c) => c.typeCode === 'CMSFlexComponent')?.flexType).toBe(
-      'ProductIntroComponent'
+      'ProductIntroComponent',
     );
-    expect(
-      summary.find((c) => c.typeCode === 'ProductAddToCartComponent')?.flexType
-    ).toBe('ProductAddToCartComponent');
+    expect(summary.find((c) => c.typeCode === 'ProductAddToCartComponent')?.flexType).toBe(
+      'ProductAddToCartComponent',
+    );
   });
 
   it('falls back to the `page_type` field for the page-type discriminator', () => {
@@ -126,16 +126,14 @@ describe('ContentstackCmsPageNormalizer', () => {
         },
       ],
     });
-    const container = result.components?.find(
-      (c) => c.uid === 'blt_tabs_1'
-    ) as any;
+    const container = result.components?.find((c) => c.uid === 'blt_tabs_1') as any;
     expect(container.typeCode).toBe('CMSTabParagraphContainer');
     // container references its children by space-separated uids
     expect(container.components).toBe('tab_details tab_specs');
     // children are emitted into the flat component list
-    expect(
-      result.components?.find((c) => c.uid === 'tab_details')?.typeCode
-    ).toBe('ProductDetailsTabComponent');
+    expect(result.components?.find((c) => c.uid === 'tab_details')?.typeCode).toBe(
+      'ProductDetailsTabComponent',
+    );
   });
 
   it('returns an empty structure body when there are no slots', () => {
@@ -213,10 +211,7 @@ describe('ContentstackCmsPageNormalizer', () => {
       robots: 'noindex, nofollow',
     });
     expect(result.page?.description).toBe('A page with SEO metadata.');
-    expect(result.page?.robots).toEqual([
-      PageRobotsMeta.NOINDEX,
-      PageRobotsMeta.NOFOLLOW,
-    ]);
+    expect(result.page?.robots).toEqual([PageRobotsMeta.NOINDEX, PageRobotsMeta.NOFOLLOW]);
   });
 
   it('omits robots when the field is absent or unrecognized', () => {
@@ -236,10 +231,7 @@ describe('ContentstackCmsPageNormalizer', () => {
         additionalSlotFields: { my_promo_strip: 'MyPromoStrip' },
       },
     };
-    const customNormalizer = new ContentstackCmsPageNormalizer(
-      customConfig,
-      componentNormalizer
-    );
+    const customNormalizer = new ContentstackCmsPageNormalizer(customConfig, componentNormalizer);
     const result = customNormalizer.convert({
       uid: 'blt_custom',
       _content_type_uid: 'cms_page',
@@ -253,8 +245,6 @@ describe('ContentstackCmsPageNormalizer', () => {
       ],
     });
     // Custom field uid → configured SAP slot position.
-    expect(result.page?.slots?.['MyPromoStrip']?.components?.[0].uid).toBe(
-      'blt_strip'
-    );
+    expect(result.page?.slots?.['MyPromoStrip']?.components?.[0].uid).toBe('blt_strip');
   });
 });

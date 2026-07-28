@@ -34,7 +34,9 @@ describe('tagEntryTree (live preview)', () => {
     const tags = page['$'] as Record<string, { 'data-cslp'?: string }> | undefined;
     expect(tags).toBeDefined();
     // some field tag should reference the page content type + uid
-    const anyTag = Object.values(tags ?? {}).find((t) => typeof t?.['data-cslp'] === 'string')?.['data-cslp'];
+    const anyTag = Object.values(tags ?? {}).find((t) => typeof t?.['data-cslp'] === 'string')?.[
+      'data-cslp'
+    ];
     expect(anyTag).toContain('cms_page');
     expect(anyTag).toContain('blt_home');
   });
@@ -43,10 +45,12 @@ describe('tagEntryTree (live preview)', () => {
     const page = makePage();
     tagEntryTree(page, 'cms_page', 'en-us');
 
-    const banner = (page['section1'] as Array<Record<string, unknown>>)[0];
+    const banner = (page['section1'] as Record<string, unknown>[])[0];
     const bannerTags = banner['$'] as Record<string, { 'data-cslp'?: string }> | undefined;
     expect(bannerTags).toBeDefined();
-    const bannerTag = Object.values(bannerTags ?? {}).find((t) => typeof t?.['data-cslp'] === 'string')?.['data-cslp'];
+    const bannerTag = Object.values(bannerTags ?? {}).find(
+      (t) => typeof t?.['data-cslp'] === 'string',
+    )?.['data-cslp'];
     // the component's tags must be rooted at the component's content type + uid,
     // so a click in Visual Builder navigates to the component entry
     expect(bannerTag).toContain('simple_responsive_banner_component');

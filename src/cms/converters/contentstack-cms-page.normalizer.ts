@@ -10,10 +10,7 @@ import {
   PageType,
 } from '@spartacus/core';
 import { ContentstackConfig } from '../../config/contentstack-config';
-import {
-  ContentstackCmsPageEntry,
-  ContentstackEntry,
-} from '../model/contentstack.model';
+import { ContentstackCmsPageEntry, ContentstackEntry } from '../model/contentstack.model';
 import { effectiveSlotMap, resolveFlexType, toTypeCode } from '../model/slot-maps';
 import { ContentstackCmsComponentNormalizer } from './contentstack-cms-component.normalizer';
 
@@ -51,18 +48,16 @@ import { ContentstackCmsComponentNormalizer } from './contentstack-cms-component
  *   referenced entry._content_type_uid    typeCode (→ SAP typecode → CmsConfig.cmsComponents key)
  */
 @Injectable({ providedIn: 'root' })
-export class ContentstackCmsPageNormalizer
-  implements Converter<ContentstackCmsPageEntry, CmsStructureModel>
-{
+export class ContentstackCmsPageNormalizer implements Converter<
+  ContentstackCmsPageEntry,
+  CmsStructureModel
+> {
   constructor(
     protected config: ContentstackConfig,
-    protected componentNormalizer: ContentstackCmsComponentNormalizer
+    protected componentNormalizer: ContentstackCmsComponentNormalizer,
   ) {}
 
-  convert(
-    source: ContentstackCmsPageEntry,
-    target: CmsStructureModel = {}
-  ): CmsStructureModel {
+  convert(source: ContentstackCmsPageEntry, target: CmsStructureModel = {}): CmsStructureModel {
     const { slots, components } = this.buildStructure(source);
 
     const page: Page = {
@@ -100,10 +95,10 @@ export class ContentstackCmsPageNormalizer
    * same field→slot / content-type→typecode resolution path.
    */
   buildStructure(source: ContentstackCmsPageEntry): {
-    slots: { [key: string]: ContentSlotData };
+    slots: Record<string, ContentSlotData>;
     components: CmsComponent[];
   } {
-    const slots: { [key: string]: ContentSlotData } = {};
+    const slots: Record<string, ContentSlotData> = {};
     const components: CmsComponent[] = [];
 
     const slotMap = effectiveSlotMap(this.config.contentstack?.additionalSlotFields);
@@ -122,7 +117,8 @@ export class ContentstackCmsPageNormalizer
         // the stock uid (e.g. `TabPanelContainer`). Honor an optional
         // `component_uid` field carrying that stable uid.
         const stableUid = (entry as Record<string, unknown>)['component_uid'] as string | undefined;
-        const compUid = typeCode === 'CMSTabParagraphContainer' && stableUid ? stableUid : entry.uid;
+        const compUid =
+          typeCode === 'CMSTabParagraphContainer' && stableUid ? stableUid : entry.uid;
         slotComponents.push({
           uid: compUid,
           typeCode,
@@ -146,8 +142,8 @@ export class ContentstackCmsPageNormalizer
           components.push(
             ...this.expandContainer(
               component,
-              (entry as Record<string, unknown>)['tab_components']
-            )
+              (entry as Record<string, unknown>)['tab_components'],
+            ),
           );
         }
       }
@@ -167,9 +163,7 @@ export class ContentstackCmsPageNormalizer
     const list = Array.isArray(value) ? value : value != null ? [value] : [];
     return list.filter(
       (item): item is ContentstackEntry =>
-        !!item &&
-        typeof item === 'object' &&
-        typeof (item as { uid?: unknown }).uid === 'string'
+        !!item && typeof item === 'object' && typeof (item as { uid?: unknown }).uid === 'string',
     );
   }
 
@@ -218,10 +212,7 @@ export class ContentstackCmsPageNormalizer
    * shape the stock `TabParagraphContainerComponent` reads. Mutates `container`
    * in place and returns the child components.
    */
-  protected expandContainer(
-    container: CmsComponent,
-    rawTabs: unknown
-  ): CmsComponent[] {
+  protected expandContainer(container: CmsComponent, rawTabs: unknown): CmsComponent[] {
     const tabs = this.parseJsonArray(rawTabs);
     const children: CmsComponent[] = [];
     const uids: string[] = [];
@@ -242,7 +233,7 @@ export class ContentstackCmsPageNormalizer
   }
 
   /** Parse a JSON-string (or already-parsed) array of objects; [] on failure. */
-  protected parseJsonArray(raw: unknown): Array<Record<string, unknown>> {
+  protected parseJsonArray(raw: unknown): Record<string, unknown>[] {
     let value = raw;
     if (typeof raw === 'string') {
       try {
@@ -251,7 +242,7 @@ export class ContentstackCmsPageNormalizer
         return [];
       }
     }
-    return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
+    return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
   }
 
   /**
@@ -263,12 +254,8 @@ export class ContentstackCmsPageNormalizer
    * `pageTypeMapping` config (by content-type uid), then to `CONTENT_PAGE`.
    */
   protected resolvePageType(source: ContentstackCmsPageEntry): PageType {
-    const declared =
-      source.type ?? (source as Record<string, unknown>)['page_type'];
-    if (
-      typeof declared === 'string' &&
-      (Object.values(PageType) as string[]).includes(declared)
-    ) {
+    const declared = source.type ?? (source as Record<string, unknown>)['page_type'];
+    if (typeof declared === 'string' && (Object.values(PageType) as string[]).includes(declared)) {
       return declared as PageType;
     }
     const mapping = this.config.contentstack?.pageTypeMapping;

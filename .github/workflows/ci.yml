@@ -1,0 +1,60 @@
+name: CI
+
+# Build / lint / format / typecheck / test gate for every PR (and pushes to
+# main). Complements the existing security workflows (Snyk SCA, policy scan).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build & verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # @spartacus/* (core, cart, storefront, schematics) at 2211.x are
+      # published ONLY on SAP's private RBSC registry — public npm caps at an
+      # abandoned 4.3.8 (see .npmrc / tsconfig.typecheck.json). CI therefore
+      # writes its own .npmrc from a repo/org secret so `npm ci` can fetch them.
+      #
+      # Required secret:  RBSC_NPM_AUTH  =  base64("<user>:<password>") for the
+      # RBSC registry (the `_auth` value). Add it under
+      # Settings → Secrets and variables → Actions. The registry HOST below is
+      # not secret; only the token is.
+      - name: Configure SAP RBSC registry auth
+        run: |
+          {
+            echo "legacy-peer-deps=true"
+            echo "//73554900100900004337.npmsrv.cdn.repositories.cloud.sap/:_auth=${{ secrets.RBSC_NPM_AUTH }}"
+          } > .npmrc
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:all
+
+      - name: Build library
+        run: npm run build

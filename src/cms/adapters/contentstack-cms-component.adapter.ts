@@ -38,13 +38,13 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     protected config: ContentstackConfig,
     protected logger: LoggerService,
     protected languageService: LanguageService,
-    protected occComponentAdapter: OccCmsComponentAdapter
+    protected occComponentAdapter: OccCmsComponentAdapter,
   ) {}
 
   load<T extends CmsComponent>(
     id: string,
     pageContext: PageContext,
-    _fields?: string
+    _fields?: string,
   ): Observable<T> {
     const occFallback = this.occFallback();
     const contentType = this.componentContentType();
@@ -66,16 +66,13 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
             return occFallback
               ? this.occComponentAdapter.load<T>(id, pageContext)
               : of({ uid: id } as T);
-          })
-        )
-      )
+          }),
+        ),
+      ),
     );
   }
 
-  findComponentsByIds(
-    ids: string[],
-    pageContext: PageContext
-  ): Observable<CmsComponent[]> {
+  findComponentsByIds(ids: string[], pageContext: PageContext): Observable<CmsComponent[]> {
     const occFallback = this.occFallback();
     const contentType = this.componentContentType();
     if (!contentType) {
@@ -89,9 +86,7 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       switchMap((locale) =>
         this.client.getEntriesByUids(contentType, ids, locale).pipe(
           switchMap((entries: ContentstackEntry[]) => {
-            const csComponents = entries.map((entry) =>
-              this.normalizer.convert(entry)
-            );
+            const csComponents = entries.map((entry) => this.normalizer.convert(entry));
             if (!occFallback) {
               return of(csComponents);
             }
@@ -104,9 +99,9 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
             return this.occComponentAdapter
               .findComponentsByIds(remaining, pageContext)
               .pipe(map((occComponents) => [...csComponents, ...occComponents]));
-          })
-        )
-      )
+          }),
+        ),
+      ),
     );
   }
 
@@ -121,11 +116,11 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
   private warnNoContentType(method: string, ids: string[]): void {
     this.logger.warn(
       `[ContentstackCmsComponentAdapter] ${method}([${ids.join(
-        ', '
+        ', ',
       )}]) called but contentstack.componentContentType is not configured and ` +
         'occFallback is disabled. Components delivered inside page payloads are ' +
         'unaffected; only standalone component lookups need this. Returning an ' +
-        'empty result.'
+        'empty result.',
     );
   }
 }

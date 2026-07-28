@@ -36,14 +36,15 @@ const NAVIGATION_TYPE_CODES = new Set<string>([
  * JSON.
  */
 @Injectable({ providedIn: 'root' })
-export class ContentstackCmsComponentNormalizer
-  implements Converter<ContentstackEntry, CmsComponent>
-{
+export class ContentstackCmsComponentNormalizer implements Converter<
+  ContentstackEntry,
+  CmsComponent
+> {
   constructor(
     protected bannerNormalizer: ContentstackCmsBannerComponentNormalizer,
     protected navigationNormalizer: ContentstackCmsNavigationComponentNormalizer,
     protected productCarouselNormalizer: ContentstackCmsProductCarouselComponentNormalizer,
-    protected fieldMapper: ContentstackFieldMapper
+    protected fieldMapper: ContentstackFieldMapper,
   ) {}
 
   convert(source: ContentstackEntry, target: CmsComponent = {}): CmsComponent {

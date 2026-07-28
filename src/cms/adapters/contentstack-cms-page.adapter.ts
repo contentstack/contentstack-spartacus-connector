@@ -50,7 +50,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     protected normalizer: ContentstackCmsPageNormalizer,
     protected config: ContentstackConfig,
     protected languageService: LanguageService,
-    protected occPageAdapter: OccCmsPageAdapter
+    protected occPageAdapter: OccCmsPageAdapter,
   ) {}
 
   load(pageContext: PageContext): Observable<CmsStructureModel> {
@@ -64,7 +64,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     const defaultContentType = cs?.cmsPageContentType;
     if (!defaultContentType) {
       throw new Error(
-        '[ContentstackCmsPageAdapter] contentstack.cmsPageContentType is not configured.'
+        '[ContentstackCmsPageAdapter] contentstack.cmsPageContentType is not configured.',
       );
     }
     const { contentType, slugField, slug } = this.resolveRequest(pageContext);
@@ -95,35 +95,20 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     // never replays another locale's content.
     return this.languageService.getActive().pipe(
       switchMap((locale) => {
-        const page$ = this.client.getPageBySlug(
-          contentType,
-          slugField,
-          slug,
-          includeRefs,
-          locale
-        );
+        const page$ = this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
         const global$ = global
-          ? this.client.getGlobalSlots(
-              global.contentType,
-              global.title,
-              globalIncludeRefs,
-              locale
-            )
+          ? this.client.getGlobalSlots(global.contentType, global.title, globalIncludeRefs, locale)
           : of(undefined);
         // Hybrid base: the SAP page for this route. A CMS failure must never
         // break navigation, so degrade to no-base on error.
         const occBase$: Observable<CmsStructureModel | undefined> = occFallback
-          ? this.occPageAdapter
-              .load(pageContext)
-              .pipe(catchError(() => of(undefined)))
+          ? this.occPageAdapter.load(pageContext).pipe(catchError(() => of(undefined)))
           : of(undefined);
 
         return forkJoin([page$, global$, occBase$]).pipe(
           map(([entry, globalEntry, occBase]) => {
             const csStructure = entry ? this.normalizer.convert(entry) : undefined;
-            const globalStructure = globalEntry
-              ? this.toGlobalStructure(globalEntry)
-              : undefined;
+            const globalStructure = globalEntry ? this.toGlobalStructure(globalEntry) : undefined;
 
             // Nothing from Contentstack and no OCC base → not-found (as before).
             if (!csStructure && !occBase) {
@@ -132,9 +117,9 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
 
             // Layer precedence: OCC base < global shell < Contentstack page.
             return mergeStructures(occBase, globalStructure, csStructure);
-          })
+          }),
         );
-      })
+      }),
     );
   }
 
@@ -144,9 +129,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
    * base and the page: an authored shell overrides OCC's, and unauthored shell
    * slots fall through to OCC.
    */
-  protected toGlobalStructure(
-    globalEntry: ContentstackCmsPageEntry
-  ): CmsStructureModel {
+  protected toGlobalStructure(globalEntry: ContentstackCmsPageEntry): CmsStructureModel {
     const { slots, components } = this.normalizer.buildStructure(globalEntry);
     return { page: { slots }, components };
   }
@@ -171,9 +154,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     const defaultContentType = cs?.cmsPageContentType as string;
     const defaultSlugField = cs?.slugField ?? 'url';
 
-    const mapping = pageContext.type
-      ? cs?.pageTypeMapping?.[pageContext.type]
-      : undefined;
+    const mapping = pageContext.type ? cs?.pageTypeMapping?.[pageContext.type] : undefined;
     if (mapping?.sharedSlug) {
       return {
         contentType: mapping.contentTypeUid ?? defaultContentType,

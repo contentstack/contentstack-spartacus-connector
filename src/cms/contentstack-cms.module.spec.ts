@@ -17,7 +17,7 @@ describe('ContentstackCmsModule (DI wiring)', () => {
       providers: [
         {
           provide: ContentstackConfig,
-          useValue: <ContentstackConfig>{
+          useValue: {
             contentstack: {
               delivery: {
                 apiKey: 'k',
@@ -26,21 +26,17 @@ describe('ContentstackCmsModule (DI wiring)', () => {
               },
               cmsPageContentType: 'cms_page',
             },
-          },
+          } as ContentstackConfig,
         },
       ],
     });
   });
 
   it('binds CmsPageAdapter to ContentstackCmsPageAdapter', () => {
-    expect(TestBed.inject(CmsPageAdapter)).toBeInstanceOf(
-      ContentstackCmsPageAdapter
-    );
+    expect(TestBed.inject(CmsPageAdapter)).toBeInstanceOf(ContentstackCmsPageAdapter);
   });
 
   it('binds CmsComponentAdapter to ContentstackCmsComponentAdapter', () => {
-    expect(TestBed.inject(CmsComponentAdapter)).toBeInstanceOf(
-      ContentstackCmsComponentAdapter
-    );
+    expect(TestBed.inject(CmsComponentAdapter)).toBeInstanceOf(ContentstackCmsComponentAdapter);
   });
 });
