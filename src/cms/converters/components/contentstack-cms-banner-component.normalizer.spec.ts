@@ -14,8 +14,16 @@ describe('ContentstackCmsBannerComponentNormalizer', () => {
         uid: 'blt_media_1',
         _content_type_uid: 'media_container',
         created_at: '2026-01-01T00:00:00.000Z',
-        desktop: { url: 'https://images.cs/desktop.jpg', filename: 'desktop.jpg', content_type: 'image/jpeg' },
-        mobile: { url: 'https://images.cs/mobile.jpg', filename: 'mobile.jpg', content_type: 'image/jpeg' },
+        desktop: {
+          url: 'https://images.cs/desktop.jpg',
+          filename: 'desktop.jpg',
+          content_type: 'image/jpeg',
+        },
+        mobile: {
+          url: 'https://images.cs/mobile.jpg',
+          filename: 'mobile.jpg',
+          content_type: 'image/jpeg',
+        },
       },
     };
 
@@ -36,8 +44,16 @@ describe('ContentstackCmsBannerComponentNormalizer', () => {
       uid: 'blt_hero_bp',
       _content_type_uid: 'simple_responsive_banner_component',
       created_at: '2026-01-01T00:00:00.000Z',
-      media_widescreen: { url: 'https://images.cs/ws.jpg', filename: 'ws.jpg', content_type: 'image/jpeg' },
-      media_mobile: { url: 'https://images.cs/mob.jpg', filename: 'mob.jpg', content_type: 'image/jpeg' },
+      media_widescreen: {
+        url: 'https://images.cs/ws.jpg',
+        filename: 'ws.jpg',
+        content_type: 'image/jpeg',
+      },
+      media_mobile: {
+        url: 'https://images.cs/mob.jpg',
+        filename: 'mob.jpg',
+        content_type: 'image/jpeg',
+      },
     };
 
     const component = normalizer.convert(entry);
@@ -54,7 +70,12 @@ describe('ContentstackCmsBannerComponentNormalizer', () => {
       uid: 'blt_hero_2',
       _content_type_uid: 'simple_responsive_banner_component',
       created_at: '2026-01-01T00:00:00.000Z',
-      media: { url: 'https://images.cs/single.jpg', filename: 'single.jpg', content_type: 'image/jpeg', title: 'Single' },
+      media: {
+        url: 'https://images.cs/single.jpg',
+        filename: 'single.jpg',
+        content_type: 'image/jpeg',
+        title: 'Single',
+      },
     };
 
     const component = normalizer.convert(entry);
@@ -76,5 +97,90 @@ describe('ContentstackCmsBannerComponentNormalizer', () => {
     const component = normalizer.convert(entry);
 
     expect(component.media).toBeUndefined();
+  });
+
+  it('maps every media field (url/code/mime/altText) from a container file', () => {
+    const component = normalizer.convert({
+      uid: 'blt_hero_full',
+      _content_type_uid: 'simple_responsive_banner_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      media_container: {
+        uid: 'blt_media',
+        _content_type_uid: 'media_container',
+        created_at: '2026-01-01T00:00:00.000Z',
+        desktop: {
+          url: 'https://images.cs/d.jpg',
+          filename: 'd.jpg',
+          content_type: 'image/jpeg',
+          title: 'Desktop hero',
+        },
+      },
+    });
+    expect(component.media?.desktop).toEqual({
+      url: 'https://images.cs/d.jpg',
+      code: 'd.jpg',
+      mime: 'image/jpeg',
+      altText: 'Desktop hero',
+    });
+  });
+
+  it('returns an empty media map when the container has no valid file fields', () => {
+    const component = normalizer.convert({
+      uid: 'blt_hero_empty',
+      _content_type_uid: 'simple_responsive_banner_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      media_container: {
+        uid: 'blt_media_empty',
+        _content_type_uid: 'media_container',
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    // Container matched but held nothing → media set, but empty (not a fallback).
+    expect(component.media).toEqual({});
+  });
+
+  it('prefers the media_container over direct per-breakpoint and single-media fields', () => {
+    const component = normalizer.convert({
+      uid: 'blt_hero_precedence',
+      _content_type_uid: 'simple_responsive_banner_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      media_container: {
+        uid: 'blt_media',
+        _content_type_uid: 'media_container',
+        created_at: '2026-01-01T00:00:00.000Z',
+        desktop: {
+          url: 'https://images.cs/container.jpg',
+          filename: 'container.jpg',
+          content_type: 'image/jpeg',
+        },
+      },
+      media_desktop: {
+        url: 'https://images.cs/direct.jpg',
+        filename: 'direct.jpg',
+        content_type: 'image/jpeg',
+      },
+      media: {
+        url: 'https://images.cs/single.jpg',
+        filename: 'single.jpg',
+        content_type: 'image/jpeg',
+      },
+    });
+    expect(component.media?.desktop?.url).toBe('https://images.cs/container.jpg');
+  });
+
+  it('fills all breakpoints from a single available direct file (tablet only)', () => {
+    const component = normalizer.convert({
+      uid: 'blt_hero_tablet',
+      _content_type_uid: 'simple_responsive_banner_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      media_tablet: {
+        url: 'https://images.cs/tab.jpg',
+        filename: 'tab.jpg',
+        content_type: 'image/jpeg',
+      },
+    });
+    for (const bp of ['desktop', 'mobile', 'tablet', 'widescreen'] as const) {
+      expect(component.media?.[bp]?.url).toBe('https://images.cs/tab.jpg');
+    }
   });
 });

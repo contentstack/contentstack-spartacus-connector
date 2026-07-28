@@ -42,6 +42,7 @@ module.exports = {
     '**/*.livepreview.spec.ts',
     '**/type-guards.spec.ts',
     '**/merge-structures.spec.ts',
+    '**/contentstack-field-mapper.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [
