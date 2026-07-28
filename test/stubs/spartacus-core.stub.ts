@@ -18,3 +18,10 @@ export enum PageRobotsMeta {
   FOLLOW = 'FOLLOW',
   NOFOLLOW = 'NOFOLLOW',
 }
+
+// Page-context sentinels used at runtime by the page adapter (SmartEdit
+// short-circuit and homepage slug resolution). Values mirror the real
+// @spartacus/core constants; the adapter specs import these same symbols, so
+// only stable identity matters here.
+export const HOME_PAGE_CONTEXT = 'homepage';
+export const SMART_EDIT_CONTEXT = 'smartedit-preview';
