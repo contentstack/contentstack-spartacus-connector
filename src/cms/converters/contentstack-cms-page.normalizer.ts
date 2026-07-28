@@ -18,14 +18,14 @@ import { effectiveSlotMap, resolveFlexType, toTypeCode } from '../model/slot-map
 import { ContentstackCmsComponentNormalizer } from './contentstack-cms-component.normalizer';
 
 /**
- * Translates a raw Contentstack `cms_page` entry (Content Model Starter Pack /
- * EP2 shipped schema) into Spartacus's native `CmsStructureModel` (`page` +
+ * Translates a raw Contentstack `cms_page` entry (the Content Model Starter Pack
+ * shipped schema) into Spartacus's native `CmsStructureModel` (`page` +
  * flat `components[]`). Because we normalize into the model Spartacus already
  * renders, the stock rendering engine (PageLayoutComponent → PageSlotComponent
  * → ComponentWrapperDirective) draws Contentstack content with no forked
  * renderer.
  *
- * EP2's `cms_page` models slots as **named per-slot multi-reference fields**
+ * The starter pack's `cms_page` models slots as **named per-slot multi-reference fields**
  * (`section1`, `section2_a`, `body_content`, … + `header`/`footer`), each
  * referencing separate component-type entries. Slot discovery is driven by
  * `SLOT_FIELD_TO_SAP_NAME` (see `slot-maps.ts`): the normalizer reads only the
@@ -34,7 +34,7 @@ import { ContentstackCmsComponentNormalizer } from './contentstack-cms-component
  * allowlist — any field NOT in the map is ignored, so page-level scalars /
  * metadata can never be mistaken for a slot (a field uid could only ever render
  * as a slot if it maps to a real SAP layout position anyway). This replaced an
- * earlier single-`modular_blocks`-field model — see DECISIONS.md D3.
+ * earlier single-`modular_blocks`-field model.
  *
  * Shape mapping:
  *   Contentstack                          Spartacus
@@ -255,7 +255,7 @@ export class ContentstackCmsPageNormalizer
   }
 
   /**
-   * Resolve the Spartacus `PageType`. EP2's `cms_page` carries a `type` field
+   * Resolve the Spartacus `PageType`. The starter pack's `cms_page` carries a `type` field
    * whose values (`ContentPage`/`ProductPage`/`CategoryPage`/`CatalogPage`)
    * align 1:1 with the `PageType` enum, so it's used directly when present; the
    * product/category-page work also authors this discriminator as `page_type`,

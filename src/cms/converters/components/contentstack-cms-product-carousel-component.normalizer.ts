@@ -6,7 +6,7 @@ import { isString } from '../../model/type-guards';
 /**
  * Resolves `product_carousel_component.products` — a multi-value TEXT field of
  * raw OCC product-URL strings (fixed from an earlier incorrect reference-type
- * cast, see DECISIONS.md) — into Spartacus's `productCodes`, a single
+ * cast) — into Spartacus's `productCodes`, a single
  * space-separated string of SKUs, matching OCC's own delivery shape via a
  * `.split('/').pop()` extraction.
  */

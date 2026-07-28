@@ -213,7 +213,7 @@ declare module '@spartacus/core' {
     ): Observable<Product | undefined>;
   }
 
-  // --- decorators (EP3 — Live Preview / Visual Editor) ---
+  // --- decorators (Live Preview / Visual Editor) ---
   export abstract class ComponentDecorator {
     abstract decorate(
       element: Element,
@@ -231,7 +231,7 @@ declare module '@spartacus/core' {
     debug(...args: any[]): void;
   }
 
-  // --- i18n / routing (EP3) ---
+  // --- i18n / routing ---
   export abstract class LanguageService {
     abstract getActive(): Observable<string>;
   }
@@ -239,7 +239,7 @@ declare module '@spartacus/core' {
     abstract getPageContext(): Observable<PageContext>;
   }
 
-  // --- NgRx store integration (EP3 — live component updates) ---
+  // --- NgRx store integration (live component updates) ---
   export interface StateWithCms {
     [key: string]: unknown;
   }

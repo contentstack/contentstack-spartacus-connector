@@ -19,7 +19,7 @@ export interface ContentstackSystemFields {
     locale?: string;
     time?: string;
   };
-  /** Present on Live Preview responses; used later by EP3. */
+  /** Present on Live Preview responses. */
   _version?: number;
 }
 
@@ -49,7 +49,7 @@ export type ContentstackReference = ContentstackEntry | { uid: string; _content_
  * the `cms_header`/`cms_footer` types.
  *
  * (This replaces the earlier single-`modular_blocks`-field model — the shipped
- * EP2 schema uses named slot reference fields instead. See DECISIONS.md D3.)
+ * schema uses named slot reference fields instead.)
  */
 export interface ContentstackCmsPageEntry extends ContentstackEntry {
   /** URL slug the page resolves by (field uid configurable via `slugField`, default `url`). */

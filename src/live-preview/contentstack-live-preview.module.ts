@@ -4,7 +4,7 @@ import { ComponentDecorator } from '@spartacus/core';
 import { ContentstackComponentDecorator } from './contentstack-component.decorator';
 
 /**
- * EP3 — Live Preview / Visual Editor bindings. Registers the Contentstack
+ * Live Preview / Visual Editor bindings. Registers the Contentstack
  * component decorator over Spartacus's `ComponentDecorator` extension point
  * (same DI "last-provider-wins" mechanism {@link ContentstackCmsModule} uses
  * for the CMS adapters). `CsEditableDirective` is `standalone: true` and
@@ -12,7 +12,7 @@ import { ContentstackComponentDecorator } from './contentstack-component.decorat
  * it needs no declaration here.
  *
  * Imported by {@link ContentstackCmsFeatureModule}; not required if an app
- * only wants the EP1 CMS override without Live Preview/Visual Editor.
+ * only wants the CMS override without Live Preview/Visual Editor.
  */
 @NgModule({
   imports: [CommonModule],

@@ -41,7 +41,7 @@ writeFileSync(
     {
       name: '@spartacus/schematics',
       version: '0.0.0-local-test-stub',
-      description: 'LOCAL TEST STUB — see test/stubs/spartacus-schematics.stub.ts. Not the real @spartacus/schematics package (registry constraint, see README/DECISIONS.md).',
+      description: 'LOCAL TEST STUB — see test/stubs/spartacus-schematics.stub.ts. Not the real @spartacus/schematics package (registry constraint, see README).',
       main: 'spartacus-schematics.stub.js',
       types: 'spartacus-schematics.stub.d.ts',
     },

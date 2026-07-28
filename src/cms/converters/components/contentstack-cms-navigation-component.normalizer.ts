@@ -14,8 +14,8 @@ import { isNavigationNode, isResolvedEntry } from '../../model/type-guards';
  * `footer_navigation_component`, and `navigation_component` into Spartacus's
  * recursive `CmsNavigationNode` tree via a `nav_node` walk: `children` recurse
  * into further nodes, `entries` resolve into leaf `CmsNavigationEntry` items
- * (here, always `cms_link_component` references — the only leaf type EP2's
- * schema links).
+ * (here, always `cms_link_component` references — the only leaf type the
+ * starter-pack schema links).
  *
  * `nav_node.uid_val` (renamed from the reserved `uid` field name) carries the
  * SAP-meaningful node id; Contentstack's own system `uid` is unrelated.
