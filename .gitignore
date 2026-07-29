@@ -36,6 +36,7 @@ Thumbs.db
 _backup_*/
 logs/
 contentstack-cli-logs/
+audit-report/
 
 # Compiled schematics (built in place by `npm run build:schematics`)
 schematics/**/*.js

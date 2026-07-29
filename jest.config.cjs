@@ -39,6 +39,8 @@ module.exports = {
   testMatch: [
     '**/*.normalizer.spec.ts',
     '**/*.livepreview.spec.ts',
+    '**/*field-mapper.spec.ts',
+    '**/*.adapter.spec.ts',
     '**/type-guards.spec.ts',
     '**/merge-structures.spec.ts',
   ],
@@ -64,6 +66,7 @@ module.exports = {
   moduleNameMapper: {
     '^@spartacus/core$': '<rootDir>/test/stubs/spartacus-core.stub.ts',
     '^@angular/core$': '<rootDir>/test/stubs/angular-core.stub.ts',
+    '^@angular/common$': '<rootDir>/test/stubs/angular-common.stub.ts',
     '^@contentstack/delivery-sdk$':
       '<rootDir>/test/stubs/contentstack-delivery-sdk.stub.ts',
   },
