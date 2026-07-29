@@ -62,6 +62,13 @@ Help-text pattern per slot field, e.g. on `landing_page.section1`:
 > template's slot fields (with display names + help text) — so editors see only the relevant,
 > labelled fields rather than one large superset `cms_page`.
 
+**Routing per-template types.** The connector resolves the home / default route via
+`cmsPageContentType`, and every other route via the `contentTypeByUrl` config map
+(slug → content-type uid), e.g. `{ '/organization': 'company_page' }`. Each route is
+still matched by its own slug; routes not listed fall back to `cmsPageContentType`
+(then to OCC). This is how a stack with many per-template page types is served
+without one superset `cms_page`.
+
 ### 3.2 Component content types (the reusable blocks)
 
 | Content type (uid) → SAP typeCode | Key fields |

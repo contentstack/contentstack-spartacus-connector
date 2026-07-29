@@ -95,9 +95,26 @@ npm install @contentstack/contentstack-spartacus-connector @contentstack/deliver
 
 See `ContentstackConfig` (`src/config/contentstack-config.ts`). Key fields:
 `delivery.{apiKey,deliveryToken,environment,region,branch,livePreview}`,
-`cmsPageContentType`, `slugField`, `pageTypeMapping`, `includeReferences`
-(defaults to all slot + header/footer fields), `timeoutMs`, and
-`componentContentType` (only for standalone component lookups — see D9).
+`cmsPageContentType`, `contentTypeByUrl`, `slugField`, `pageTypeMapping`,
+`includeReferences` (defaults to all slot + header/footer fields), `timeoutMs`,
+and `componentContentType` (only for standalone component lookups — see D9).
+
+**`contentTypeByUrl`** — a per-route content-type override keyed by the route
+slug, e.g. `{ '/organization': 'company_page' }`. When a content route's resolved
+slug matches a key, the page adapter queries that content type instead of the
+default `cmsPageContentType` (still matching by the same slug). Use it when
+different routes map to different per-template page types (e.g. a B2B "My Company"
+page) without a `sharedSlug` mapping; unlisted routes fall back to
+`cmsPageContentType`.
+
+**Responsive banner media** — `simple_responsive_banner_component` resolves its
+image, in priority order, from: (1) a referenced `media_container` entry — either
+a single reference or a single-element array, with breakpoint fields named either
+`desktop`/`mobile`/`tablet`/`widescreen` **or** `media_desktop`/…; (2) direct
+per-breakpoint `media_<breakpoint>` file fields on the banner; (3) a single `media`
+file. The banner's `headline` and `content` are passed through to the component
+data so an app component can render an icon + title + description card (the stock
+`cx-banner` renders image-only; see `powertools-commerce-app`'s `cms-banner.component.ts`).
 Set `delivery.livePreview: true` to enable Live Preview / Visual Editor
 (entry tagging + live updates); import the library's `CsEditableDirective` /
 `CsEmptyBlockParentDirective` in your slot/component templates for per-field

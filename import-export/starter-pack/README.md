@@ -63,7 +63,8 @@ With the storefront `localeMapping: { en:'en-us', de:'de-de', ja:'ja-jp', zh:'zh
 - **Provisioning = `csdx auth:login`** (or a scoped, expiring management token) — dev machine
   only, never committed, never shipped.
 
-## Known connector follow-up
-The connector resolves a **single** `cmsPageContentType` per route. With per-template page
-types, point it at `landing_page` for the home demo; other page types fall back to OCC until
-the connector supports resolving across multiple page content types.
+## Per-template routing
+The connector resolves the home / default route via `cmsPageContentType` (point it at
+`landing_page` for the home demo), and any other route via the `contentTypeByUrl` config
+map (slug → content-type uid, e.g. `{ '/organization': 'company_page' }`). Routes not
+listed fall back to `cmsPageContentType`, then to OCC.
