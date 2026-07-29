@@ -143,7 +143,8 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
    *    `ProductDetailsPageTemplate` / `ProductListPageTemplate` entry serves
    *    every SKU / category; the product/facet data hydrates from OCC.
    *  - **Homepage** resolves to slug `/`.
-   *  - **Content pages** resolve per-route: `slugField == pageContext.id`.
+   *  - **Content pages** resolve per-route: `slugField == pageContext.id`
+   *    (optionally rewritten by `slugTransform` — see {@link resolveSlug}).
    */
   protected resolveRequest(pageContext: PageContext): {
     contentType: string;
@@ -166,7 +167,19 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     return {
       contentType: defaultContentType,
       slugField: defaultSlugField,
-      slug: pageContext.id === HOME_PAGE_CONTEXT ? '/' : pageContext.id,
+      slug: this.resolveSlug(pageContext),
     };
+  }
+
+  /**
+   * The per-route slug for a content page: `/` for the homepage, else
+   * `pageContext.id` — rewritten by `contentstack.slugTransform` when
+   * configured (see its JSDoc for why this never applies to the shared-slug
+   * path in {@link resolveRequest}).
+   */
+  protected resolveSlug(pageContext: PageContext): string {
+    const raw = pageContext.id === HOME_PAGE_CONTEXT ? '/' : pageContext.id;
+    const transform = this.config.contentstack?.slugTransform;
+    return transform ? raw.replace(transform.pattern, transform.replacement) : raw;
   }
 }

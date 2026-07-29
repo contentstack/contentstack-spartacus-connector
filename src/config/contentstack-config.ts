@@ -79,6 +79,24 @@ export abstract class ContentstackConfig {
     slugField?: string;
 
     /**
+     * Optional regex rewrite applied to a route's slug (`PageContext.id`) before
+     * it's queried against `slugField` — for when OCC's route and the CMS
+     * entry's authored slug don't match byte-for-byte (a locale/category
+     * prefix OCC includes but the CMS entry omits, differing separators, …).
+     * Applied via `slug.replace(pattern, replacement)`, same semantics as
+     * `String.replace`. Only applies to per-route content pages; page types
+     * resolved via `ContentstackPageTypeMapping.sharedSlug` use that fixed
+     * config value directly and are never route-derived, so a rewrite has
+     * nothing to act on there.
+     *
+     * Example — strip a leading locale segment OCC includes in the route but
+     * the CMS entry's `url` field omits:
+     * `{ pattern: /^\/en\//, replacement: '/' }` turns `/en/about-us` into
+     * `/about-us` before the query runs.
+     */
+    slugTransform?: { pattern: RegExp; replacement: string };
+
+    /**
      * Maps a Spartacus site language isocode (what `LanguageService.getActive()`
      * emits, e.g. `en`, `de`) to the Contentstack locale code content is authored
      * in (e.g. `en-us`, `de-de`). The delivery layer resolves the active language

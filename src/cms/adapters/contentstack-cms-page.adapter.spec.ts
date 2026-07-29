@@ -133,6 +133,59 @@ describe('ContentstackCmsPageAdapter', () => {
         'en',
       );
     });
+
+    describe('slugTransform', () => {
+      it('rewrites the route slug before querying when configured', () => {
+        const { adapter, client } = create({
+          cs: { slugTransform: { pattern: /^\/en\//, replacement: '/' } },
+        });
+        firstValue(adapter.load(ctx('/en/about-us')));
+        expect(client.getPageBySlug).toHaveBeenCalledWith(
+          'content_page',
+          'url',
+          '/about-us',
+          [],
+          'en',
+        );
+      });
+
+      it('is a no-op by default (no config, no change)', () => {
+        const { adapter, client } = create();
+        firstValue(adapter.load(ctx('about-us')));
+        expect(client.getPageBySlug).toHaveBeenCalledWith(
+          'content_page',
+          'url',
+          'about-us',
+          [],
+          'en',
+        );
+      });
+
+      it('does not apply to the shared-slug path (product/category pages)', () => {
+        const { adapter, client } = create({
+          cs: {
+            // A transform that WOULD alter "product" if it were (wrongly)
+            // applied to the shared-slug value.
+            slugTransform: { pattern: /product/, replacement: 'mutated' },
+            pageTypeMapping: {
+              ProductPage: {
+                sharedSlug: 'product',
+                slugField: 'url',
+                contentTypeUid: 'product_page',
+              },
+            },
+          },
+        });
+        firstValue(adapter.load(ctx('1934793', 'ProductPage')));
+        expect(client.getPageBySlug).toHaveBeenCalledWith(
+          'product_page',
+          'url',
+          'product',
+          [],
+          'en',
+        );
+      });
+    });
   });
 
   describe('hybrid merge (occFallback: true)', () => {

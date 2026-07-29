@@ -62,7 +62,12 @@ components outside a page's `modular_blocks`. Otherwise this warning is harmless
 entry's `url` field isn't literally `/`, the query returns nothing.
 
 **Fix:** make sure the homepage entry's slug field value is exactly `/`, or adjust
-`slugField`/your content model to match.
+`slugField`/your content model to match. The same root cause — OCC's route not
+matching the CMS-authored slug byte-for-byte — can happen on any content page,
+not just the homepage (e.g. a locale or category prefix OCC includes that the
+CMS entry omits). Rather than reauthoring every entry's slug, configure
+`slugTransform: { pattern, replacement }` to rewrite the route before it's
+queried; see its JSDoc on `ContentstackConfig` for an example.
 
 ---
 
