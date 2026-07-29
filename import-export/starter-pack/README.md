@@ -5,7 +5,7 @@ import format. See `../../CONTENT-MODEL.md` for the design.
 
 ## Contents
 
-- `content_types/` — **14 content types** (5 per-template page types + 9 editorial
+- `content_types/` — **17 content types** (5 per-template page types + 12 editorial
   component types; functional components render from OCC in the hybrid model).
 - `locales/` — `en-us` (master) + `de-de`, `ja-jp`, `zh-cn` (all fall back to `en-us`).
 - `entries/` — a small demo seed: a home `landing_page` (`/`) with a Contentstack hero
@@ -26,17 +26,33 @@ csdx cm:stacks:import --stack-api-key <YOUR_STACK_API_KEY> \
   --data-dir ./import-export/starter-pack --yes
 ```
 
-One command imports the **14** content types, **4** locales, and **6** seed entries, and
+One command imports the **17** content types, **4** locales, and **6** seed entries, and
 creates a **`development`** environment. Then, in the Contentstack UI, **publish** the seed
 entries to `development` and create a **delivery token** for that environment — that token +
 the stack API key are the only credentials the storefront needs. (No manual environment
 setup: the pack ships `development` for you.)
 
 ✅ **Validated (import + round-trip export)** with `@contentstack/cli` v1.65 against a fresh
-stack: 14 content types (reference-linked), 4 locales, 6 seed entries (`en-us` + `de-de`,
-references resolved), and the `development` environment all import — and re-export — cleanly
-**with auditing on** (no `--skip-audit`). `ja-jp`/`zh-cn` ship no entries and fall back to
-`en-us` when the storefront sets `includeFallback: true`.
+stack: the original 14 content types (reference-linked), 4 locales, 6 seed entries (`en-us` +
+`de-de`, references resolved), and the `development` environment all import — and re-export —
+cleanly **with auditing on** (no `--skip-audit`).
+
+`media_container`, `cms_tab_paragraph_component`, and `cms_tab_paragraph_container` (added later,
+bringing the total to 17) have also been import-validated against a live stack — with one real
+finding along the way: the first attempt used a native `data_type: "json"` field for
+`tab_components`, which the Content Type API rejected outright (`cannot set json data type for
+this field`; that data type isn't a plain schema field via this API). Fixed to a multiline `text`
+field — the normalizer's `parseJsonArray` already `JSON.parse`s a string value, so this is the
+field type it was actually written for. Re-validated with a clean import against a genuinely
+fresh stack: all 17 content types, no errors.
+
+Beyond the schema import, the new three were also verified end-to-end in a running storefront:
+real `cms_tab_paragraph_component` / `cms_tab_paragraph_container` entries were authored,
+referenced from a `product_page` entry's `Tabs` slot, published, and confirmed rendering
+correctly on a live PDP — the container's tab strip switches correctly with its panels hydrating
+real per-SKU OCC data by component id, and the standalone paragraph entry renders its authored
+content as a sibling block. `ja-jp`/`zh-cn` ship no entries and fall back to `en-us` when the
+storefront sets `includeFallback: true`.
 
 > **Why the pack is a full csdx export skeleton:** csdx imports a *complete* export data-dir —
 > it expects every module folder to exist (its import-time audit loads prerequisite data from

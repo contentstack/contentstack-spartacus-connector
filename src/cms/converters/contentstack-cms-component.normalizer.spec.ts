@@ -85,6 +85,16 @@ describe('ContentstackCmsComponentNormalizer', () => {
     expect((component as any).flexType).toBe('ProductIntroComponent');
   });
 
+  it('maps cms_tab_paragraph_component content through the field mapper', () => {
+    const component = normalizer.convert({
+      uid: 'blt_tab_paragraph',
+      _content_type_uid: 'cms_tab_paragraph_component',
+      content: '<p>Specs</p>',
+    });
+    expect(component.typeCode).toBe('CMSTabParagraphComponent');
+    expect((component as any).content).toBe('<p>Specs</p>');
+  });
+
   it('routes banner typecodes through the banner normalizer (media resolved)', () => {
     const component = normalizer.convert({
       uid: 'blt_banner',

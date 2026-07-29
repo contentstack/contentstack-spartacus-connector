@@ -66,17 +66,57 @@ Help-text pattern per slot field, e.g. on `landing_page.section1`:
 
 | Content type (uid) → SAP typeCode | Key fields |
 |---|---|
-| `simple_responsive_banner_component` → SimpleResponsiveBannerComponent | `title`, `url_link`, `media`, `media_mobile`, `media_tablet`, `media_desktop`, `media_widescreen` (file) |
-| `simple_banner_component` → SimpleBannerComponent | `title`, `url_link`, `media*` |
+| `simple_responsive_banner_component` → SimpleResponsiveBannerComponent | `title`, `url_link`, `media_container` (→media_container), `media`, `media_mobile`, `media_tablet`, `media_desktop`, `media_widescreen` (file) |
+| `simple_banner_component` → SimpleBannerComponent | `title`, `url_link`, `media_container` (→media_container), `media*` |
+| `media_container` → MediaContainer | `title`, `desktop`, `mobile`, `tablet`, `widescreen` (file) — a reusable image set referenced from a banner's `media_container` field |
 | `product_carousel_component` → ProductCarouselComponent | `title`, `products` (multi-value text: SKUs) |
 | `cms_paragraph_component` → CMSParagraphComponent | `title`, `content` (multiline/rich text) |
+| `cms_tab_paragraph_component` → CMSTabParagraphComponent | `title`, `content` (multiline/rich text) — same shape and renderer as `cms_paragraph_component`; SAP just tracks it as a distinct type |
 | `cms_link_component` → CMSLinkComponent | `title`, `link_name`, `url`, `target` |
 | `cms_flex_component` → CMSFlexComponent | `title`, `flex_type` |
+| `cms_tab_paragraph_container` → CMSTabParagraphContainer | `title`, `component_uid` (optional stable id), `tab_components` (multiline text: a pasted JSON array of `{uid, type_code}`) — a tab strip whose panels hydrate **from OCC by component id**; see below |
 | `nav_node` (+ `category_navigation_component`, `footer_navigation_component`) | nav tree: `uid_val`, `title`, `children` (→nav_node), `entries` (→cms_link_component) |
 
 Functional components (search box, mini-cart, breadcrumb, add-to-cart, refinements, …) carry **no
 editorial data** — they hydrate from OCC. In hybrid mode you usually don't author these at all;
 OCC serves them. Include only the ones you intend to place via Contentstack.
+
+#### Media Container — resolving a nested reference
+
+`media_container` is referenced *from inside* a banner entry, not placed directly in a slot. To
+resolve it, Contentstack needs the full nested path in `includeReferences` — a bare `section1`
+resolves the banner, but not the banner's own `media_container` field. Extend the storefront's
+config per slot you use it in:
+
+```ts
+includeReferences: [...defaultContentstackConfig.contentstack.includeReferences!, 'section1.media_container']
+```
+
+Without this, the field resolves as an unexpanded pointer, `isMediaContainer()` returns `false`,
+and the banner normalizer silently falls back to its direct per-breakpoint fields (harmless, just
+not what you authored). If you only use the direct `media`/`media_<breakpoint>` file fields, no
+config change is needed.
+
+#### Tab Paragraph Container — functional tabs, not editorial content
+
+`cms_tab_paragraph_container`'s `tab_components` field is plain multiline text — Contentstack's
+Content Type API doesn't accept a native `json` schema field, so paste a JSON array as text
+instead; the normalizer parses it with `JSON.parse`. It describes **existing SAP CMS component
+ids** (e.g. `ProductDetailsTabComponent`), one per tab, in display order:
+
+```json
+[
+  { "uid": "tab_details", "type_code": "ProductDetailsTabComponent" },
+  { "uid": "tab_specs", "type_code": "ProductSpecsTabComponent" }
+]
+```
+
+Each panel's content hydrates from SAP OCC by that `uid` — it is **not** authored in Contentstack.
+`cms_tab_paragraph_component` is a separate, ordinary editorial paragraph type (identical to
+`cms_paragraph_component`); it is not itself a tab panel unless your app also configures
+`contentstack.componentContentType` to resolve standalone lookups against it.
+`component_uid` is optional and only needed if you want the tab-label translation keys keyed to a
+stable id (e.g. `TabPanelContainer`) rather than this entry's own uid.
 
 ### 3.3 Field naming ↔ SAP mapping (why lowercase)
 

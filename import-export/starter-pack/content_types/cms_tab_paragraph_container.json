@@ -1,0 +1,51 @@
+{
+  "title": "CMS Tab Paragraph Container",
+  "uid": "cms_tab_paragraph_container",
+  "description": "A strip of tabs whose panels hydrate from SAP OCC by component id (no editorial content lives here). SAP typeCode CMSTabParagraphContainer.",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "mandatory": true,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "_default": true,
+        "instruction": "Internal name for this tab set."
+      }
+    },
+    {
+      "display_name": "Component Id",
+      "uid": "component_uid",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Optional: a stable SAP component id (e.g. \"TabPanelContainer\") used to build the tab-label translation keys. Leave empty to use the id of this entry."
+      }
+    },
+    {
+      "display_name": "Tab Components",
+      "uid": "tab_components",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "multiline": true,
+        "instruction": "Paste a JSON array of the tab panels, in display order, each an existing SAP CMS component reference: [{\"uid\": \"ProductDetailsTabComponent\", \"type_code\": \"ProductDetailsTabComponent\"}, ...]. Each panel content hydrates from SAP OCC by that uid — it is not authored here."
+      }
+    }
+  ],
+  "options": {
+    "is_page": false,
+    "singleton": false,
+    "sub_title": [],
+    "title": "title"
+  }
+}

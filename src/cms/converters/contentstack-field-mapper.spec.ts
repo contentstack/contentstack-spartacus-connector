@@ -78,6 +78,15 @@ describe('ContentstackFieldMapper', () => {
     });
   });
 
+  describe('CMSTabParagraphComponent', () => {
+    it('maps identically to CMSParagraphComponent (both render via the stock paragraph component)', () => {
+      expect(mapper.map('CMSTabParagraphComponent', { content: '<p>Tab body</p>' })).toEqual({
+        content: '<p>Tab body</p>',
+      });
+      expect(mapper.map('CMSTabParagraphComponent', {})).toEqual({ content: '' });
+    });
+  });
+
   describe('ProductCarouselComponent', () => {
     it('maps title/productCodes and stringifies popup, defaulting scroll', () => {
       expect(

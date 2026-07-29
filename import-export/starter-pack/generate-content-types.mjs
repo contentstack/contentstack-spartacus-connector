@@ -7,10 +7,13 @@
  * Source of truth for the model — edit the compact spec below, then:
  *   node import-export/starter-pack/generate-content-types.mjs
  *
- * Only EDITORIAL component types are modeled (banner, carousel, paragraph, link,
- * flex, nav). Functional components (search, mini-cart, breadcrumb, add-to-cart,
- * refinements, …) are intentionally omitted — in the hybrid model they render
- * from SAP OCC, not Contentstack.
+ * Only EDITORIAL component types are modeled (banner, media container, carousel,
+ * paragraph, tab paragraph + its container, link, flex, nav). Functional
+ * components (search, mini-cart, breadcrumb, add-to-cart, refinements, …) are
+ * intentionally omitted — in the hybrid model they render from SAP OCC, not
+ * Contentstack. The tab container itself is likewise functional: its panels
+ * hydrate from OCC by component id (see the `tab_components` field below) —
+ * only the container shell + tab-label wiring live here.
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -36,6 +39,24 @@ const ref = (uid, name, reference_to, instruction = '') => ({
   unique: false, non_localizable: false,
   field_metadata: { ref_multiple: true, ref_multiple_content_types: true, instruction },
 });
+// A single (non-multiple) reference — for fields the normalizer reads as one
+// resolved entry, not an array (e.g. media_container). Contentstack still
+// returns these as a plain object, not `[entry]`, so `ref_multiple` must be
+// false — unlike the multi-reference `ref()` above.
+const singleRef = (uid, name, reference_to, instruction = '') => ({
+  display_name: name, uid, data_type: 'reference', reference_to, mandatory: false, multiple: false,
+  unique: false, non_localizable: false,
+  field_metadata: { ref_multiple: false, ref_multiple_content_types: false, instruction },
+});
+// A JSON-array-as-text field: Contentstack's Content Type API rejects a plain
+// `data_type: 'json'` schema field (verified against a live stack: "cannot set
+// json data type for this field" — that data type is only available via a
+// marketplace/extension mechanism, not as a first-class schema field). The
+// normalizer's `parseJsonArray` already handles a string value via
+// `JSON.parse`, so a multiline text field authors paste JSON into is the
+// correct, working shape.
+const jsonText = (uid, name, instruction = '') =>
+  text(uid, name, { multiline: true, instruction });
 const ct = (title, uid, description, schema, subTitle = []) => ({
   title, uid, description, schema,
   options: { is_page: false, singleton: false, sub_title: subTitle, title: 'title' },
@@ -44,7 +65,7 @@ const ct = (title, uid, description, schema, subTitle = []) => ({
 // Component types that may fill a content slot (editorial only).
 const EDITORIAL = [
   'simple_responsive_banner_component', 'simple_banner_component', 'product_carousel_component',
-  'cms_paragraph_component', 'cms_link_component', 'cms_flex_component',
+  'cms_paragraph_component', 'cms_tab_paragraph_component', 'cms_link_component', 'cms_flex_component',
 ];
 const NAV = ['category_navigation_component', 'footer_navigation_component', 'cms_link_component'];
 
@@ -59,7 +80,12 @@ const pageMeta = (template) => [
 const slot = (uid, name, position, refs = EDITORIAL, extra = '') =>
   ref(uid, name, refs, `Maps to SAP slot ${position}. ${extra}Leave empty to keep SAP's.`);
 
+// Priority order (see contentstack-cms-banner-component.normalizer.ts): a
+// referenced Media Container wins over the direct per-breakpoint fields, which
+// win over the single Media fallback.
 const bannerMedia = [
+  singleRef('media_container', 'Media Container', ['media_container'],
+    'Reusable per-breakpoint image set (desktop/mobile/tablet/widescreen). Takes priority over the direct Media fields below — set this OR them, not both.'),
   file('media', 'Media', 'Fallback image, used for any breakpoint without its own image below.'),
   file('media_mobile', 'Media Mobile', 'Image for the mobile breakpoint (optional).'),
   file('media_tablet', 'Media Tablet', 'Image for the tablet breakpoint (optional).'),
@@ -74,13 +100,30 @@ const contentTypes = [
     [titleField('Internal name for this banner.'), text('url_link', 'URL Link', { instruction: 'Click-through destination.' }), ...bannerMedia]),
   ct('Simple Banner Component', 'simple_banner_component',
     'A single-image banner with a click-through link. SAP typeCode SimpleBannerComponent.',
-    [titleField('Internal name for this banner.'), text('url_link', 'URL Link', { instruction: 'Click-through destination.' }), file('media', 'Media', 'Banner image.')]),
+    [titleField('Internal name for this banner.'), text('url_link', 'URL Link', { instruction: 'Click-through destination.' }),
+     singleRef('media_container', 'Media Container', ['media_container'], 'Reusable media set. Takes priority over Media below — set this OR it, not both.'),
+     file('media', 'Media', 'Banner image.')]),
   ct('Product Carousel Component', 'product_carousel_component',
     'A carousel of products by SKU; live price/stock/media hydrate from SAP OCC. SAP typeCode ProductCarouselComponent.',
     [titleField('Heading shown above the carousel.'), text('products', 'Products', { multiple: true, instruction: 'SAP product codes (SKUs), one per value. Only the code is stored; OCC provides live price/stock/image.' })]),
   ct('CMS Paragraph Component', 'cms_paragraph_component',
     'Rich-text / HTML content block. SAP typeCode CMSParagraphComponent.',
     [titleField('Internal name for this paragraph block.'), text('content', 'Content', { multiline: true, instruction: 'The HTML/rich-text body shown in the slot.' })]),
+  ct('CMS Tab Paragraph Component', 'cms_tab_paragraph_component',
+    'Rich-text / HTML content block, rendered the same way as CMS Paragraph Component (SAP registers both to its stock paragraph renderer). SAP typeCode CMSTabParagraphComponent.',
+    [titleField('Internal name for this tab content block.'), text('content', 'Content', { multiline: true, instruction: 'The HTML/rich-text body shown in the slot.' })]),
+  ct('Media Container', 'media_container',
+    'A reusable per-breakpoint image set, referenced from the Media Container field on banner components so one asset set can back multiple banners. SAP typeCode MediaContainer.',
+    [titleField('Internal name for this media set.'),
+     file('desktop', 'Desktop', 'Image for the desktop breakpoint (optional).'),
+     file('mobile', 'Mobile', 'Image for the mobile breakpoint (optional).'),
+     file('tablet', 'Tablet', 'Image for the tablet breakpoint (optional).'),
+     file('widescreen', 'Widescreen', 'Image for the widescreen breakpoint (optional).')]),
+  ct('CMS Tab Paragraph Container', 'cms_tab_paragraph_container',
+    'A strip of tabs whose panels hydrate from SAP OCC by component id (no editorial content lives here). SAP typeCode CMSTabParagraphContainer.',
+    [titleField('Internal name for this tab set.'),
+     text('component_uid', 'Component Id', { instruction: 'Optional: a stable SAP component id (e.g. "TabPanelContainer") used to build the tab-label translation keys. Leave empty to use the id of this entry.' }),
+     jsonText('tab_components', 'Tab Components', 'Paste a JSON array of the tab panels, in display order, each an existing SAP CMS component reference: [{"uid": "ProductDetailsTabComponent", "type_code": "ProductDetailsTabComponent"}, ...]. Each panel content hydrates from SAP OCC by that uid — it is not authored here.')]),
   ct('CMS Link Component', 'cms_link_component',
     'A single link (used standalone or as a navigation leaf). SAP typeCode CMSLinkComponent.',
     [titleField('Internal name for this link.'), text('link_name', 'Link Name', { instruction: 'Visible link text.' }), text('url', 'URL', { instruction: 'Link destination.' }), text('target', 'Target', { instruction: '"true" to open in a new tab, else "false".' })]),
@@ -128,7 +171,7 @@ const contentTypes = [
      slot('summary', 'Summary', 'Summary'),
      slot('up_selling', 'Up Selling', 'UpSelling'),
      slot('cross_selling', 'Cross Selling', 'CrossSelling'),
-     slot('tabs', 'Tabs', 'Tabs'),
+     slot('tabs', 'Tabs', 'Tabs', [...EDITORIAL, 'cms_tab_paragraph_container'], 'Accepts a Tab Container for a tabbed panel, or any editorial component for a plain block. '),
      slot('placeholder_content_slot', 'Placeholder Content', 'PlaceholderContentSlot')], ['url']),
   ct('Category Page', 'category_page',
     'CMS overrides for SAP ProductListPageTemplate (category/search). One shared entry serves every PLP (facets/products hydrate from OCC).',

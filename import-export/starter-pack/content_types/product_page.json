@@ -61,6 +61,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],
@@ -83,6 +84,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],
@@ -105,6 +107,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],
@@ -127,8 +130,10 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
-        "cms_flex_component"
+        "cms_flex_component",
+        "cms_tab_paragraph_container"
       ],
       "mandatory": false,
       "multiple": true,
@@ -137,7 +142,7 @@
       "field_metadata": {
         "ref_multiple": true,
         "ref_multiple_content_types": true,
-        "instruction": "Maps to SAP slot Tabs. Leave empty to keep SAP's."
+        "instruction": "Maps to SAP slot Tabs. Accepts a Tab Container for a tabbed panel, or any editorial component for a plain block. Leave empty to keep SAP's."
       }
     },
     {
@@ -149,6 +154,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],

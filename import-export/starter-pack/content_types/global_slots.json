@@ -25,6 +25,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],
@@ -47,6 +48,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],
@@ -69,6 +71,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],
@@ -110,6 +113,7 @@
         "simple_banner_component",
         "product_carousel_component",
         "cms_paragraph_component",
+        "cms_tab_paragraph_component",
         "cms_link_component",
         "cms_flex_component"
       ],

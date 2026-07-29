@@ -28,6 +28,7 @@ export class ContentstackFieldMapper {
       case 'CMSLinkComponent':
         return this.link(fields);
       case 'CMSParagraphComponent':
+      case 'CMSTabParagraphComponent':
         return { content: fields['content'] ?? '' };
       case 'ProductCarouselComponent':
         return {
