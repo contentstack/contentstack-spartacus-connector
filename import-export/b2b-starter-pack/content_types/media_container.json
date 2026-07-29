@@ -1,0 +1,74 @@
+{
+  "title": "Media Container",
+  "uid": "media_container",
+  "description": "Per-breakpoint images used by a banner. SAP typeCode MediaContainer.",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "mandatory": true,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "_default": true,
+        "instruction": "Internal name."
+      }
+    },
+    {
+      "display_name": "Desktop",
+      "uid": "media_desktop",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "Mobile",
+      "uid": "media_mobile",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "Tablet",
+      "uid": "media_tablet",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "Widescreen",
+      "uid": "media_widescreen",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    }
+  ],
+  "options": {
+    "is_page": false,
+    "singleton": false,
+    "sub_title": [],
+    "title": "title"
+  }
+}

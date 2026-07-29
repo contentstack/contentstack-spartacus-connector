@@ -1,0 +1,63 @@
+{
+  "title": "Product Carousel Component",
+  "uid": "product_carousel_component",
+  "description": "Carousel of products by SKU; live data hydrates from OCC. SAP typeCode ProductCarouselComponent.",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "mandatory": true,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "_default": true,
+        "instruction": "Heading above the carousel."
+      }
+    },
+    {
+      "display_name": "Scroll",
+      "uid": "scroll",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "Popup",
+      "uid": "popup",
+      "data_type": "boolean",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "",
+        "default_value": false
+      }
+    },
+    {
+      "display_name": "Products",
+      "uid": "products",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": true,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "SAP product codes (SKUs)."
+      }
+    }
+  ],
+  "options": {
+    "is_page": false,
+    "singleton": false,
+    "sub_title": [],
+    "title": "title"
+  }
+}

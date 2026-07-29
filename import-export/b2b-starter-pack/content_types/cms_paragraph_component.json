@@ -1,0 +1,39 @@
+{
+  "title": "CMS Paragraph Component",
+  "uid": "cms_paragraph_component",
+  "description": "Rich-text / HTML block. SAP typeCode CMSParagraphComponent.",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "mandatory": true,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "_default": true,
+        "instruction": "Internal name."
+      }
+    },
+    {
+      "display_name": "Content",
+      "uid": "content",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "multiline": true,
+        "instruction": ""
+      }
+    }
+  ],
+  "options": {
+    "is_page": false,
+    "singleton": false,
+    "sub_title": [],
+    "title": "title"
+  }
+}

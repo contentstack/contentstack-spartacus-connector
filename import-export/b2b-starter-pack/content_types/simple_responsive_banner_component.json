@@ -1,0 +1,117 @@
+{
+  "title": "Simple Responsive Banner Component",
+  "uid": "simple_responsive_banner_component",
+  "description": "Responsive banner with copy, a link and images. SAP typeCode SimpleResponsiveBannerComponent.",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "mandatory": true,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "_default": true,
+        "instruction": "Internal name for this banner."
+      }
+    },
+    {
+      "display_name": "Headline",
+      "uid": "headline",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "Content",
+      "uid": "content",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "multiline": true,
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "URL Link",
+      "uid": "url_link",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "External",
+      "uid": "external",
+      "data_type": "boolean",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "",
+        "default_value": false
+      }
+    },
+    {
+      "display_name": "Style Classes",
+      "uid": "style_classes",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": ""
+      }
+    },
+    {
+      "display_name": "Media",
+      "uid": "media",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Single image (fallback)."
+      }
+    },
+    {
+      "display_name": "Media Container",
+      "uid": "media_container",
+      "data_type": "reference",
+      "reference_to": [
+        "media_container"
+      ],
+      "mandatory": false,
+      "multiple": true,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "ref_multiple": true,
+        "ref_multiple_content_types": true,
+        "instruction": "Per-breakpoint images."
+      }
+    }
+  ],
+  "options": {
+    "is_page": false,
+    "singleton": false,
+    "sub_title": [],
+    "title": "title"
+  }
+}

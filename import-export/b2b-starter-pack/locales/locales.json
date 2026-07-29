@@ -1,0 +1,5 @@
+{
+  "seed_de": {"code":"de-de","name":"German - Germany","fallback_locale":"en-us"},
+  "seed_ja": {"code":"ja-jp","name":"Japanese - Japan","fallback_locale":"en-us"},
+  "seed_zh": {"code":"zh-cn","name":"Chinese - China","fallback_locale":"en-us"}
+}
