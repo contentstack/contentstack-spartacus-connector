@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on monday"],
+  "dependencyDashboard": true,
+  "packageRules": [
+    {
+      "matchPackageNames": ["@spartacus/*"],
+      "enabled": false,
+      "description": "Pinned to a version manually verified compatible against SAP's private RBSC registry (see typings/ + tsconfig.typecheck.json). Bumping needs a human to re-verify, not an automated PR — tracked on the dependency dashboard instead of opened as a PR."
+    }
+  ]
+}
