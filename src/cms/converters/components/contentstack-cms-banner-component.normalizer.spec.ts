@@ -31,6 +31,50 @@ describe('ContentstackCmsBannerComponentNormalizer', () => {
     expect(component.media?.tablet).toBeUndefined();
   });
 
+  it('resolves media when media_container is a single-element array (multi-reference field)', () => {
+    const entry: ContentstackEntry = {
+      uid: 'blt_hero_arr',
+      _content_type_uid: 'simple_responsive_banner_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      // Full-parity pack models media_container as a multi-reference field, so
+      // the resolved value is an ARRAY of one media_container entry.
+      media_container: [
+        {
+          uid: 'blt_media_arr',
+          _content_type_uid: 'media_container',
+          created_at: '2026-01-01T00:00:00.000Z',
+          desktop: { url: 'https://images.cs/arr-desktop.jpg', filename: 'arr-desktop.jpg', content_type: 'image/jpeg' },
+        },
+      ],
+    } as unknown as ContentstackEntry;
+
+    const component = normalizer.convert(entry);
+
+    expect(component.media?.desktop?.url).toBe('https://images.cs/arr-desktop.jpg');
+  });
+
+  it('resolves media_container breakpoints named media_<breakpoint> (starter-pack convention)', () => {
+    const entry: ContentstackEntry = {
+      uid: 'blt_hero_mc',
+      _content_type_uid: 'simple_responsive_banner_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      media_container: {
+        uid: 'blt_media_mc',
+        _content_type_uid: 'media_container',
+        created_at: '2026-01-01T00:00:00.000Z',
+        // fields named media_desktop… rather than desktop…
+        media_desktop: { url: 'https://images.cs/md.jpg', filename: 'md.jpg', content_type: 'image/jpeg' },
+        media_mobile: { url: 'https://images.cs/mm.jpg', filename: 'mm.jpg', content_type: 'image/jpeg' },
+      },
+    } as unknown as ContentstackEntry;
+
+    const component = normalizer.convert(entry);
+
+    expect(component.media?.desktop?.url).toBe('https://images.cs/md.jpg');
+    expect(component.media?.mobile?.url).toBe('https://images.cs/mm.jpg');
+    expect(component.media?.tablet).toBeUndefined();
+  });
+
   it('resolves media from direct per-breakpoint file fields, filling gaps from the largest', () => {
     const entry: ContentstackEntry = {
       uid: 'blt_hero_bp',

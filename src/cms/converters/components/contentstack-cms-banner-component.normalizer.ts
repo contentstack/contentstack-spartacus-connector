@@ -21,11 +21,22 @@ export class ContentstackCmsBannerComponentNormalizer
   implements Converter<ContentstackEntry, CmsBannerComponent>
 {
   convert(source: ContentstackEntry, target: CmsBannerComponent = {}): CmsBannerComponent {
-    const container = source['media_container'] as ContentstackReference | undefined;
+    // `media_container` may be a single reference (starter pack) or a
+    // single-element array (full-parity pack, where it's a multi-reference
+    // field) — unwrap either shape to the referenced media_container entry.
+    const rawContainer = source['media_container'];
+    const container = (Array.isArray(rawContainer) ? rawContainer[0] : rawContainer) as
+      | ContentstackReference
+      | undefined;
     if (isMediaContainer(container)) {
       const media: CmsBannerComponent['media'] = {};
       for (const breakpoint of BREAKPOINTS) {
-        const file = container[breakpoint];
+        // The container may name its files `desktop`… (Contentful-native
+        // MediaContainer) or `media_desktop`… (starter-pack convention) — accept
+        // either so both content shapes resolve to the same responsive media.
+        const file =
+          container[breakpoint] ??
+          (container as Record<string, unknown>)[`media_${breakpoint}`];
         if (isContentstackFile(file)) {
           media[breakpoint] = this.toBannerMedia(file);
         }

@@ -129,6 +129,17 @@ export abstract class ContentstackConfig {
     cmsPageContentType?: string;
 
     /**
+     * Optional per-route content-type override, keyed by the page slug/url
+     * (e.g. `{ '/organization': 'company_page' }`). When a content route's
+     * resolved slug matches a key, the adapter queries that content type instead
+     * of `cmsPageContentType`, still matching by the same route slug. Lets
+     * distinct page types (B2B company/quote pages, etc.) resolve to their own
+     * per-template content types without a `sharedSlug` mapping. Routes not
+     * listed fall back to `cmsPageContentType`.
+     */
+    contentTypeByUrl?: Record<string, string>;
+
+    /**
      * Optional content type uid used by the component adapter for *standalone*
      * component lookups (`CmsComponentAdapter.load` / `findComponentsByIds`).
      *

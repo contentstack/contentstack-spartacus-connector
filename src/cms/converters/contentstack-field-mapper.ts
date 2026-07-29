@@ -76,6 +76,15 @@ export class ContentstackFieldMapper {
     if (fields['name']) {
       out['name'] = fields['name'];
     }
+    // Carry the banner's editorial copy so an app component can render a caption
+    // (headline + description) — e.g. B2B "My Company" tiles. Stock cx-banner
+    // ignores these, so this is a harmless superset for image-only banners.
+    if (fields['headline']) {
+      out['headline'] = fields['headline'];
+    }
+    if (fields['content']) {
+      out['content'] = fields['content'];
+    }
     // MediaService reads `.url` (single Image container) and leaves absolute
     // http(s) URLs untouched — no OCC media baseUrl prefixing.
     if (url) {

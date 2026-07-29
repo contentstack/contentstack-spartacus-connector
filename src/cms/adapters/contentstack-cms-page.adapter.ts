@@ -69,6 +69,13 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     }
     const { contentType, slugField, slug } = this.resolveRequest(pageContext);
     const includeRefs = cs?.includeReferences ?? [];
+    // Banners hold their responsive images on a referenced `media_container`
+    // entry (a second reference level: slot → banner → media_container). A
+    // one-level include leaves that container unresolved, so the banner renders
+    // with no image. Extend each slot include with its nested `.media_container`
+    // path so the breakpoint images resolve inline. (Unmatched paths are ignored
+    // by the Delivery API, so this is safe for slots without banners.)
+    const pageIncludeRefs = includeRefs.flatMap((r) => [r, `${r}.media_container`]);
 
     // Shared shell (header/footer/nav): fetched once per navigation and merged
     // into the page structure so every page renders the global slots. The shell
@@ -99,7 +106,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
           contentType,
           slugField,
           slug,
-          includeRefs,
+          pageIncludeRefs,
           locale
         );
         const global$ = global
@@ -182,10 +189,15 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
       };
     }
 
+    const slug = pageContext.id === HOME_PAGE_CONTEXT ? '/' : pageContext.id;
+    // Per-route content-type override: a route may resolve to a page-type-specific
+    // content type (e.g. `/organization` → `company_page`) while still matching by
+    // its own slug. Falls back to the default `cmsPageContentType`.
+    const overrideContentType = cs?.contentTypeByUrl?.[slug];
     return {
-      contentType: defaultContentType,
+      contentType: overrideContentType ?? defaultContentType,
       slugField: defaultSlugField,
-      slug: pageContext.id === HOME_PAGE_CONTEXT ? '/' : pageContext.id,
+      slug,
     };
   }
 }
