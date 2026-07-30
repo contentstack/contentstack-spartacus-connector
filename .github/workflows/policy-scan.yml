@@ -37,7 +37,7 @@ jobs:
                       exit 2
                   fi
                   break
-              fi
+              fi        
           done
 
           if [ "$license_file_found" = false ]; then
