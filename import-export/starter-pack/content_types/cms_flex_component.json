@@ -27,6 +27,18 @@
       "field_metadata": {
         "instruction": "The SAP flexType that selects the Angular component (e.g. ProductIntroComponent, PageTitleComponent)."
       }
+    },
+    {
+      "display_name": "Access Tags",
+      "uid": "access_tags",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": true,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+      }
     }
   ],
   "options": {

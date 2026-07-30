@@ -81,6 +81,9 @@ Functional components (search box, mini-cart, breadcrumb, add-to-cart, refinemen
 editorial data** — they hydrate from OCC. In hybrid mode you usually don't author these at all;
 OCC serves them. Include only the ones you intend to place via Contentstack.
 
+Every editorial component type above (and the `landing_page` / `content_page` page types) also
+carries an optional **`access_tags`** field for content gating — see §4.5.
+
 #### Media Container — resolving a nested reference
 
 `media_container` is referenced *from inside* a banner entry, not placed directly in a slot. To
@@ -130,6 +133,49 @@ To add a slot beyond the standard set, three small additions (no connector cap):
 1. **Storefront**: declare `<cx-page-slot position="MyPromoStrip">` + its `LayoutConfig` entry.
 2. **Connector config**: `additionalSlotFields: { my_promo_strip: 'MyPromoStrip' }`.
 3. **Content type**: add a `my_promo_strip` reference field.
+
+## 4.5 Content gating (presentation-level, opt-in)
+
+Editorial component types and the per-route page types (`landing_page`, `content_page`) carry an
+optional multi-value text field **`access_tags`**. It gates who *sees* an entry — hidden from users
+who don't hold the required tokens. Off unless the storefront turns it on.
+
+**Token convention** (values you put in `access_tags`; empty = visible to everyone):
+- `_require-login` — hidden from anonymous visitors.
+- `_require-anonymous` — hidden once the user logs in.
+- `_require-<roleGroupId>` — visible only to users in that SAP role group, e.g.
+  `_require-b2badmingroup` (the id must match the SAP group exactly).
+
+An entry is shown only if the user holds **every** `_require-*` token on it; tokens not starting
+with the role prefix are ignored (so editorial tags don't gate anything).
+
+**Turn it on** (storefront config):
+
+```ts
+provideConfig(<ContentstackConfig>{
+  contentstack: { accessControl: { enabled: true } },
+});
+```
+
+Anonymous-vs-login gating works with no further wiring. **Role-level** gating additionally needs the
+app to point the connector at the logged-in user (the connector deliberately doesn't depend on
+`@spartacus/user`):
+
+```ts
+import { UserAccountFacade } from '@spartacus/user/account/root';
+import { CONTENTSTACK_CURRENT_USER } from '@contentstack/contentstack-spartacus-connector';
+
+{ provide: CONTENTSTACK_CURRENT_USER, useFactory: (u: UserAccountFacade) => u.get(), deps: [UserAccountFacade] }
+```
+
+Defaults are configurable (`accessField`, `anonymousToken`, `loginToken`, `rolePrefix`,
+`gateSharedSlugPages`) — see `ContentstackConfig.accessControl`.
+
+> **Not a security boundary.** Gated entries are still fetched from the Delivery API (the delivery
+> token ships in the client bundle) and dropped before render — a determined user can read them via
+> the API/devtools. Use it to tailor what the UI shows, not to protect confidential data. Shared-slug
+> product/category pages are not gated by default (`gateSharedSlugPages: false`), and the global
+> shell (header/footer/nav) is never gated.
 
 ## 5. What the seed should contain (small, marketing-only)
 

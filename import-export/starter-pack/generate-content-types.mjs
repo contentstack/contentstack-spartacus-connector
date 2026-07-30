@@ -80,6 +80,22 @@ const pageMeta = (template) => [
 const slot = (uid, name, position, refs = EDITORIAL, extra = '') =>
   ref(uid, name, refs, `Maps to SAP slot ${position}. ${extra}Leave empty to keep SAP's.`);
 
+// Optional presentation-level access-control tokens (see
+// ContentstackConfig.accessControl). A multi-value text field — `data_type:
+// "json"` is rejected by the Content Type API. Empty = public; only enforced
+// when the storefront sets accessControl.enabled. Added to editorial component
+// types + the per-route page types (landing/content), NOT to the shell/nav
+// types or the shared-slug product/category pages.
+const accessTags = () =>
+  text('access_tags', 'Access Tags', {
+    multiple: true,
+    instruction:
+      'Optional access-control tokens. Empty = everyone. Use "_require-login" (hide from anonymous), ' +
+      '"_require-anonymous" (hide once logged in), or "_require-<roleGroupId>" (e.g. ' +
+      '"_require-b2badmingroup") to gate by SAP role group. Only enforced when the storefront enables ' +
+      'access control.',
+  });
+
 // Priority order (see contentstack-cms-banner-component.normalizer.ts): a
 // referenced Media Container wins over the direct per-breakpoint fields, which
 // win over the single Media fallback.
@@ -97,21 +113,21 @@ const contentTypes = [
   // --- component types (editorial) ---
   ct('Simple Responsive Banner Component', 'simple_responsive_banner_component',
     'A responsive banner with per-breakpoint images and a click-through link. SAP typeCode SimpleResponsiveBannerComponent.',
-    [titleField('Internal name for this banner.'), text('url_link', 'URL Link', { instruction: 'Click-through destination.' }), ...bannerMedia]),
+    [titleField('Internal name for this banner.'), text('url_link', 'URL Link', { instruction: 'Click-through destination.' }), ...bannerMedia, accessTags()]),
   ct('Simple Banner Component', 'simple_banner_component',
     'A single-image banner with a click-through link. SAP typeCode SimpleBannerComponent.',
     [titleField('Internal name for this banner.'), text('url_link', 'URL Link', { instruction: 'Click-through destination.' }),
      singleRef('media_container', 'Media Container', ['media_container'], 'Reusable media set. Takes priority over Media below — set this OR it, not both.'),
-     file('media', 'Media', 'Banner image.')]),
+     file('media', 'Media', 'Banner image.'), accessTags()]),
   ct('Product Carousel Component', 'product_carousel_component',
     'A carousel of products by SKU; live price/stock/media hydrate from SAP OCC. SAP typeCode ProductCarouselComponent.',
-    [titleField('Heading shown above the carousel.'), text('products', 'Products', { multiple: true, instruction: 'SAP product codes (SKUs), one per value. Only the code is stored; OCC provides live price/stock/image.' })]),
+    [titleField('Heading shown above the carousel.'), text('products', 'Products', { multiple: true, instruction: 'SAP product codes (SKUs), one per value. Only the code is stored; OCC provides live price/stock/image.' }), accessTags()]),
   ct('CMS Paragraph Component', 'cms_paragraph_component',
     'Rich-text / HTML content block. SAP typeCode CMSParagraphComponent.',
-    [titleField('Internal name for this paragraph block.'), text('content', 'Content', { multiline: true, instruction: 'The HTML/rich-text body shown in the slot.' })]),
+    [titleField('Internal name for this paragraph block.'), text('content', 'Content', { multiline: true, instruction: 'The HTML/rich-text body shown in the slot.' }), accessTags()]),
   ct('CMS Tab Paragraph Component', 'cms_tab_paragraph_component',
     'Rich-text / HTML content block, rendered the same way as CMS Paragraph Component (SAP registers both to its stock paragraph renderer). SAP typeCode CMSTabParagraphComponent.',
-    [titleField('Internal name for this tab content block.'), text('content', 'Content', { multiline: true, instruction: 'The HTML/rich-text body shown in the slot.' })]),
+    [titleField('Internal name for this tab content block.'), text('content', 'Content', { multiline: true, instruction: 'The HTML/rich-text body shown in the slot.' }), accessTags()]),
   ct('Media Container', 'media_container',
     'A reusable per-breakpoint image set, referenced from the Media Container field on banner components so one asset set can back multiple banners. SAP typeCode MediaContainer.',
     [titleField('Internal name for this media set.'),
@@ -126,10 +142,10 @@ const contentTypes = [
      jsonText('tab_components', 'Tab Components', 'Paste a JSON array of the tab panels, in display order, each an existing SAP CMS component reference: [{"uid": "ProductDetailsTabComponent", "type_code": "ProductDetailsTabComponent"}, ...]. Each panel content hydrates from SAP OCC by that uid — it is not authored here.')]),
   ct('CMS Link Component', 'cms_link_component',
     'A single link (used standalone or as a navigation leaf). SAP typeCode CMSLinkComponent.',
-    [titleField('Internal name for this link.'), text('link_name', 'Link Name', { instruction: 'Visible link text.' }), text('url', 'URL', { instruction: 'Link destination.' }), text('target', 'Target', { instruction: '"true" to open in a new tab, else "false".' })]),
+    [titleField('Internal name for this link.'), text('link_name', 'Link Name', { instruction: 'Visible link text.' }), text('url', 'URL', { instruction: 'Link destination.' }), text('target', 'Target', { instruction: '"true" to open in a new tab, else "false".' }), accessTags()]),
   ct('CMS Flex Component', 'cms_flex_component',
     'A functional block selected by its flex type (e.g. ProductIntroComponent). SAP typeCode CMSFlexComponent.',
-    [titleField('Internal name.'), text('flex_type', 'Flex Type', { instruction: 'The SAP flexType that selects the Angular component (e.g. ProductIntroComponent, PageTitleComponent).' })]),
+    [titleField('Internal name.'), text('flex_type', 'Flex Type', { instruction: 'The SAP flexType that selects the Angular component (e.g. ProductIntroComponent, PageTitleComponent).' }), accessTags()]),
   ct('Nav Node', 'nav_node',
     'A node in a navigation tree: a heading with children and/or link leaves.',
     [titleField('Display label for this node (e.g. "Digital Cameras").'),
@@ -154,7 +170,8 @@ const contentTypes = [
      slot('section2_c', 'Section 2C', 'Section2C'),
      slot('section3', 'Section 3', 'Section3', EDITORIAL, 'Often a product carousel. '),
      slot('section4', 'Section 4', 'Section4'),
-     slot('section5', 'Section 5', 'Section5')], ['url']),
+     slot('section5', 'Section 5', 'Section5'),
+     accessTags()], ['url']),
   ct('Content Page', 'content_page',
     'CMS page on SAP ContentPage1Template (FAQ, terms, campaign pages).',
     [...pageMeta('ContentPage1Template'),
@@ -164,7 +181,8 @@ const contentTypes = [
      slot('section2_c', 'Section 2C', 'Section2C'),
      slot('section3', 'Section 3', 'Section3'),
      slot('body_content', 'Body Content', 'BodyContent', EDITORIAL, 'Main content column. '),
-     slot('side_content', 'Side Content', 'SideContent', EDITORIAL, 'Sidebar column. ')], ['url']),
+     slot('side_content', 'Side Content', 'SideContent', EDITORIAL, 'Sidebar column. '),
+     accessTags()], ['url']),
   ct('Product Page', 'product_page',
     'CMS overrides for SAP ProductDetailsPageTemplate. One shared entry serves every PDP (product data hydrates from OCC).',
     [...pageMeta('ProductDetailsPageTemplate'),

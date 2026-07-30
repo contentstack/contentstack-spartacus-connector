@@ -95,7 +95,8 @@ npm install @contentstack/contentstack-spartacus-connector @contentstack/deliver
 
 See `ContentstackConfig` (`src/config/contentstack-config.ts`). Key fields:
 `delivery.{apiKey,deliveryToken,environment,region,branch,livePreview}`,
-`cmsPageContentType`, `slugField`, `slugTransform`, `pageTypeMapping`, `includeReferences`
+`cmsPageContentType`, `slugField`, `slugTransform`, `pageTypeMapping`, `includeReferences`,
+`accessControl` (opt-in presentation-level content gating — see `CONTENT-MODEL.md` §4.5)
 (defaults to all slot + header/footer fields), `timeoutMs`, and
 `componentContentType` (only for standalone component lookups — see D9).
 Set `delivery.livePreview: true` to enable Live Preview / Visual Editor
