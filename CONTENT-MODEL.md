@@ -118,8 +118,72 @@ Each panel's content hydrates from SAP OCC by that `uid` — it is **not** autho
 `cms_tab_paragraph_component` is a separate, ordinary editorial paragraph type (identical to
 `cms_paragraph_component`); it is not itself a tab panel unless your app also configures
 `contentstack.componentContentType` to resolve standalone lookups against it.
-`component_uid` is optional and only needed if you want the tab-label translation keys keyed to a
-stable id (e.g. `TabPanelContainer`) rather than this entry's own uid.
+
+#### Tab labels (i18n)
+
+The tab **headers** are not authored content — Spartacus's `TabParagraphContainerComponent`
+derives each header from an i18n key, `<container>.tabs.<tabUid>`, resolved in the `product`
+translation namespace. `<container>` is the container's `component_uid` when set, else this
+entry's own uid; `<tabUid>` is each entry in `tab_components`. So a container with
+`component_uid: "TabPanelContainer"` and a tab `uid: "tab_details"` looks up
+`product:TabPanelContainer.tabs.tab_details`. If nothing defines that key, the header renders the
+raw key string. Two ways to give tabs real labels:
+
+**Path A — reuse Spartacus's built-in labels (zero config).** Set `component_uid` to
+`TabPanelContainer` and name each tab `uid` after a stock Spartacus tab component id. Spartacus's
+own `@spartacus/assets` already ships labels for those keys, so the tabs render labelled with no
+translation work at all:
+
+```json
+[
+  { "uid": "ProductDetailsTabComponent", "type_code": "ProductDetailsTabComponent" },
+  { "uid": "ProductSpecsTabComponent",   "type_code": "ProductSpecsTabComponent" }
+]
+```
+
+(Stock ids with built-in labels include `ProductDetailsTabComponent` → "Product Details",
+`ProductSpecsTabComponent` → "Specs", `ProductReviewsTabComponent` → "Reviews", and
+`SparePartsTabComponent` → "Spare Parts".) This is the recommended default — because Contentstack
+lets you choose readable uids, you can line them up with the stock ids and inherit labels for
+free.
+
+**Path B — author your own labels for custom tab uids.** If you use custom uids (e.g.
+`tab_details`), add a small translation resource in your storefront's i18n config, merged under
+`product.<component_uid>.tabs`. Because `TabPanelContainer` is already a registered key in the
+stock `product` translation chunk, no `translationChunksConfig` change is needed when
+`component_uid` is `TabPanelContainer`:
+
+```ts
+provideConfig(<I18nConfig>{
+  i18n: {
+    resources: {
+      en: {
+        ...translationsEn,
+        product: {
+          ...translationsEn.product,
+          TabPanelContainer: {
+            ...translationsEn.product.TabPanelContainer,
+            tabs: {
+              ...translationsEn.product.TabPanelContainer.tabs,
+              tab_details: 'Details',
+              tab_specs: 'Specifications',
+            },
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+Add the same keys per locale you support; the header then localizes with the rest of the
+Spartacus UI chrome. (If you set `component_uid` to something *other* than `TabPanelContainer`,
+also add that id to `translationChunksConfig.product` so the lazy loader picks the key up.)
+
+> **Content vs. chrome.** This is only about the tab *header* strings (UI chrome, owned by the
+> app's Spartacus i18n). The tab *content* — and all other authored content — localizes the
+> normal way, through Contentstack locales + the connector's `localeMapping` / `includeFallback`;
+> no translation resources are involved in that path.
 
 ### 3.3 Field naming ↔ SAP mapping (why lowercase)
 
