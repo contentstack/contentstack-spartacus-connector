@@ -62,7 +62,11 @@ describe('ng-add schematic', () => {
     expect(generated).toContain('region: Region.EU'); // 'EU' -> Region.EU
     expect(generated).toContain('occFallback: true');
     expect(generated).toContain('includeFallback: true');
-    expect(generated).not.toContain('livePreview'); // not enabled
+    // livePreview / localeMapping / accessControl are always scaffolded (even at
+    // defaults) so they're discoverable — livePreview off unless requested.
+    expect(generated).toContain('livePreview: false');
+    expect(generated).toContain("localeMapping: { en: 'en-us', de: 'de-de' }");
+    expect(generated).toContain('accessControl: { enabled: false }');
 
     // Wired into SpartacusFeaturesModule.
     const features = tree.readText(FEATURES_MODULE);
@@ -91,6 +95,9 @@ describe('ng-add schematic', () => {
     expect(generated).toContain('livePreview: true');
     expect(generated).toContain("previewToken: '<PREVIEW_TOKEN>'");
     expect(generated).toContain('occFallback: true'); // default
+    // Discoverability blocks present regardless of Live Preview.
+    expect(generated).toContain("localeMapping: { en: 'en-us', de: 'de-de' }");
+    expect(generated).toContain('accessControl: { enabled: false }');
   });
 
   it('maps a hyphenated region key to the Region enum member', async () => {
