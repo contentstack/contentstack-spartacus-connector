@@ -222,6 +222,11 @@ declare module '@spartacus/core' {
     ): void;
   }
 
+  // --- auth (login state; source of the core-only default gating user) ---
+  export abstract class AuthService {
+    abstract isUserLoggedIn(): Observable<boolean>;
+  }
+
   // --- logging ---
   export class LoggerService {
     log(...args: any[]): void;

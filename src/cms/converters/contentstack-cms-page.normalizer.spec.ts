@@ -6,6 +6,7 @@ import { ContentstackCmsBannerComponentNormalizer } from './components/contentst
 import { ContentstackCmsNavigationComponentNormalizer } from './components/contentstack-cms-navigation-component.normalizer';
 import { ContentstackCmsProductCarouselComponentNormalizer } from './components/contentstack-cms-product-carousel-component.normalizer';
 import { ContentstackFieldMapper } from './contentstack-field-mapper';
+import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
 import { cmsPageEntryFixture } from './__fixtures__/cms-page.fixture';
 
 /**
@@ -26,7 +27,11 @@ describe('ContentstackCmsPageNormalizer', () => {
     new ContentstackCmsProductCarouselComponentNormalizer(),
     new ContentstackFieldMapper(),
   );
-  const normalizer = new ContentstackCmsPageNormalizer(config, componentNormalizer);
+  const normalizer = new ContentstackCmsPageNormalizer(
+    config,
+    componentNormalizer,
+    new ContentstackRestrictionsService(config),
+  );
 
   it('maps entry identity to the Page', () => {
     const result = normalizer.convert(cmsPageEntryFixture);
@@ -231,7 +236,11 @@ describe('ContentstackCmsPageNormalizer', () => {
         additionalSlotFields: { my_promo_strip: 'MyPromoStrip' },
       },
     };
-    const customNormalizer = new ContentstackCmsPageNormalizer(customConfig, componentNormalizer);
+    const customNormalizer = new ContentstackCmsPageNormalizer(
+      customConfig,
+      componentNormalizer,
+      new ContentstackRestrictionsService(customConfig),
+    );
     const result = customNormalizer.convert({
       uid: 'blt_custom',
       _content_type_uid: 'cms_page',
@@ -246,5 +255,64 @@ describe('ContentstackCmsPageNormalizer', () => {
     });
     // Custom field uid → configured SAP slot position.
     expect(result.page?.slots?.['MyPromoStrip']?.components?.[0].uid).toBe('blt_strip');
+  });
+
+  describe('access-control filtering (buildStructure permissions)', () => {
+    const gatingConfig: ContentstackConfig = {
+      contentstack: {
+        ...config.contentstack!,
+        accessControl: { enabled: true, accessField: 'access_tags', rolePrefix: '_require-' },
+      },
+    };
+    const gatingNormalizer = new ContentstackCmsPageNormalizer(
+      gatingConfig,
+      componentNormalizer,
+      new ContentstackRestrictionsService(gatingConfig),
+    );
+    const pageWithGatedComponent = {
+      uid: 'blt_p',
+      _content_type_uid: 'cms_page',
+      section1: [
+        {
+          uid: 'blt_public',
+          _content_type_uid: 'cms_paragraph_component',
+          created_at: '2026-01-01T00:00:00.000Z',
+          content: 'public',
+        },
+        {
+          uid: 'blt_admin_only',
+          _content_type_uid: 'cms_paragraph_component',
+          created_at: '2026-01-01T00:00:00.000Z',
+          content: 'admins only',
+          access_tags: ['_require-b2badmingroup'],
+        },
+      ],
+    };
+
+    it('drops a restricted component from both the slot and the flat components list', () => {
+      const result = gatingNormalizer.convert(
+        pageWithGatedComponent,
+        {},
+        new Set(['_require-login']),
+      );
+      const slotUids = result.page?.slots?.['Section1']?.components?.map((c) => c.uid);
+      expect(slotUids).toEqual(['blt_public']);
+      expect(result.components?.map((c) => c.uid)).toEqual(['blt_public']);
+    });
+
+    it('keeps the restricted component for a user who holds the token', () => {
+      const result = gatingNormalizer.convert(
+        pageWithGatedComponent,
+        {},
+        new Set(['_require-login', '_require-b2badmingroup']),
+      );
+      const slotUids = result.page?.slots?.['Section1']?.components?.map((c) => c.uid);
+      expect(slotUids).toEqual(['blt_public', 'blt_admin_only']);
+    });
+
+    it('filters nothing when permissions is undefined (feature off / shell path)', () => {
+      const result = gatingNormalizer.convert(pageWithGatedComponent, {}, undefined);
+      expect(result.page?.slots?.['Section1']?.components?.length).toBe(2);
+    });
   });
 });

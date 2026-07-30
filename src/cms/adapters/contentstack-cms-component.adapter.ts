@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Inject, Injectable, Optional } from '@angular/core';
+import { Observable, combineLatest, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import {
   CmsComponent,
@@ -13,6 +13,11 @@ import { ContentstackConfig } from '../../config/contentstack-config';
 import { ContentstackClientService } from '../../client/contentstack-client.service';
 import { ContentstackCmsComponentNormalizer } from '../converters/contentstack-cms-component.normalizer';
 import { ContentstackEntry } from '../model/contentstack.model';
+import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
+import {
+  CONTENTSTACK_CURRENT_USER,
+  ContentstackCurrentUser,
+} from '../access/contentstack-current-user';
 
 /**
  * Replaces Spartacus's OCC component loader (`OccCmsComponentAdapter`).
@@ -39,7 +44,22 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     protected logger: LoggerService,
     protected languageService: LanguageService,
     protected occComponentAdapter: OccCmsComponentAdapter,
+    protected restrictions: ContentstackRestrictionsService,
+    // Optional — see the page adapter: absent source ⇒ anonymous, not a DI error.
+    @Optional()
+    @Inject(CONTENTSTACK_CURRENT_USER)
+    protected currentUser$: Observable<ContentstackCurrentUser | undefined> | null = null,
   ) {}
+
+  /** Active user's permission tokens, or `of(undefined)` when gating is off. */
+  protected permissions(): Observable<Set<string> | undefined> {
+    if (!this.restrictions.enabled()) {
+      return of(undefined);
+    }
+    return (this.currentUser$ ?? of(undefined)).pipe(
+      map((user) => this.restrictions.getPermissions(user)),
+    );
+  }
 
   load<T extends CmsComponent>(
     id: string,
@@ -55,11 +75,16 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       this.warnNoContentType('load', [id]);
       return of({ uid: id } as T);
     }
-    return this.languageService.getActive().pipe(
-      switchMap((locale) =>
+    return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
+      switchMap(([locale, permissions]) =>
         this.client.getEntryByUid(contentType, id, locale).pipe(
           switchMap((entry: ContentstackEntry | undefined) => {
             if (entry) {
+              // Restricted → a bare shell, NOT the OCC fallback: a gated
+              // Contentstack entry must not silently render its OCC twin.
+              if (permissions && !this.restrictions.isEntryAccessible(entry, permissions)) {
+                return of({ uid: id } as T);
+              }
               return of(this.normalizer.convert(entry) as T);
             }
             // Not in Contentstack → OCC (hybrid) or a bare shell.
@@ -82,15 +107,19 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       this.warnNoContentType('findComponentsByIds', ids);
       return of([]);
     }
-    return this.languageService.getActive().pipe(
-      switchMap((locale) =>
+    return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
+      switchMap(([locale, permissions]) =>
         this.client.getEntriesByUids(contentType, ids, locale).pipe(
           switchMap((entries: ContentstackEntry[]) => {
-            const csComponents = entries.map((entry) => this.normalizer.convert(entry));
+            const accessible = permissions
+              ? entries.filter((entry) => this.restrictions.isEntryAccessible(entry, permissions))
+              : entries;
+            const csComponents = accessible.map((entry) => this.normalizer.convert(entry));
             if (!occFallback) {
               return of(csComponents);
             }
-            // Serve the ids Contentstack didn't resolve from OCC, then merge.
+            // Mark EVERY resolved id as found — including restricted ones — so a
+            // gated entry is never treated as "missing" and re-fetched from OCC.
             const found = new Set(entries.map((e) => e.uid));
             const remaining = ids.filter((id) => !found.has(id));
             if (!remaining.length) {

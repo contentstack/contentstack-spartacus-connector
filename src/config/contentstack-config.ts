@@ -27,6 +27,44 @@ export interface ContentstackPageTypeMapping {
 }
 
 /**
+ * Presentation-level content gating. When `enabled`, entries carrying required
+ * audience/permission tokens in `accessField` are hidden from users who don't
+ * hold those tokens. Tokens are derived from the current user's roles (see the
+ * `CONTENTSTACK_CURRENT_USER` token). Opt-in — default off.
+ *
+ * NOT a security boundary: gated entries are still fetched from the Delivery API
+ * (the delivery token ships in the client bundle) and dropped before render, so
+ * a determined user can still read them via the API/devtools. Use it to tailor
+ * what the UI shows, not to protect confidential data.
+ */
+export interface ContentstackAccessControl {
+  /** Master switch. Default `false` — every path behaves as if gating is absent. */
+  enabled?: boolean;
+  /**
+   * Entry field uid holding the required-token list (a multi-value text field on
+   * the content type). An entry with no tokens (absent/empty) is public. Default
+   * `access_tags`.
+   */
+  accessField?: string;
+  /** Token granted to anonymous visitors. Default `_require-anonymous`. */
+  anonymousToken?: string;
+  /** Token granted to any logged-in user. Default `_require-login`. */
+  loginToken?: string;
+  /**
+   * Prefix applied to each of the user's role ids to form a permission token
+   * (role `b2badmingroup` → `_require-b2badmingroup`). Only entry tokens starting
+   * with this prefix are enforced; others are ignored. Default `_require-`.
+   */
+  rolePrefix?: string;
+  /**
+   * Whether to apply page-level gating to shared-slug product/category layouts.
+   * Default `false` — one shared entry gates every SKU/category at once, which is
+   * rarely intended (real product data comes from OCC regardless).
+   */
+  gateSharedSlugPages?: boolean;
+}
+
+/**
  * Root configuration for the Contentstack CMS feature.
  *
  * Extends the Spartacus `Config` token so it merges into the global app config
@@ -95,6 +133,12 @@ export abstract class ContentstackConfig {
      * `/about-us` before the query runs.
      */
     slugTransform?: { pattern: RegExp; replacement: string };
+
+    /**
+     * Presentation-level role/audience content gating. Off by default; see
+     * {@link ContentstackAccessControl}.
+     */
+    accessControl?: ContentstackAccessControl;
 
     /**
      * Maps a Spartacus site language isocode (what `LanguageService.getActive()`

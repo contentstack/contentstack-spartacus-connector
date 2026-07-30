@@ -31,5 +31,16 @@ export const defaultContentstackConfig: ContentstackConfig = {
     cmsPageContentType: 'cms_page',
     includeReferences: [...PAGE_REFERENCE_FIELDS],
     timeoutMs: 10000,
+    // Content gating is opt-in — off by default, so existing installs are
+    // unaffected. The default field/token names line up with the shipped
+    // `access_tags` starter-pack field and the `_require-*` convention.
+    accessControl: {
+      enabled: false,
+      accessField: 'access_tags',
+      anonymousToken: '_require-anonymous',
+      loginToken: '_require-login',
+      rolePrefix: '_require-',
+      gateSharedSlugPages: false,
+    },
   },
 };

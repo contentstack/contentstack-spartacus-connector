@@ -1,9 +1,15 @@
 import { NgModule } from '@angular/core';
-import { Config, provideDefaultConfig } from '@spartacus/core';
+import { AuthService, Config, provideDefaultConfig } from '@spartacus/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ContentstackCmsModule } from './cms/contentstack-cms.module';
 import { ContentstackLivePreviewModule } from './live-preview/contentstack-live-preview.module';
 import { ContentstackConfig } from './config/contentstack-config';
 import { defaultContentstackConfig } from './config/default-contentstack-config';
+import {
+  CONTENTSTACK_CURRENT_USER,
+  ContentstackCurrentUser,
+} from './cms/access/contentstack-current-user';
 
 /**
  * Root feature module — the single entry point a Spartacus app imports to
@@ -51,6 +57,18 @@ import { defaultContentstackConfig } from './config/default-contentstack-config'
     // injecting `ContentstackConfig` yields the config assembled by
     // provideConfig/provideDefaultConfig (mirrors `{ provide: CmsConfig, useExisting: Config }`).
     { provide: ContentstackConfig, useExisting: Config },
+    // Default current-user source for content gating: CORE-ONLY (login state →
+    // anonymous vs. logged-in, no roles). It depends only on @spartacus/core's
+    // AuthService, so it works with no extra app wiring. For ROLE-level gating,
+    // the app overrides CONTENTSTACK_CURRENT_USER to emit the real user from
+    // @spartacus/user's UserAccountFacade (see the token's JSDoc) — that keeps
+    // @spartacus/user an app-side concern, never a connector dependency.
+    {
+      provide: CONTENTSTACK_CURRENT_USER,
+      useFactory: (auth: AuthService): Observable<ContentstackCurrentUser | undefined> =>
+        auth.isUserLoggedIn().pipe(map((loggedIn) => (loggedIn ? {} : undefined))),
+      deps: [AuthService],
+    },
   ],
 })
 export class ContentstackCmsFeatureModule {}

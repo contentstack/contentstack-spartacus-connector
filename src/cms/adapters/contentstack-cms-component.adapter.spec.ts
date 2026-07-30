@@ -1,5 +1,7 @@
 import { Observable, of } from 'rxjs';
 import { ContentstackCmsComponentAdapter } from './contentstack-cms-component.adapter';
+import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
+import { ContentstackCurrentUser } from '../access/contentstack-current-user';
 
 /**
  * Pure-logic spec (no TestBed). Covers both entry points (`load`,
@@ -29,6 +31,8 @@ interface Overrides {
   normalizer?: Record<string, jest.Mock>;
   occ?: Record<string, jest.Mock>;
   locale?: string;
+  /** Current user for gating tests; omit for anonymous. */
+  user?: ContentstackCurrentUser;
 }
 
 function create(over: Overrides = {}) {
@@ -52,6 +56,8 @@ function create(over: Overrides = {}) {
     findComponentsByIds: jest.fn().mockReturnValue(of([])),
     ...over.occ,
   };
+  const restrictions = new ContentstackRestrictionsService(config as never);
+  const currentUser$ = of(over.user);
   const adapter = new ContentstackCmsComponentAdapter(
     client as never,
     normalizer as never,
@@ -59,6 +65,8 @@ function create(over: Overrides = {}) {
     logger as never,
     languageService as never,
     occComponentAdapter as never,
+    restrictions,
+    currentUser$,
   );
   return { adapter, client, normalizer, config, logger, languageService, occComponentAdapter };
 }
@@ -195,6 +203,60 @@ describe('ContentstackCmsComponentAdapter', () => {
       firstValue(adapter.findComponentsByIds(['a'], ctx));
       expect(client.getEntryByUid).toHaveBeenCalledWith('cms_component', 'a', 'de');
       expect(client.getEntriesByUids).toHaveBeenCalledWith('cms_component', ['a'], 'de');
+    });
+  });
+
+  describe('access-control gating', () => {
+    const GATING = {
+      accessControl: { enabled: true, accessField: 'access_tags', rolePrefix: '_require-' },
+    };
+
+    it('load(): a restricted entry returns a bare shell, never the OCC fallback', () => {
+      const { adapter, occComponentAdapter, normalizer } = create({
+        cs: GATING, // anonymous user
+        client: {
+          getEntryByUid: jest
+            .fn()
+            .mockReturnValue(of({ uid: 'banner1', access_tags: ['_require-b2badmingroup'] })),
+        },
+      });
+      const res = firstValue(adapter.load('banner1', ctx));
+      expect(res).toEqual({ uid: 'banner1' }); // shell, not converted
+      expect(normalizer.convert).not.toHaveBeenCalled();
+      expect(occComponentAdapter.load).not.toHaveBeenCalled(); // no OCC twin
+    });
+
+    it('load(): a restricted entry is served to a user who holds the token', () => {
+      const { adapter, normalizer } = create({
+        cs: GATING,
+        user: { roles: ['b2badmingroup'] },
+        client: {
+          getEntryByUid: jest
+            .fn()
+            .mockReturnValue(of({ uid: 'banner1', access_tags: ['_require-b2badmingroup'] })),
+        },
+      });
+      const res = firstValue(adapter.load('banner1', ctx));
+      expect(res).toEqual({ uid: 'banner1', typeCode: 'CS' });
+      expect(normalizer.convert).toHaveBeenCalled();
+    });
+
+    it('findComponentsByIds(): a restricted id is excluded AND not re-fetched from OCC', () => {
+      const { adapter, occComponentAdapter } = create({
+        cs: GATING, // anonymous
+        client: {
+          getEntriesByUids: jest
+            .fn()
+            .mockReturnValue(
+              of([{ uid: 'a' }, { uid: 'b', access_tags: ['_require-b2badmingroup'] }]),
+            ),
+        },
+      });
+      const res = firstValue(adapter.findComponentsByIds(['a', 'b'], ctx));
+      // 'b' is gated out of the result...
+      expect(res).toEqual([{ uid: 'a', typeCode: 'CS' }]);
+      // ...and NOT passed to OCC as a "missing" id (it resolved, just restricted).
+      expect(occComponentAdapter.findComponentsByIds).not.toHaveBeenCalled();
     });
   });
 });

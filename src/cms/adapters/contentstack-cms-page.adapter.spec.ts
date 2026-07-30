@@ -1,6 +1,8 @@
 import { Observable, of, throwError } from 'rxjs';
 import { HOME_PAGE_CONTEXT, SMART_EDIT_CONTEXT } from '@spartacus/core';
 import { ContentstackCmsPageAdapter } from './contentstack-cms-page.adapter';
+import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
+import { ContentstackCurrentUser } from '../access/contentstack-current-user';
 
 /**
  * Pure-logic spec (no TestBed): the adapter is instantiated directly with mock
@@ -35,6 +37,8 @@ interface Overrides {
   normalizer?: Record<string, jest.Mock>;
   occ?: Record<string, jest.Mock>;
   locale?: string;
+  /** Current user for gating tests; omit for anonymous. */
+  user?: ContentstackCurrentUser;
 }
 
 function create(over: Overrides = {}) {
@@ -56,12 +60,18 @@ function create(over: Overrides = {}) {
     load: jest.fn().mockReturnValue(of(undefined)),
     ...over.occ,
   };
+  // Real restrictions service (the adapter's page-level gate calls it directly);
+  // the current-user source is a simple observable of the test's user.
+  const restrictions = new ContentstackRestrictionsService(config as never);
+  const currentUser$ = of(over.user);
   const adapter = new ContentstackCmsPageAdapter(
     client as never,
     normalizer as never,
     config as never,
     languageService as never,
     occPageAdapter as never,
+    restrictions,
+    currentUser$,
   );
   return { adapter, client, normalizer, config, languageService, occPageAdapter };
 }
@@ -327,6 +337,81 @@ describe('ContentstackCmsPageAdapter', () => {
       const { adapter, client } = create({ locale: 'de' });
       firstValue(adapter.load(ctx('home')));
       expect(client.getPageBySlug).toHaveBeenCalledWith('content_page', 'url', 'home', [], 'de');
+    });
+  });
+
+  describe('access-control (page-level gating)', () => {
+    const GATING = {
+      accessControl: { enabled: true, accessField: 'access_tags', rolePrefix: '_require-' },
+    };
+
+    it('renders a restricted page as not-found and does NOT fall through to the OCC base', () => {
+      const occBase = {
+        page: { template: 'T', slots: { Header: { components: [{ uid: 'occH' }] } } },
+        components: [{ uid: 'occH' }],
+      };
+      const convert = jest.fn();
+      const { adapter } = create({
+        cs: GATING,
+        // anonymous user (over.user omitted) against an admin-only page entry
+        client: {
+          getPageBySlug: jest
+            .fn()
+            .mockReturnValue(of({ uid: 'p', access_tags: ['_require-b2badmingroup'] })),
+        },
+        normalizer: { convert },
+        occ: { load: jest.fn().mockReturnValue(of(occBase)) },
+      });
+
+      const res = firstValue(adapter.load(ctx('secret')));
+      expect(res).toEqual({}); // not-found
+      expect(convert).not.toHaveBeenCalled(); // gated before normalization
+      // OCC twin must NOT be rendered.
+      expect((res as { page?: unknown }).page).toBeUndefined();
+    });
+
+    it('passes the resolved permission set into the normalizer for a public page', () => {
+      const csStructure = { page: { slots: {} }, components: [] };
+      const convert = jest.fn().mockReturnValue(csStructure);
+      const { adapter } = create({
+        cs: GATING,
+        user: { roles: ['b2badmingroup'] },
+        client: { getPageBySlug: jest.fn().mockReturnValue(of({ uid: 'p' })) },
+        normalizer: { convert },
+      });
+
+      firstValue(adapter.load(ctx('home')));
+      const permissions = convert.mock.calls[0][2] as Set<string>;
+      expect(permissions).toBeInstanceOf(Set);
+      expect(permissions.has('_require-login')).toBe(true);
+      expect(permissions.has('_require-b2badmingroup')).toBe(true);
+    });
+
+    it('does not gate the shared-slug product page unless gateSharedSlugPages is on', () => {
+      const convert = jest.fn().mockReturnValue({ page: { slots: {} }, components: [] });
+      const { adapter } = create({
+        cs: {
+          ...GATING,
+          pageTypeMapping: {
+            ProductPage: {
+              sharedSlug: 'product',
+              slugField: 'url',
+              contentTypeUid: 'product_page',
+            },
+          },
+        },
+        client: {
+          getPageBySlug: jest
+            .fn()
+            .mockReturnValue(of({ uid: 'pdp', access_tags: ['_require-b2badmingroup'] })),
+        },
+        normalizer: { convert },
+      });
+
+      const res = firstValue(adapter.load(ctx('1934793', 'ProductPage')));
+      // Not gated → normalizer ran and produced a structure (not {}).
+      expect(convert).toHaveBeenCalled();
+      expect(res).not.toEqual({});
     });
   });
 });

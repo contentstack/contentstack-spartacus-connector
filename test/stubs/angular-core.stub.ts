@@ -19,8 +19,17 @@ export function Component(): (target: unknown) => void {
 export function Inject(): (...args: unknown[]) => void {
   return () => {};
 }
+export function Optional(): (...args: unknown[]) => void {
+  return () => {};
+}
 export function inject(): undefined {
   return undefined;
+}
+// Minimal DI token stand-in — the access-control code constructs an
+// `InjectionToken` at module load (CONTENTSTACK_CURRENT_USER); the specs inject
+// its value directly, so only construction needs to succeed here.
+export class InjectionToken<T> {
+  constructor(protected _desc: string) {}
 }
 export const PLATFORM_ID = Symbol('PLATFORM_ID');
 export enum ChangeDetectionStrategy {

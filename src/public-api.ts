@@ -31,6 +31,10 @@ export * from './cms/model/contentstack.model';
 export * from './cms/model/type-guards';
 export * from './cms/model/slot-maps';
 
+// Access control (presentation-level content gating)
+export * from './cms/access/contentstack-current-user';
+export * from './cms/access/contentstack-restrictions.service';
+
 // SmartEdit bypass
 export * from './guards/contentstack-smartedit-bypass';
 

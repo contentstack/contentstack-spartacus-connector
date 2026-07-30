@@ -43,6 +43,7 @@ module.exports = {
     '**/type-guards.spec.ts',
     '**/merge-structures.spec.ts',
     '**/contentstack-field-mapper.spec.ts',
+    '**/contentstack-restrictions.service.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [

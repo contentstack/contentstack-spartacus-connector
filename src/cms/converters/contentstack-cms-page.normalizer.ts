@@ -13,6 +13,7 @@ import { ContentstackConfig } from '../../config/contentstack-config';
 import { ContentstackCmsPageEntry, ContentstackEntry } from '../model/contentstack.model';
 import { effectiveSlotMap, resolveFlexType, toTypeCode } from '../model/slot-maps';
 import { ContentstackCmsComponentNormalizer } from './contentstack-cms-component.normalizer';
+import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
 
 /**
  * Translates a raw Contentstack `cms_page` entry (the Content Model Starter Pack
@@ -55,10 +56,20 @@ export class ContentstackCmsPageNormalizer implements Converter<
   constructor(
     protected config: ContentstackConfig,
     protected componentNormalizer: ContentstackCmsComponentNormalizer,
+    protected restrictions: ContentstackRestrictionsService,
   ) {}
 
-  convert(source: ContentstackCmsPageEntry, target: CmsStructureModel = {}): CmsStructureModel {
-    const { slots, components } = this.buildStructure(source);
+  /**
+   * @param permissions when provided, slot components the user can't access are
+   *   filtered out (presentation-level gating). Omit (or pass `undefined`) to
+   *   filter nothing — the behavior when access control is off.
+   */
+  convert(
+    source: ContentstackCmsPageEntry,
+    target: CmsStructureModel = {},
+    permissions?: Set<string>,
+  ): CmsStructureModel {
+    const { slots, components } = this.buildStructure(source, permissions);
 
     const page: Page = {
       pageId: source.uid,
@@ -94,7 +105,10 @@ export class ContentstackCmsPageNormalizer implements Converter<
    * header/footer/nav entry, merged by the page adapter), so both go through the
    * same field→slot / content-type→typecode resolution path.
    */
-  buildStructure(source: ContentstackCmsPageEntry): {
+  buildStructure(
+    source: ContentstackCmsPageEntry,
+    permissions?: Set<string>,
+  ): {
     slots: Record<string, ContentSlotData>;
     components: CmsComponent[];
   } {
@@ -110,6 +124,13 @@ export class ContentstackCmsPageNormalizer implements Converter<
 
       const slotComponents: ContentSlotComponentData[] = [];
       for (const entry of entries) {
+        // Presentation-level gating: drop a restricted component from both the
+        // slot and the flat components[] in one place. Skipped entirely when
+        // `permissions` is undefined (access control off, or the ungated shell
+        // path), so existing behavior is unchanged.
+        if (permissions && !this.restrictions.isEntryAccessible(entry, permissions)) {
+          continue;
+        }
         const typeCode = toTypeCode(entry._content_type_uid);
         // Some components need a STABLE SAP uid rather than the Contentstack
         // entry uid: the tab container's uid drives Spartacus's tab-label i18n

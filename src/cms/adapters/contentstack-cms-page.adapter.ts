@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Observable, forkJoin, of } from 'rxjs';
+import { Inject, Injectable, Optional } from '@angular/core';
+import { Observable, combineLatest, forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import {
   CmsPageAdapter,
@@ -15,6 +15,11 @@ import { ContentstackClientService } from '../../client/contentstack-client.serv
 import { ContentstackCmsPageNormalizer } from '../converters/contentstack-cms-page.normalizer';
 import { ContentstackCmsPageEntry } from '../model/contentstack.model';
 import { mergeStructures } from '../model/merge-structures';
+import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
+import {
+  CONTENTSTACK_CURRENT_USER,
+  ContentstackCurrentUser,
+} from '../access/contentstack-current-user';
 
 /**
  * Replaces Spartacus's OCC page loader (`OccCmsPageAdapter`, which calls SAP's
@@ -51,7 +56,27 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     protected config: ContentstackConfig,
     protected languageService: LanguageService,
     protected occPageAdapter: OccCmsPageAdapter,
+    protected restrictions: ContentstackRestrictionsService,
+    // Optional: the feature module supplies a core-only default; when no source
+    // is provided (e.g. this module used standalone) gating treats everyone as
+    // anonymous rather than hard-failing DI.
+    @Optional()
+    @Inject(CONTENTSTACK_CURRENT_USER)
+    protected currentUser$: Observable<ContentstackCurrentUser | undefined> | null = null,
   ) {}
+
+  /**
+   * The active user's permission tokens, or `of(undefined)` when gating is off.
+   * `undefined` means "don't filter" everywhere downstream.
+   */
+  protected permissions(): Observable<Set<string> | undefined> {
+    if (!this.restrictions.enabled()) {
+      return of(undefined);
+    }
+    return (this.currentUser$ ?? of(undefined)).pipe(
+      map((user) => this.restrictions.getPermissions(user)),
+    );
+  }
 
   load(pageContext: PageContext): Observable<CmsStructureModel> {
     // SmartEdit preview context is not served by Contentstack — short-circuit so
@@ -67,8 +92,11 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
         '[ContentstackCmsPageAdapter] contentstack.cmsPageContentType is not configured.',
       );
     }
-    const { contentType, slugField, slug } = this.resolveRequest(pageContext);
+    const { contentType, slugField, slug, isSharedSlug } = this.resolveRequest(pageContext);
     const includeRefs = cs?.includeReferences ?? [];
+    // Whole-page gating applies to per-route pages; shared-slug product/category
+    // layouts are gated only when explicitly opted in (one entry = all SKUs).
+    const gatePage = !isSharedSlug || (cs?.accessControl?.gateSharedSlugPages ?? false);
 
     // Shared shell (header/footer/nav): fetched once per navigation and merged
     // into the page structure so every page renders the global slots. The shell
@@ -93,8 +121,8 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     // Resolve content in the active site language, re-fetching on a language
     // switch. Locale is folded into the client's TransferState keys, so SSR
     // never replays another locale's content.
-    return this.languageService.getActive().pipe(
-      switchMap((locale) => {
+    return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
+      switchMap(([locale, permissions]) => {
         const page$ = this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
         const global$ = global
           ? this.client.getGlobalSlots(global.contentType, global.title, globalIncludeRefs, locale)
@@ -107,7 +135,20 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
 
         return forkJoin([page$, global$, occBase$]).pipe(
           map(([entry, globalEntry, occBase]) => {
-            const csStructure = entry ? this.normalizer.convert(entry) : undefined;
+            // Whole-page gate: a restricted page entry is treated as not-found,
+            // and the OCC base is deliberately NOT merged — otherwise
+            // `occFallback` would render the OCC twin of the restricted page
+            // ("restricted" must differ from "absent").
+            if (
+              entry &&
+              permissions &&
+              gatePage &&
+              !this.restrictions.isEntryAccessible(entry, permissions)
+            ) {
+              return {} as CmsStructureModel;
+            }
+
+            const csStructure = entry ? this.normalizer.convert(entry, {}, permissions) : undefined;
             const globalStructure = globalEntry ? this.toGlobalStructure(globalEntry) : undefined;
 
             // Nothing from Contentstack and no OCC base → not-found (as before).
@@ -150,6 +191,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     contentType: string;
     slugField: string;
     slug: string;
+    isSharedSlug: boolean;
   } {
     const cs = this.config.contentstack;
     const defaultContentType = cs?.cmsPageContentType as string;
@@ -161,6 +203,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
         contentType: mapping.contentTypeUid ?? defaultContentType,
         slugField: mapping.slugField ?? defaultSlugField,
         slug: mapping.sharedSlug,
+        isSharedSlug: true,
       };
     }
 
@@ -168,6 +211,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
       contentType: defaultContentType,
       slugField: defaultSlugField,
       slug: this.resolveSlug(pageContext),
+      isSharedSlug: false,
     };
   }
 
