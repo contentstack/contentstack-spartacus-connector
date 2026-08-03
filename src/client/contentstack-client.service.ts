@@ -207,7 +207,13 @@ export class ContentstackClientService {
       if (title) {
         query.where('title', QueryOperation.EQUALS, title);
       }
-      return query.find<ContentstackCmsPageEntry>().then((res) => res?.entries?.[0]);
+      return query.find<ContentstackCmsPageEntry>().then((res) => {
+        const entry = res?.entries?.[0];
+        if (entry && this.config.contentstack?.delivery?.livePreview) {
+          this.tagForLivePreview(entry, contentTypeUid);
+        }
+        return entry;
+      });
     });
   }
   /*
