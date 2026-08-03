@@ -32,8 +32,8 @@ module.exports = {
   roots: ['<rootDir>/src'],
   // Pure-logic specs only (no TestBed). The `*.livepreview.spec.ts` glob covers
   // framework-free Live Preview helper tests (e.g. entry tagging); `type-guards
-  // .spec.ts` and `merge-structures.spec.ts` are the other framework-free
-  // model-layer helper specs. The TestBed-requiring specs
+  // .spec.ts`, `merge-structures.spec.ts`, and `slot-maps.spec.ts` are the other
+  // framework-free model-layer helper specs. The TestBed-requiring specs
   // (contentstack-cms.module.spec, custom-hero.component.spec) remain
   // intentionally unmatched — run those in a real Spartacus host.
   testMatch: [
@@ -44,6 +44,7 @@ module.exports = {
     '**/merge-structures.spec.ts',
     '**/contentstack-field-mapper.spec.ts',
     '**/contentstack-restrictions.service.spec.ts',
+    '**/slot-maps.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [

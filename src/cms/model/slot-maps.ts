@@ -92,12 +92,27 @@ export const SLOT_FIELD_TO_SAP_NAME: Readonly<Record<string, string>> = {
   footer: 'Footer',
 };
 
+/**
+ * Reference field nested one level inside either banner component type
+ * (`simple_responsive_banner_component` / `simple_banner_component`) that
+ * holds its actual image set -- both model their images as a reusable
+ * `media_container` reference rather than inline `file` fields. Slot
+ * discovery has no type restriction (any slot field can hold a banner), so
+ * every slot needs its own `<slot>.media_container` include path, not just
+ * the ones a banner happens to occupy in a given page -- otherwise
+ * `media_container` round-trips as an unresolved `{uid, _content_type_uid}`
+ * stub with no image data, however the referenced entry's own file fields
+ * are populated (see `navTreeIncludeRefs()` for the same class of bug on nav
+ * trees).
+ */
+const BANNER_MEDIA_FIELD = 'media_container';
+
 /** `cms_page` reference fields (slots + header/footer) to expand on fetch via `includeReference`. */
 export const PAGE_REFERENCE_FIELDS: readonly string[] = [
   'header',
   'footer',
   ...Object.keys(SLOT_FIELD_TO_SAP_NAME),
-];
+].flatMap((field) => [field, `${field}.${BANNER_MEDIA_FIELD}`]);
 
 /** Resolve a SAP typecode for a Contentstack content-type uid (identity fallback for custom types). */
 export function toTypeCode(contentTypeUid: string | undefined): string {
