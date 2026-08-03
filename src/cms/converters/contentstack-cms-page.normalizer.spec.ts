@@ -141,6 +141,25 @@ describe('ContentstackCmsPageNormalizer', () => {
     );
   });
 
+  it('omits a CMSTabParagraphContainer entirely when it has no tab_components', () => {
+    // Spartacus's stock TabParagraphContainerComponent does
+    // `(data.components ?? '').split(' ')` unconditionally -- with zero tabs
+    // that's `['']` (one blank-uid entry) either way, so it looks up a
+    // component that can't exist and its template crashes reading `.flexType`
+    // off the resulting `undefined`. An empty container must never reach the
+    // page structure at all.
+    const result = normalizer.convert({
+      uid: 'p_pdp3',
+      _content_type_uid: 'cms_page',
+      type: 'ProductPage',
+      tabs: [
+        { uid: 'blt_tabs_empty', _content_type_uid: 'cms_tab_paragraph_container', tab_components: null },
+      ],
+    });
+    expect(result.page?.slots?.['Tabs']?.components).toEqual([]);
+    expect(result.components?.find((c) => c.uid === 'blt_tabs_empty')).toBeUndefined();
+  });
+
   it('returns an empty structure body when there are no slots', () => {
     const result = normalizer.convert({
       uid: 'blt_empty',

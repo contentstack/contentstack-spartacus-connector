@@ -132,6 +132,19 @@ export class ContentstackCmsPageNormalizer implements Converter<
           continue;
         }
         const typeCode = toTypeCode(entry._content_type_uid);
+        // Spartacus's stock `TabParagraphContainerComponent` does
+        // `(data.components ?? '').split(' ')` unconditionally -- with zero
+        // real tabs that's `['']` (one blank-uid entry) either way, so it
+        // looks up a component that can't exist and its template crashes
+        // reading `.flexType` off the resulting `undefined`. Spartacus itself
+        // has no empty-tabs guard, so skip emitting the container entirely
+        // rather than ship a slot that's guaranteed to crash on render.
+        if (
+          typeCode === 'CMSTabParagraphContainer' &&
+          !this.parseJsonArray((entry as Record<string, unknown>)['tab_components']).length
+        ) {
+          continue;
+        }
         // Some components need a STABLE SAP uid rather than the Contentstack
         // entry uid: the tab container's uid drives Spartacus's tab-label i18n
         // key (`${container.uid}.tabs.${tab.uid}`), which only resolves against
