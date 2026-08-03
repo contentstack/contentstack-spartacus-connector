@@ -30,6 +30,10 @@ export const defaultContentstackConfig: ContentstackConfig = {
     includeFallback: false,
     cmsPageContentType: 'cms_page',
     includeReferences: [...PAGE_REFERENCE_FIELDS],
+    // Safe for every plan tier (Contentstack's lowest confirmed include_depth
+    // cap is 5); raise it if your plan allows a deeper include_depth — see
+    // the field's JSDoc in contentstack-config.ts for the formula.
+    navTreeIncludeDepth: 2,
     timeoutMs: 10000,
     // Content gating is opt-in — off by default, so existing installs are
     // unaffected. The default field/token names line up with the shipped

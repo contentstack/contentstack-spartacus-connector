@@ -104,16 +104,12 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     // leaves), so extend the page-level includes with those nested paths — a
     // one-level include would leave the nav tree unresolved.
     const global = cs?.globalSlots;
+    const navTreeDepth = cs?.navTreeIncludeDepth ?? 2;
     const globalIncludeRefs = [
       ...includeRefs,
-      'navigation_bar.navigation_node',
-      'navigation_bar.navigation_node.children',
-      'navigation_bar.navigation_node.children.entries',
-      'navigation_bar.navigation_node.entries',
-      'footer.navigation_node',
-      'footer.navigation_node.children',
-      'footer.navigation_node.children.entries',
-      'footer.navigation_node.entries',
+      ...navTreeIncludeRefs('navigation_bar', navTreeDepth),
+      ...navTreeIncludeRefs('footer', navTreeDepth),
+      ...navTreeIncludeRefs('header_links', navTreeDepth),
     ];
 
     const occFallback = cs?.occFallback ?? true;
@@ -226,4 +222,38 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     const transform = this.config.contentstack?.slugTransform;
     return transform ? raw.replace(transform.pattern, transform.replacement) : raw;
   }
+}
+
+/**
+ * The Contentstack Delivery API's `includeReference` has no wildcard/deep
+ * mode — every level of a nested reference chain must be spelled out as its
+ * own dotted path, or that level comes back as an unresolved `{uid,
+ * _content_type_uid}` stub. A nav tree's depth varies with how deeply an
+ * editor nests categories (a flat "Follow Us" footer list vs. a multi-level
+ * category mega-menu), so this generates paths up to `maxDepth` levels of
+ * `.children` rather than hand-enumerating a fixed couple of levels — which
+ * silently drops any node nested deeper than what's listed (the original bug:
+ * a 3-level-deep footer tree with only 2 levels of includes came back with
+ * zero resolvable leaf links).
+ *
+ * `maxDepth` has no universally-safe value baked in here — the caller passes
+ * it (from `ContentstackConfig.navTreeIncludeDepth`, default `2`). Contentstack
+ * rejects the ENTIRE query (`error_code: 141`, "include_depth should not be
+ * greater than N") once any include path exceeds a dot-segment ceiling that
+ * **varies by stack plan/tier** (5 is the lowest confirmed; higher tiers can
+ * allow more). For a `<field>.navigation_node...` path the safe value is
+ * `N - 3` (2 base segments + a trailing `.entries`, so each `.children` level
+ * costs one more against the plan's cap) — see the config field's JSDoc for
+ * the full formula. Passing a value too high for the actual plan breaks every
+ * nav tree in the query, not just the deep one, so raise it deliberately.
+ */
+export function navTreeIncludeRefs(field: string, maxDepth: number): string[] {
+  const root = `${field}.navigation_node`;
+  const paths = [root, `${root}.entries`];
+  let prefix = root;
+  for (let depth = 0; depth < maxDepth; depth++) {
+    prefix += '.children';
+    paths.push(prefix, `${prefix}.entries`);
+  }
+  return paths;
 }

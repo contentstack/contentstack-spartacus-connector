@@ -1,6 +1,6 @@
 import { Observable, of, throwError } from 'rxjs';
 import { HOME_PAGE_CONTEXT, SMART_EDIT_CONTEXT } from '@spartacus/core';
-import { ContentstackCmsPageAdapter } from './contentstack-cms-page.adapter';
+import { ContentstackCmsPageAdapter, navTreeIncludeRefs } from './contentstack-cms-page.adapter';
 import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
 import { ContentstackCurrentUser } from '../access/contentstack-current-user';
 
@@ -330,6 +330,26 @@ describe('ContentstackCmsPageAdapter', () => {
       firstValue(adapter.load(ctx('home')));
       expect(client.getGlobalSlots).not.toHaveBeenCalled();
     });
+
+    it('honors a configured navTreeIncludeDepth (plan-dependent include_depth cap)', () => {
+      // Contentstack's include_depth ceiling varies by stack plan/tier (5 is
+      // the lowest confirmed; higher tiers allow more) -- a stack on a higher
+      // tier should be able to request deeper nav trees than the default.
+      const { adapter, client } = create({
+        cs: { globalSlots: { contentType: 'global_slots' }, navTreeIncludeDepth: 1 },
+        client: {
+          getPageBySlug: jest.fn().mockReturnValue(of(undefined)),
+          getGlobalSlots: jest.fn().mockReturnValue(of(undefined)),
+        },
+      });
+
+      firstValue(adapter.load(ctx('home')));
+
+      const [, , includeRefs] = client.getGlobalSlots.mock.calls[0];
+      expect(includeRefs).toEqual(expect.arrayContaining(navTreeIncludeRefs('navigation_bar', 1)));
+      // Depth 1 must NOT reach into a second level of `.children`.
+      expect(includeRefs).not.toContain('navigation_bar.navigation_node.children.children');
+    });
   });
 
   describe('locale threading', () => {
@@ -413,5 +433,51 @@ describe('ContentstackCmsPageAdapter', () => {
       expect(convert).toHaveBeenCalled();
       expect(res).not.toEqual({});
     });
+  });
+});
+
+describe('navTreeIncludeRefs', () => {
+  // `field.navigation_node` is 2 fixed segments; each `.children` level and
+  // the trailing `.entries` cost one dot-segment each against Contentstack's
+  // plan-dependent include_depth cap (2 + maxDepth + 1 total segments on the
+  // deepest generated path).
+  function segments(path: string): number {
+    return path.split('.').length;
+  }
+
+  it('generates the root and its own entries at depth 0', () => {
+    expect(navTreeIncludeRefs('footer', 0)).toEqual(['footer.navigation_node', 'footer.navigation_node.entries']);
+  });
+
+  it('adds one more level of children + entries per unit of depth', () => {
+    expect(navTreeIncludeRefs('footer', 2)).toEqual([
+      'footer.navigation_node',
+      'footer.navigation_node.entries',
+      'footer.navigation_node.children',
+      'footer.navigation_node.children.entries',
+      'footer.navigation_node.children.children',
+      'footer.navigation_node.children.children.entries',
+    ]);
+  });
+
+  it('never asks for something deeper than requested', () => {
+    const paths = navTreeIncludeRefs('navigation_bar', 3);
+    expect(paths).not.toContain('navigation_bar.navigation_node.children.children.children.children');
+  });
+
+  it.each([0, 1, 2, 5, 10])(
+    'keeps the deepest path at exactly maxDepth + 3 segments (maxDepth=%i)',
+    (maxDepth) => {
+      const paths = navTreeIncludeRefs('footer', maxDepth);
+      const deepest = Math.max(...paths.map(segments));
+      // This is the invariant a caller relies on to stay under their plan's
+      // include_depth cap: pass `planCap - 3` as maxDepth and the deepest
+      // generated path lands exactly on the cap, never over it.
+      expect(deepest).toBe(maxDepth + 3);
+    },
+  );
+
+  it('is parameterized entirely by field name, with no hardcoded nav field', () => {
+    expect(navTreeIncludeRefs('header_links', 1)[0]).toBe('header_links.navigation_node');
   });
 });
