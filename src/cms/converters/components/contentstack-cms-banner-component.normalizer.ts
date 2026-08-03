@@ -26,7 +26,13 @@ export class ContentstackCmsBannerComponentNormalizer implements Converter<
   CmsBannerComponent
 > {
   convert(source: ContentstackEntry, target: CmsBannerComponent = {}): CmsBannerComponent {
-    const container = source['media_container'] as ContentstackReference | undefined;
+    // Contentstack delivers reference fields as arrays even for a single
+    // reference, so unwrap `[mediaContainer]` before checking its shape --
+    // same pattern as ContentstackCmsNavigationComponentNormalizer.
+    const rawContainer = source['media_container'];
+    const container = (Array.isArray(rawContainer) ? rawContainer[0] : rawContainer) as
+      | ContentstackReference
+      | undefined;
     if (isMediaContainer(container)) {
       const media: CmsBannerComponent['media'] = {};
       for (const breakpoint of BREAKPOINTS) {

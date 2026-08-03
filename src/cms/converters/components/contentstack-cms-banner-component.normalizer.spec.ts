@@ -39,6 +39,33 @@ describe('ContentstackCmsBannerComponentNormalizer', () => {
     expect(component.media?.tablet).toBeUndefined();
   });
 
+  it('resolves media from a media_container delivered as a single-element array (the real Delivery API shape)', () => {
+    // Contentstack delivers reference fields as arrays even when the field is
+    // single-cardinality (`multiple: false`) -- this is the actual shape
+    // `includeReference` returns, not the bare object the other tests use.
+    const entry: ContentstackEntry = {
+      uid: 'blt_hero_array',
+      _content_type_uid: 'simple_responsive_banner_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      media_container: [
+        {
+          uid: 'blt_media_array',
+          _content_type_uid: 'media_container',
+          created_at: '2026-01-01T00:00:00.000Z',
+          desktop: {
+            url: 'https://images.cs/desktop.jpg',
+            filename: 'desktop.jpg',
+            content_type: 'image/jpeg',
+          },
+        },
+      ],
+    };
+
+    const component = normalizer.convert(entry);
+
+    expect(component.media?.desktop?.url).toBe('https://images.cs/desktop.jpg');
+  });
+
   it('resolves media from direct per-breakpoint file fields, filling gaps from the largest', () => {
     const entry: ContentstackEntry = {
       uid: 'blt_hero_bp',
