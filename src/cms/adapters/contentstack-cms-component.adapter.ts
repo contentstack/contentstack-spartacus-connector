@@ -70,6 +70,9 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     const contentType = this.componentContentType();
     if (!contentType) {
       if (occFallback) {
+        if (this.isContentstackUid(id)) {
+          return of({ uid: id } as T);
+        }
         return this.occComponentAdapter.load<T>(id, pageContext);
       }
       this.warnNoContentType('load', [id]);
@@ -87,8 +90,22 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
               }
               return of(this.normalizer.convert(entry) as T);
             }
-            // Not in Contentstack → OCC (hybrid) or a bare shell.
-            return occFallback
+            // Not under componentContentType. A Contentstack-native uid here
+            // is a component of some OTHER Contentstack content type (e.g. a
+            // banner), not one OCC would ever have — this is most commonly
+            // hit when Spartacus refreshes already-mounted components after
+            // a language/currency/login change (Spartacus's `clearCmsState`
+            // meta-reducer wipes the CMS store on those events and
+            // redispatches a per-uid reload for every mounted component,
+            // regardless of its type — not just the ones this adapter
+            // models). Forwarding it to OCC would only fail a beat later and
+            // mark the component "not found", which flips its
+            // already-subscribed `data$` to `null`; several stock components
+            // (e.g. BannerComponent, SearchBoxComponent) don't null-guard
+            // that and throw. A benign shell is a safe, inert result either
+            // way — the component's real data already arrived via the page
+            // payload and isn't lost.
+            return occFallback && !this.isContentstackUid(id)
               ? this.occComponentAdapter.load<T>(id, pageContext)
               : of({ uid: id } as T);
           }),
@@ -102,7 +119,16 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     const contentType = this.componentContentType();
     if (!contentType) {
       if (occFallback) {
-        return this.occComponentAdapter.findComponentsByIds(ids, pageContext);
+        const occIds = ids.filter((id) => !this.isContentstackUid(id));
+        const shells = ids
+          .filter((id) => this.isContentstackUid(id))
+          .map((id) => ({ uid: id }) as CmsComponent);
+        if (!occIds.length) {
+          return of(shells);
+        }
+        return this.occComponentAdapter
+          .findComponentsByIds(occIds, pageContext)
+          .pipe(map((occComponents) => [...shells, ...occComponents]));
       }
       this.warnNoContentType('findComponentsByIds', ids);
       return of([]);
@@ -125,9 +151,23 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
             if (!remaining.length) {
               return of(csComponents);
             }
+            // Split remaining ids by uid shape (see the matching comment in
+            // `load()`): a Contentstack-native uid not found under
+            // componentContentType belongs to another Contentstack content
+            // type and will never exist in OCC, so only forward
+            // genuinely OCC-shaped ids — anything else gets a benign shell
+            // instead of tripping a `LoadCmsComponentFail` that would null
+            // out an already-mounted component's data stream.
+            const occRemaining = remaining.filter((id) => !this.isContentstackUid(id));
+            const shells = remaining
+              .filter((id) => this.isContentstackUid(id))
+              .map((id) => ({ uid: id }) as CmsComponent);
+            if (!occRemaining.length) {
+              return of([...csComponents, ...shells]);
+            }
             return this.occComponentAdapter
-              .findComponentsByIds(remaining, pageContext)
-              .pipe(map((occComponents) => [...csComponents, ...occComponents]));
+              .findComponentsByIds(occRemaining, pageContext)
+              .pipe(map((occComponents) => [...csComponents, ...shells, ...occComponents]));
           }),
         ),
       ),
@@ -136,6 +176,16 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
 
   protected componentContentType(): string | undefined {
     return this.config.contentstack?.componentContentType;
+  }
+
+  /**
+   * Contentstack entry uids are always `blt<hex>` — a distinct namespace from
+   * OCC's own component ids (e.g. `PowertoolsHompageSplashBannerComponent`).
+   * Used to avoid forwarding a Contentstack-native uid to the OCC fallback,
+   * where it can never resolve.
+   */
+  protected isContentstackUid(id: string): boolean {
+    return id.startsWith('blt');
   }
 
   protected occFallback(): boolean {

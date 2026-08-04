@@ -123,6 +123,34 @@ describe('ContentstackCmsComponentAdapter', () => {
       expect(logger.warn).toHaveBeenCalledTimes(1);
       expect(logger.warn.mock.calls[0][0]).toContain('componentContentType is not configured');
     });
+
+    // Spartacus's `clearCmsState` meta-reducer wipes the CMS store on a
+    // language/currency/login change and redispatches a per-uid reload for
+    // EVERY already-mounted component, regardless of its type -- not just
+    // the ones this adapter's componentContentType models (e.g. banners,
+    // not just cms_link_component leaves). A Contentstack-native uid
+    // (`blt...`) that isn't found under componentContentType will never
+    // exist in OCC either; forwarding it anyway would fail a beat later and
+    // flip the already-mounted component's data$ to `null`, which several
+    // stock components (BannerComponent, SearchBoxComponent) don't
+    // null-guard and crash on.
+    it('never forwards a Contentstack-shaped uid (blt...) to OCC, even when not found under componentContentType', () => {
+      const { adapter, occComponentAdapter } = create({
+        client: { getEntryByUid: jest.fn().mockReturnValue(of(undefined)) },
+      });
+      const res = firstValue(adapter.load('bltbanner123', ctx));
+      expect(res).toEqual({ uid: 'bltbanner123' });
+      expect(occComponentAdapter.load).not.toHaveBeenCalled();
+    });
+
+    it('never forwards a Contentstack-shaped uid to OCC when no componentContentType is configured', () => {
+      const { adapter, occComponentAdapter } = create({
+        cs: { componentContentType: undefined },
+      });
+      const res = firstValue(adapter.load('bltbanner123', ctx));
+      expect(res).toEqual({ uid: 'bltbanner123' });
+      expect(occComponentAdapter.load).not.toHaveBeenCalled();
+    });
   });
 
   describe('findComponentsByIds()', () => {
@@ -187,6 +215,43 @@ describe('ContentstackCmsComponentAdapter', () => {
       const res = firstValue(adapter.findComponentsByIds(['a', 'b'], ctx));
       expect(res).toEqual([]);
       expect(logger.warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('gives unresolved Contentstack-shaped uids a shell instead of forwarding them to OCC', () => {
+      const { adapter, occComponentAdapter } = create({
+        client: { getEntriesByUids: jest.fn().mockReturnValue(of([{ uid: 'a' }])) },
+      });
+      const res = firstValue(adapter.findComponentsByIds(['a', 'bltmissing'], ctx));
+      expect(res).toEqual([{ uid: 'a', typeCode: 'CS' }, { uid: 'bltmissing' }]);
+      expect(occComponentAdapter.findComponentsByIds).not.toHaveBeenCalled();
+    });
+
+    it('mixes shells (Contentstack-shaped) and a real OCC fetch (non-Contentstack-shaped) among unresolved ids', () => {
+      const { adapter, occComponentAdapter } = create({
+        client: { getEntriesByUids: jest.fn().mockReturnValue(of([{ uid: 'a' }])) },
+        occ: {
+          findComponentsByIds: jest.fn().mockReturnValue(of([{ uid: 'occ-link', typeCode: 'OCC' }])),
+        },
+      });
+      const res = firstValue(adapter.findComponentsByIds(['a', 'bltmissing', 'occ-link'], ctx));
+      expect(occComponentAdapter.findComponentsByIds).toHaveBeenCalledWith(['occ-link'], ctx);
+      expect(res).toEqual([
+        { uid: 'a', typeCode: 'CS' },
+        { uid: 'bltmissing' },
+        { uid: 'occ-link', typeCode: 'OCC' },
+      ]);
+    });
+
+    it('never forwards Contentstack-shaped uids to OCC when no componentContentType is configured', () => {
+      const { adapter, occComponentAdapter } = create({
+        cs: { componentContentType: undefined },
+        occ: {
+          findComponentsByIds: jest.fn().mockReturnValue(of([{ uid: 'occ-a' }])),
+        },
+      });
+      const res = firstValue(adapter.findComponentsByIds(['bltbanner', 'occ-a'], ctx));
+      expect(occComponentAdapter.findComponentsByIds).toHaveBeenCalledWith(['occ-a'], ctx);
+      expect(res).toEqual([{ uid: 'bltbanner' }, { uid: 'occ-a' }]);
     });
   });
 
