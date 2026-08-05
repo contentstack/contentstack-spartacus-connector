@@ -68,6 +68,17 @@ multi-word options), e.g. `--api-key=… --delivery-token=… --environment=deve
 --region=US --interactive=false`. (This wires **code/config** only — content still comes from
 the csdx starter-pack import in Step 2.)
 
+The delivery credentials are written to **`src/environments/contentstack.environment.ts`**
+(referenced from the generated module), not inlined in the NgModule — so they stay out of the
+committed module and can be swapped per environment via Angular's `fileReplacements`. Fill any
+`<PLACEHOLDER>`s there.
+
+> **Preview token is a secret.** A `previewToken` is emitted **only when you enable Live
+> Preview**, and it grants read access to *unpublished* draft content. Use it only in a
+> non-production build and do **not** commit a real value (git-ignore the env file if it holds
+> one). The connector also refuses to activate Live Preview when the app runs in production mode,
+> so a stray preview build can't leak drafts to end users.
+
 ### Option B — manual
 
 In `spartacus-features.module.ts`, import our feature module **after** the stock Spartacus
@@ -100,7 +111,9 @@ provideConfig(<ContentstackConfig>{
       apiKey: '<STACK_API_KEY>',
       deliveryToken: '<DELIVERY_TOKEN>',   // read-only, safe in the client bundle
       environment: '<ENVIRONMENT>',        // e.g. development
-      // Live Preview / Visual Builder (optional):
+      // Live Preview / Visual Builder (optional). NON-PRODUCTION builds only —
+      // the previewToken grants read access to unpublished drafts (keep it out of
+      // committed source), and the connector ignores Live Preview in production.
       livePreview: true,
       previewToken: '<PREVIEW_TOKEN>',
     },

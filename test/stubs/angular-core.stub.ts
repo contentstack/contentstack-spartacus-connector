@@ -25,6 +25,11 @@ export function Optional(): (...args: unknown[]) => void {
 export function inject(): undefined {
   return undefined;
 }
+// Offline unit config runs as "dev" — the client's Live Preview production guard
+// treats this as non-production.
+export function isDevMode(): boolean {
+  return true;
+}
 // Minimal DI token stand-in — the access-control code constructs an
 // `InjectionToken` at module load (CONTENTSTACK_CURRENT_USER); the specs inject
 // its value directly, so only construction needs to succeed here.

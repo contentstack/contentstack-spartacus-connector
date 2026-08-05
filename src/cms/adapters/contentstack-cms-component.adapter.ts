@@ -80,7 +80,10 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     }
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
       switchMap(([locale, permissions]) =>
-        this.client.getEntryByUid(contentType, id, locale).pipe(
+        (permissions
+          ? this.client.getEntryByUid(contentType, id, locale, { permissions, gateRoot: true })
+          : this.client.getEntryByUid(contentType, id, locale)
+        ).pipe(
           switchMap((entry: ContentstackEntry | undefined) => {
             if (entry) {
               // Restricted → a bare shell, NOT the OCC fallback: a gated
@@ -135,7 +138,10 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     }
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
       switchMap(([locale, permissions]) =>
-        this.client.getEntriesByUids(contentType, ids, locale).pipe(
+        (permissions
+          ? this.client.getEntriesByUids(contentType, ids, locale, { permissions, gateRoot: true })
+          : this.client.getEntriesByUids(contentType, ids, locale)
+        ).pipe(
           switchMap((entries: ContentstackEntry[]) => {
             const accessible = permissions
               ? entries.filter((entry) => this.restrictions.isEntryAccessible(entry, permissions))

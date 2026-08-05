@@ -91,4 +91,102 @@ describe('ContentstackRestrictionsService', () => {
       expect(svc.isEntryAccessible(entry(['editorial-note']), new Set())).toBe(true);
     });
   });
+
+  // --- filter gated content BEFORE it reaches SSR TransferState ---
+
+  describe('cacheKeySuffix()', () => {
+    const svc = make({ enabled: true });
+
+    it('is empty when gating is off (no permissions) so keys are unchanged', () => {
+      expect(svc.cacheKeySuffix(undefined)).toBe('');
+      expect(svc.cacheKeySuffix(new Set())).toBe('');
+    });
+
+    it('is a stable, order-independent per-audience fragment', () => {
+      const a = svc.cacheKeySuffix(new Set(['_require-login', '_require-admin']));
+      const b = svc.cacheKeySuffix(new Set(['_require-admin', '_require-login']));
+      expect(a).toBe(b); // sorted → order-independent
+      expect(a).toBe(':acl=_require-admin|_require-login');
+      // Different audiences get different keys (no cross-serving).
+      expect(svc.cacheKeySuffix(new Set(['_require-login']))).not.toBe(a);
+    });
+  });
+
+  describe('redactEntry()', () => {
+    const svc = make({ enabled: true });
+
+    it('keeps only uid, content-type and the access field — no content', () => {
+      const stub = svc.redactEntry({
+        uid: 'e1',
+        _content_type_uid: 'promo',
+        access_tags: ['_require-login'],
+        title: 'Secret Q4 pricing',
+        body: 'embargoed',
+      } as ContentstackEntry);
+      expect(stub).toEqual({
+        uid: 'e1',
+        _content_type_uid: 'promo',
+        access_tags: ['_require-login'],
+      });
+      // Still reported restricted downstream (tags survive), so "restricted" stays
+      // distinct from "absent".
+      expect(svc.isEntryAccessible(stub, new Set(['_require-anonymous']))).toBe(false);
+    });
+  });
+
+  describe('sanitizeForTransfer()', () => {
+    const svc = make({ enabled: true });
+    const anon = new Set(['_require-anonymous']);
+
+    it('strips restricted nested references from arrays and single-ref fields', () => {
+      const page = {
+        uid: 'p1',
+        title: 'Home',
+        section1: [
+          { uid: 'c1', title: 'public' },
+          { uid: 'c2', title: 'members only', access_tags: ['_require-login'] },
+        ],
+        hero: { uid: 'h1', title: 'gated hero', access_tags: ['_require-login'] },
+        footer: { uid: 'f1', title: 'public footer' },
+      } as unknown as ContentstackEntry;
+
+      const safe = svc.sanitizeForTransfer(page, anon, /* gateRoot */ true);
+
+      expect((safe.section1 as ContentstackEntry[]).map((c) => c.uid)).toEqual(['c1']);
+      expect(safe.hero).toBeUndefined(); // restricted single ref dropped
+      expect((safe.footer as ContentstackEntry).uid).toBe('f1'); // public ref kept
+      expect(safe.title).toBe('Home'); // accessible root content preserved
+    });
+
+    it('redacts the root to a stub when gateRoot and the root itself is restricted', () => {
+      const page = {
+        uid: 'p2',
+        _content_type_uid: 'landing_page',
+        access_tags: ['_require-login'],
+        title: 'Members landing',
+        section1: [{ uid: 'c1', title: 'child' }],
+      } as unknown as ContentstackEntry;
+
+      const safe = svc.sanitizeForTransfer(page, anon, true);
+      expect(safe).toEqual({
+        uid: 'p2',
+        _content_type_uid: 'landing_page',
+        access_tags: ['_require-login'],
+      });
+      expect(safe.title).toBeUndefined(); // content did NOT survive
+    });
+
+    it('keeps a restricted root when gateRoot is false (nested-only sanitize)', () => {
+      const entry = {
+        uid: 'p3',
+        access_tags: ['_require-login'],
+        title: 'kept',
+        child: { uid: 'x', access_tags: ['_require-admin'] },
+      } as unknown as ContentstackEntry;
+
+      const safe = svc.sanitizeForTransfer(entry, anon, false);
+      expect(safe.title).toBe('kept'); // root retained
+      expect(safe.child).toBeUndefined(); // nested restricted still stripped
+    });
+  });
 });

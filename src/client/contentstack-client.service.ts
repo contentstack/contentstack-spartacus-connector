@@ -4,6 +4,7 @@ import {
   PLATFORM_ID,
   StateKey,
   TransferState,
+  isDevMode,
   makeStateKey,
 } from '@angular/core';
 import { isPlatformServer } from '@angular/common';
@@ -12,7 +13,24 @@ import { catchError, timeout } from 'rxjs/operators';
 import contentstack, { QueryOperation, Region, type Stack } from '@contentstack/delivery-sdk';
 import { LoggerService } from '@spartacus/core';
 import { ContentstackConfig } from '../config/contentstack-config';
+import { ContentstackRestrictionsService } from '../cms/access/contentstack-restrictions.service';
 import { tagEntryTree } from '../live-preview/tag-entry-tree';
+
+/**
+ * Access context threaded from the adapters so gated content is filtered BEFORE
+ * it is written into SSR TransferState. Absent when access control
+ * is off — in which case fetches behave and cache exactly as before.
+ */
+export interface EntryAccessOptions {
+  /** Permission tokens the active user holds (see `ContentstackRestrictionsService`). */
+  permissions: Set<string>;
+  /**
+   * When true, a root entry the user can't access is redacted to a tags-only stub
+   * before caching (whole-entry gating). When false, only nested restricted
+   * references are stripped and the root is kept.
+   */
+  gateRoot: boolean;
+}
 import { ContentstackCmsPageEntry, ContentstackEntry } from '../cms/model/contentstack.model';
 
 /**
@@ -39,6 +57,7 @@ export class ContentstackClientService {
     protected config: ContentstackConfig,
     protected transferState: TransferState,
     protected logger: LoggerService,
+    protected restrictions: ContentstackRestrictionsService,
     @Inject(PLATFORM_ID) protected platformId: object,
   ) {}
 
@@ -54,6 +73,20 @@ export class ContentstackClientService {
           'Provide contentstack.delivery.{apiKey,deliveryToken,environment} via provideConfig().',
       );
     }
+    // Live Preview exposes UNPUBLISHED draft content, so it must never be active
+    // in a production build. Refuse to enable it outside dev mode (and warn), even
+    // if a previewToken is configured — a preview build shipped to prod would
+    // otherwise leak drafts to end users.
+    const inProduction = !isDevMode();
+    if (delivery.livePreview && inProduction) {
+      this.logger.warn(
+        '[ContentstackClientService] Live Preview is enabled in config but the app is running ' +
+          'in production mode — refusing to activate it so unpublished draft content is not ' +
+          'exposed to end users. Use a dedicated non-production build for Live Preview.',
+      );
+    }
+    const enableLivePreview = !!delivery.livePreview && !!delivery.previewToken && !inProduction;
+
     this._stack = contentstack.stack({
       apiKey: delivery.apiKey,
       deliveryToken: delivery.deliveryToken,
@@ -64,7 +97,7 @@ export class ContentstackClientService {
       // the preview token so draft content resolves. The Live Preview SDK
       // (passed this same stack as `stackSdk`) keeps `live_preview` (the hash)
       // in sync per edit, so queries pick up the entry being edited.
-      ...(delivery.livePreview && delivery.previewToken
+      ...(enableLivePreview
         ? {
             live_preview: {
               enable: true,
@@ -143,10 +176,13 @@ export class ContentstackClientService {
     slug: string,
     includeRefs: string[] = [],
     locale?: string,
+    access?: EntryAccessOptions,
   ): Observable<ContentstackCmsPageEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackCmsPageEntry | undefined>(
-      `cs-page:${contentTypeUid}:${slugField}:${slug}:${csLocale ?? '*'}`,
+      `cs-page:${contentTypeUid}:${slugField}:${slug}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
+        access?.permissions,
+      )}`,
     );
     return this.withTransferState(key, () => {
       // `includeReference` lives on the Entries object (from `.entry()`), not on
@@ -166,7 +202,11 @@ export class ContentstackClientService {
         .where(slugField, QueryOperation.EQUALS, slug)
         .find<ContentstackCmsPageEntry>()
         .then((res) => {
-          const entry = res?.entries?.[0];
+          let entry = res?.entries?.[0];
+          // Filter gated content BEFORE it is persisted to TransferState.
+          if (entry && access) {
+            entry = this.restrictions.sanitizeForTransfer(entry, access.permissions, access.gateRoot);
+          }
           if (entry && this.config.contentstack?.delivery?.livePreview) {
             this.tagForLivePreview(entry, contentTypeUid);
           }
@@ -233,10 +273,13 @@ export class ContentstackClientService {
     contentTypeUid: string,
     uid: string,
     locale?: string,
+    access?: EntryAccessOptions,
   ): Observable<ContentstackEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry | undefined>(
-      `cs-entry:${contentTypeUid}:${uid}:${csLocale ?? '*'}`,
+      `cs-entry:${contentTypeUid}:${uid}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
+        access?.permissions,
+      )}`,
     );
     return this.withTransferState(key, () => {
       let entry = this.stack.contentType(contentTypeUid).entry(uid);
@@ -246,7 +289,14 @@ export class ContentstackClientService {
           entry = entry.includeFallback();
         }
       }
-      return entry.fetch<ContentstackEntry>().then((e) => e ?? undefined);
+      return entry.fetch<ContentstackEntry>().then((e) => {
+        let result = e ?? undefined;
+        // Filter gated content BEFORE it is persisted to TransferState.
+        if (result && access) {
+          result = this.restrictions.sanitizeForTransfer(result, access.permissions, access.gateRoot);
+        }
+        return result;
+      });
     });
   }
 
@@ -255,13 +305,16 @@ export class ContentstackClientService {
     contentTypeUid: string,
     uids: string[],
     locale?: string,
+    access?: EntryAccessOptions,
   ): Observable<ContentstackEntry[]> {
     if (!uids.length) {
       return of([]);
     }
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry[]>(
-      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${csLocale ?? '*'}`,
+      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
+        access?.permissions,
+      )}`,
     );
     return this.withTransferState(key, () => {
       let entries = this.stack.contentType(contentTypeUid).entry();
@@ -275,7 +328,17 @@ export class ContentstackClientService {
         .query()
         .where('uid', QueryOperation.INCLUDES, uids)
         .find<ContentstackEntry>()
-        .then((res) => res?.entries ?? []);
+        .then((res) => {
+          const list = res?.entries ?? [];
+          // Filter gated content BEFORE it is persisted to TransferState:
+          // each restricted entry is redacted to a tags-only stub so the adapter
+          // still counts it as "found" (no OCC refetch) without shipping content.
+          return access
+            ? list.map((entry) =>
+                this.restrictions.sanitizeForTransfer(entry, access.permissions, access.gateRoot),
+              )
+            : list;
+        });
     });
   }
 

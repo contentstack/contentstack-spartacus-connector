@@ -119,7 +119,16 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     // never replays another locale's content.
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
       switchMap(([locale, permissions]) => {
-        const page$ = this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
+        // When gating is on, thread the user's permissions (and whether the whole
+        // page should be gated) into the fetch so restricted content is filtered
+        // BEFORE it is written to SSR TransferState. Off ⇒ no arg,
+        // identical caching/behavior to before.
+        const page$ = permissions
+          ? this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale, {
+              permissions,
+              gateRoot: gatePage,
+            })
+          : this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
         const global$ = global
           ? this.client.getGlobalSlots(global.contentType, global.title, globalIncludeRefs, locale)
           : of(undefined);

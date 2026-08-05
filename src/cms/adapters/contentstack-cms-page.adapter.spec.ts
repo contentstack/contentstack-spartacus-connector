@@ -433,6 +433,41 @@ describe('ContentstackCmsPageAdapter', () => {
       expect(convert).toHaveBeenCalled();
       expect(res).not.toEqual({});
     });
+
+    it('threads permissions + gateRoot:true into the client fetch so gated content is filtered before SSR', () => {
+      const getPageBySlug = jest.fn().mockReturnValue(of({ uid: 'p' }));
+      const { adapter } = create({
+        cs: GATING,
+        user: { roles: ['b2badmingroup'] },
+        client: { getPageBySlug },
+        normalizer: { convert: jest.fn().mockReturnValue({ page: { slots: {} }, components: [] }) },
+      });
+
+      firstValue(adapter.load(ctx('home')));
+      const access = getPageBySlug.mock.calls[0][5];
+      expect(access?.permissions).toBeInstanceOf(Set);
+      expect(access?.permissions.has('_require-b2badmingroup')).toBe(true);
+      expect(access?.gateRoot).toBe(true); // whole-page gating for a per-route page
+    });
+
+    it('threads gateRoot:false for a shared-slug page not opted into whole-page gating', () => {
+      const getPageBySlug = jest.fn().mockReturnValue(of({ uid: 'pdp' }));
+      const { adapter } = create({
+        cs: {
+          ...GATING,
+          pageTypeMapping: {
+            ProductPage: { sharedSlug: 'product', slugField: 'url', contentTypeUid: 'product_page' },
+          },
+        },
+        client: { getPageBySlug },
+        normalizer: { convert: jest.fn().mockReturnValue({ page: { slots: {} }, components: [] }) },
+      });
+
+      firstValue(adapter.load(ctx('1934793', 'ProductPage')));
+      const access = getPageBySlug.mock.calls[0][5];
+      expect(access?.permissions).toBeInstanceOf(Set);
+      expect(access?.gateRoot).toBe(false); // nested-only sanitize; root kept
+    });
   });
 });
 

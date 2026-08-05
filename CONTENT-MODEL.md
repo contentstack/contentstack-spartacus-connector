@@ -236,10 +236,17 @@ Defaults are configurable (`accessField`, `anonymousToken`, `loginToken`, `roleP
 `gateSharedSlugPages`) — see `ContentstackConfig.accessControl`.
 
 > **Not a security boundary.** Gated entries are still fetched from the Delivery API (the delivery
-> token ships in the client bundle) and dropped before render — a determined user can read them via
-> the API/devtools. Use it to tailor what the UI shows, not to protect confidential data. Shared-slug
-> product/category pages are not gated by default (`gateSharedSlugPages: false`), and the global
-> shell (header/footer/nav) is never gated.
+> token ships in the client bundle) — a determined user can read them via the API/devtools. Use it to
+> tailor what the UI shows, not to protect confidential data. Shared-slug product/category pages are
+> not gated by default (`gateSharedSlugPages: false`), and the global shell (header/footer/nav) is
+> never gated.
+>
+> **SSR caching.** With gating on, the connector filters restricted content out of the SSR payload
+> *before* it is written (so a user's page source only contains what they may see), and the
+> Contentstack SSR cache key is scoped per permission set. If you put a **shared** cache (CDN / SSR
+> cache) in front of the app, you must still send `Cache-Control: private` (or `Vary` on the
+> identity that drives permissions) for gated routes, so one audience's rendered page is never served
+> to another.
 
 ## 5. What the seed should contain (small, marketing-only)
 

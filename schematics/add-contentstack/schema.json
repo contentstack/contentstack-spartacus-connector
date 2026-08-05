@@ -17,16 +17,22 @@
     "apiKey": {
       "type": "string",
       "description": "Contentstack stack API key (read-only, safe in a client bundle).",
+      "pattern": "^(blt[0-9a-fA-F]{12,})?$",
+      "maxLength": 64,
       "x-prompt": "[Contentstack] Stack API key? (leave blank to scaffold a placeholder)"
     },
     "deliveryToken": {
       "type": "string",
       "description": "Contentstack delivery token (read-only, scoped to the environment).",
+      "pattern": "^(cs[0-9a-fA-F]{12,})?$",
+      "maxLength": 64,
       "x-prompt": "[Contentstack] Delivery token? (leave blank to scaffold a placeholder)"
     },
     "environment": {
       "type": "string",
       "description": "Contentstack publishing environment (e.g. development, production).",
+      "pattern": "^[A-Za-z0-9_-]*$",
+      "maxLength": 64,
       "x-prompt": "[Contentstack] Environment name? (leave blank to scaffold a placeholder)"
     },
     "region": {
@@ -51,6 +57,8 @@
       "type": "string",
       "description": "The Contentstack content type resolved for content/landing routes (incl. the homepage).",
       "default": "landing_page",
+      "pattern": "^([a-z][a-z0-9_]*)?$",
+      "maxLength": 64,
       "x-prompt": "[Contentstack] Page content type to resolve for content routes?"
     },
     "occFallback": {
@@ -74,6 +82,8 @@
     "previewToken": {
       "type": "string",
       "description": "Contentstack preview token (used only when Live Preview is enabled).",
+      "pattern": "^(cs[0-9a-fA-F]{12,})?$",
+      "maxLength": 64,
       "x-prompt": "[Contentstack] Preview token? (only needed for Live Preview; leave blank to scaffold a placeholder)"
     }
   },
