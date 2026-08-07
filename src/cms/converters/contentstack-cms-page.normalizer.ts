@@ -14,6 +14,7 @@ import { ContentstackCmsPageEntry, ContentstackEntry } from '../model/contentsta
 import { effectiveSlotMap, resolveFlexType, toTypeCode } from '../model/slot-maps';
 import { ContentstackCmsComponentNormalizer } from './contentstack-cms-component.normalizer';
 import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
+import { ContentstackComponentTypeRegistry } from '../model/contentstack-component-type.registry';
 
 /**
  * Translates a raw Contentstack `cms_page` entry (the Content Model Starter Pack
@@ -57,6 +58,7 @@ export class ContentstackCmsPageNormalizer implements Converter<
     protected config: ContentstackConfig,
     protected componentNormalizer: ContentstackCmsComponentNormalizer,
     protected restrictions: ContentstackRestrictionsService,
+    protected typeRegistry: ContentstackComponentTypeRegistry,
   ) {}
 
   /**
@@ -153,6 +155,16 @@ export class ContentstackCmsPageNormalizer implements Converter<
         const stableUid = (entry as Record<string, unknown>)['component_uid'] as string | undefined;
         const compUid =
           typeCode === 'CMSTabParagraphContainer' && stableUid ? stableUid : entry.uid;
+        // Learn this component's real Contentstack content type so the component
+        // adapter can re-fetch it by uid (in the active locale) on a language
+        // switch, instead of missing the single configured `componentContentType`
+        // and returning a stale shell. Record under both the entry uid and the
+        // stable uid Spartacus keys the component by (they differ only for the
+        // tab-container stable-uid case above).
+        this.typeRegistry.record(entry.uid, entry._content_type_uid);
+        if (compUid !== entry.uid) {
+          this.typeRegistry.record(compUid, entry._content_type_uid);
+        }
         slotComponents.push({
           uid: compUid,
           typeCode,

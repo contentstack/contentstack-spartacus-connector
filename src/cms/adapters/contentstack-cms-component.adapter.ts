@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@angular/core';
-import { Observable, combineLatest, of } from 'rxjs';
+import { Observable, combineLatest, forkJoin, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import {
   CmsComponent,
@@ -13,6 +13,7 @@ import { ContentstackConfig } from '../../config/contentstack-config';
 import { ContentstackClientService } from '../../client/contentstack-client.service';
 import { ContentstackCmsComponentNormalizer } from '../converters/contentstack-cms-component.normalizer';
 import { ContentstackEntry } from '../model/contentstack.model';
+import { ContentstackComponentTypeRegistry } from '../model/contentstack-component-type.registry';
 import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
 import {
   CONTENTSTACK_CURRENT_USER,
@@ -45,11 +46,22 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     protected languageService: LanguageService,
     protected occComponentAdapter: OccCmsComponentAdapter,
     protected restrictions: ContentstackRestrictionsService,
+    protected typeRegistry: ContentstackComponentTypeRegistry,
     // Optional — see the page adapter: absent source ⇒ anonymous, not a DI error.
     @Optional()
     @Inject(CONTENTSTACK_CURRENT_USER)
     protected currentUser$: Observable<ContentstackCurrentUser | undefined> | null = null,
   ) {}
+
+  /**
+   * The Contentstack content type to fetch a component uid under: the type
+   * LEARNED from a page/global payload (so a banner/carousel resolves as its own
+   * type, not the single configured default), falling back to the configured
+   * `componentContentType`. `undefined` when neither is known.
+   */
+  protected resolveType(id: string): string | undefined {
+    return this.typeRegistry.get(id) ?? this.componentContentType();
+  }
 
   /** Active user's permission tokens, or `of(undefined)` when gating is off. */
   protected permissions(): Observable<Set<string> | undefined> {
@@ -67,7 +79,13 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     _fields?: string,
   ): Observable<T> {
     const occFallback = this.occFallback();
-    const contentType = this.componentContentType();
+    // Resolve the fetch type UP FRONT: a learned type (e.g. a banner's own
+    // content type, recorded when it arrived in a page payload) wins over the
+    // single configured `componentContentType`, so a per-uid reload — the one
+    // Spartacus fires for every mounted component on a language switch —
+    // re-fetches the component as ITS type in the active locale instead of
+    // missing and returning a stale shell.
+    const contentType = this.resolveType(id);
     if (!contentType) {
       if (occFallback) {
         if (this.isContentstackUid(id)) {
@@ -93,21 +111,14 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
               }
               return of(this.normalizer.convert(entry) as T);
             }
-            // Not under componentContentType. A Contentstack-native uid here
-            // is a component of some OTHER Contentstack content type (e.g. a
-            // banner), not one OCC would ever have — this is most commonly
-            // hit when Spartacus refreshes already-mounted components after
-            // a language/currency/login change (Spartacus's `clearCmsState`
-            // meta-reducer wipes the CMS store on those events and
-            // redispatches a per-uid reload for every mounted component,
-            // regardless of its type — not just the ones this adapter
-            // models). Forwarding it to OCC would only fail a beat later and
-            // mark the component "not found", which flips its
-            // already-subscribed `data$` to `null`; several stock components
-            // (e.g. BannerComponent, SearchBoxComponent) don't null-guard
-            // that and throw. A benign shell is a safe, inert result either
-            // way — the component's real data already arrived via the page
-            // payload and isn't lost.
+            // Still not found — an unlearned Contentstack-native uid that also
+            // isn't under `componentContentType` belongs to some other type OCC
+            // would never have. Forwarding it to OCC would fail a beat later and
+            // mark the component "not found", flipping its already-subscribed
+            // `data$` to `null`; several stock components (e.g. BannerComponent,
+            // SearchBoxComponent) don't null-guard that and throw. A benign shell
+            // is inert and safe — the component's real data already arrived via
+            // the page payload and isn't lost.
             return occFallback && !this.isContentstackUid(id)
               ? this.occComponentAdapter.load<T>(id, pageContext)
               : of({ uid: id } as T);
@@ -119,8 +130,25 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
 
   findComponentsByIds(ids: string[], pageContext: PageContext): Observable<CmsComponent[]> {
     const occFallback = this.occFallback();
-    const contentType = this.componentContentType();
-    if (!contentType) {
+    // Group each id by its resolved Contentstack content type (learned type wins
+    // over the configured default), so a mixed reload batch — the shape
+    // `clearCmsState` fires on a language switch — fetches banners as banners,
+    // links as links, etc., each in the active locale. Ids with no resolvable
+    // Contentstack type (nothing learned and no `componentContentType`) fall
+    // through to the OCC/shell handling below.
+    const byType = new Map<string, string[]>();
+    for (const id of ids) {
+      const type = this.resolveType(id);
+      if (type) {
+        const group = byType.get(type);
+        if (group) {
+          group.push(id);
+        } else {
+          byType.set(type, [id]);
+        }
+      }
+    }
+    if (byType.size === 0) {
       if (occFallback) {
         const occIds = ids.filter((id) => !this.isContentstackUid(id));
         const shells = ids
@@ -138,11 +166,15 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     }
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
       switchMap(([locale, permissions]) =>
-        (permissions
-          ? this.client.getEntriesByUids(contentType, ids, locale, { permissions, gateRoot: true })
-          : this.client.getEntriesByUids(contentType, ids, locale)
+        forkJoin(
+          [...byType.entries()].map(([type, uids]) =>
+            permissions
+              ? this.client.getEntriesByUids(type, uids, locale, { permissions, gateRoot: true })
+              : this.client.getEntriesByUids(type, uids, locale),
+          ),
         ).pipe(
-          switchMap((entries: ContentstackEntry[]) => {
+          switchMap((groups: ContentstackEntry[][]) => {
+            const entries = groups.flat();
             const accessible = permissions
               ? entries.filter((entry) => this.restrictions.isEntryAccessible(entry, permissions))
               : entries;
@@ -158,11 +190,10 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
               return of(csComponents);
             }
             // Split remaining ids by uid shape (see the matching comment in
-            // `load()`): a Contentstack-native uid not found under
-            // componentContentType belongs to another Contentstack content
-            // type and will never exist in OCC, so only forward
-            // genuinely OCC-shaped ids — anything else gets a benign shell
-            // instead of tripping a `LoadCmsComponentFail` that would null
+            // `load()`): a Contentstack-native uid not resolved here belongs to
+            // another Contentstack content type and will never exist in OCC, so
+            // only forward genuinely OCC-shaped ids — anything else gets a benign
+            // shell instead of tripping a `LoadCmsComponentFail` that would null
             // out an already-mounted component's data stream.
             const occRemaining = remaining.filter((id) => !this.isContentstackUid(id));
             const shells = remaining

@@ -1,6 +1,7 @@
 import { Observable, of } from 'rxjs';
 import { ContentstackCmsComponentAdapter } from './contentstack-cms-component.adapter';
 import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
+import { ContentstackComponentTypeRegistry } from '../model/contentstack-component-type.registry';
 import { ContentstackCurrentUser } from '../access/contentstack-current-user';
 
 /**
@@ -33,6 +34,8 @@ interface Overrides {
   locale?: string;
   /** Current user for gating tests; omit for anonymous. */
   user?: ContentstackCurrentUser;
+  /** Pre-seed the uid → content-type registry (learned types from page payloads). */
+  registry?: Record<string, string>;
 }
 
 function create(over: Overrides = {}) {
@@ -57,6 +60,10 @@ function create(over: Overrides = {}) {
     ...over.occ,
   };
   const restrictions = new ContentstackRestrictionsService(config as never);
+  const typeRegistry = new ContentstackComponentTypeRegistry();
+  for (const [uid, type] of Object.entries(over.registry ?? {})) {
+    typeRegistry.record(uid, type);
+  }
   const currentUser$ = of(over.user);
   const adapter = new ContentstackCmsComponentAdapter(
     client as never,
@@ -66,9 +73,19 @@ function create(over: Overrides = {}) {
     languageService as never,
     occComponentAdapter as never,
     restrictions,
+    typeRegistry,
     currentUser$,
   );
-  return { adapter, client, normalizer, config, logger, languageService, occComponentAdapter };
+  return {
+    adapter,
+    client,
+    normalizer,
+    config,
+    logger,
+    languageService,
+    occComponentAdapter,
+    typeRegistry,
+  };
 }
 
 const ctx = { id: 'homepage', type: 'ContentPage' } as never;
@@ -151,6 +168,40 @@ describe('ContentstackCmsComponentAdapter', () => {
       expect(res).toEqual({ uid: 'bltbanner123' });
       expect(occComponentAdapter.load).not.toHaveBeenCalled();
     });
+
+    // The fix for stale content on a language switch: a component's real type is
+    // learned when it arrives in a page payload (recorded in the registry), so a
+    // per-uid reload re-fetches it as ITS type in the active locale — instead of
+    // missing the single configured componentContentType and returning a stale
+    // shell that leaves the previous locale's data (e.g. its image) in the store.
+    it('re-fetches a component under its LEARNED content type, not the configured default', () => {
+      const { adapter, client, normalizer } = create({
+        registry: { bltbanner123: 'simple_responsive_banner_component' },
+        client: { getEntryByUid: jest.fn().mockReturnValue(of({ uid: 'bltbanner123' })) },
+      });
+      const res = firstValue(adapter.load('bltbanner123', ctx));
+      expect(client.getEntryByUid).toHaveBeenCalledWith(
+        'simple_responsive_banner_component',
+        'bltbanner123',
+        'en',
+      );
+      expect(normalizer.convert).toHaveBeenCalledWith({ uid: 'bltbanner123' });
+      expect(res).toEqual({ uid: 'bltbanner123', typeCode: 'CS' });
+    });
+
+    it('threads the active locale into the learned-type re-fetch (language switch)', () => {
+      const { adapter, client } = create({
+        locale: 'de',
+        registry: { bltbanner123: 'simple_responsive_banner_component' },
+        client: { getEntryByUid: jest.fn().mockReturnValue(of({ uid: 'bltbanner123' })) },
+      });
+      firstValue(adapter.load('bltbanner123', ctx));
+      expect(client.getEntryByUid).toHaveBeenCalledWith(
+        'simple_responsive_banner_component',
+        'bltbanner123',
+        'de',
+      );
+    });
   });
 
   describe('findComponentsByIds()', () => {
@@ -167,6 +218,37 @@ describe('ContentstackCmsComponentAdapter', () => {
       ]);
       // Nothing left over → OCC is not queried.
       expect(occComponentAdapter.findComponentsByIds).not.toHaveBeenCalled();
+    });
+
+    it('groups a mixed reload batch by learned content type and never sends a blt uid to OCC', () => {
+      // Mirrors the batch Spartacus fires on a language switch: cms_link_component
+      // leaves + banners + OCC-shaped ids together. Each Contentstack type must be
+      // fetched as itself; only genuinely OCC-shaped, unresolved ids go to OCC.
+      const getEntriesByUids = jest.fn((type: string, uids: string[]) =>
+        of(uids.filter((u) => u.startsWith('blt')).map((uid) => ({ uid, _content_type_uid: type }))),
+      );
+      const { adapter, occComponentAdapter } = create({
+        registry: { bltbanner: 'simple_responsive_banner_component' },
+        client: { getEntriesByUids },
+        occ: {
+          findComponentsByIds: jest
+            .fn()
+            .mockReturnValue(of([{ uid: 'QuickOrderLink', typeCode: 'OCC' }])),
+        },
+      });
+      const res = firstValue(
+        adapter.findComponentsByIds(['bltlink', 'bltbanner', 'QuickOrderLink'], ctx),
+      );
+      // bltlink + QuickOrderLink resolve to the configured default; banner to its own type.
+      expect(getEntriesByUids).toHaveBeenCalledWith('cms_component', ['bltlink', 'QuickOrderLink'], 'en');
+      expect(getEntriesByUids).toHaveBeenCalledWith(
+        'simple_responsive_banner_component',
+        ['bltbanner'],
+        'en',
+      );
+      // Only the OCC-shaped, unresolved id reaches OCC — never a blt uid.
+      expect(occComponentAdapter.findComponentsByIds).toHaveBeenCalledWith(['QuickOrderLink'], ctx);
+      expect(res.map((c) => c.uid).sort()).toEqual(['QuickOrderLink', 'bltbanner', 'bltlink']);
     });
 
     it('serves unresolved ids from OCC and merges them after the Contentstack ones', () => {

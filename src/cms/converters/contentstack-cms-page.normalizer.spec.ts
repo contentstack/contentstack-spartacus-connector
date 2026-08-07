@@ -7,6 +7,7 @@ import { ContentstackCmsNavigationComponentNormalizer } from './components/conte
 import { ContentstackCmsProductCarouselComponentNormalizer } from './components/contentstack-cms-product-carousel-component.normalizer';
 import { ContentstackFieldMapper } from './contentstack-field-mapper';
 import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
+import { ContentstackComponentTypeRegistry } from '../model/contentstack-component-type.registry';
 import { cmsPageEntryFixture } from './__fixtures__/cms-page.fixture';
 
 /**
@@ -27,10 +28,12 @@ describe('ContentstackCmsPageNormalizer', () => {
     new ContentstackCmsProductCarouselComponentNormalizer(),
     new ContentstackFieldMapper(),
   );
+  const typeRegistry = new ContentstackComponentTypeRegistry();
   const normalizer = new ContentstackCmsPageNormalizer(
     config,
     componentNormalizer,
     new ContentstackRestrictionsService(config),
+    typeRegistry,
   );
 
   it('maps entry identity to the Page', () => {
@@ -56,6 +59,14 @@ describe('ContentstackCmsPageNormalizer', () => {
     const slots = result.page?.slots ?? {};
     expect(slots['Section1'].components?.[0].typeCode).toBe('SimpleResponsiveBannerComponent');
     expect(slots['BodyContent'].components?.[0].typeCode).toBe('CMSParagraphComponent');
+  });
+
+  it('records each slot component uid → its real Contentstack content type in the registry', () => {
+    // So the component adapter can re-fetch a component as ITS type (not the
+    // single configured componentContentType) on a language switch.
+    normalizer.convert(cmsPageEntryFixture);
+    expect(typeRegistry.get('blt_hero_1')).toBe('simple_responsive_banner_component');
+    expect(typeRegistry.get('blt_paragraph_1')).toBe('cms_paragraph_component');
   });
 
   it('flattens referenced entries into components carrying their content fields', () => {
@@ -259,6 +270,7 @@ describe('ContentstackCmsPageNormalizer', () => {
       customConfig,
       componentNormalizer,
       new ContentstackRestrictionsService(customConfig),
+      new ContentstackComponentTypeRegistry(),
     );
     const result = customNormalizer.convert({
       uid: 'blt_custom',
@@ -287,6 +299,7 @@ describe('ContentstackCmsPageNormalizer', () => {
       gatingConfig,
       componentNormalizer,
       new ContentstackRestrictionsService(gatingConfig),
+      new ContentstackComponentTypeRegistry(),
     );
     const pageWithGatedComponent = {
       uid: 'blt_p',

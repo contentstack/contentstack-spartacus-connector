@@ -45,6 +45,7 @@ module.exports = {
     '**/contentstack-field-mapper.spec.ts',
     '**/contentstack-restrictions.service.spec.ts',
     '**/slot-maps.spec.ts',
+    '**/contentstack-component-type.registry.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [
