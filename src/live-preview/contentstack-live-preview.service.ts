@@ -15,6 +15,7 @@ import { ContentstackConfig } from '../config/contentstack-config';
 import { ContentstackCmsPageAdapter } from '../cms/adapters/contentstack-cms-page.adapter';
 import { ContentstackClientService } from '../client/contentstack-client.service';
 import { ContentstackAngularService } from './contentstack-angular.service';
+import { retargetTagLocale } from './tag-entry-tree';
 
 /**
  * Decorator-facing wrapper around {@link ContentstackAngularService} — the
@@ -28,6 +29,14 @@ import { ContentstackAngularService } from './contentstack-angular.service';
 @Injectable({ providedIn: 'root' })
 export class ContentstackLivePreviewService {
   private customRefetch: (() => void) | undefined;
+  /** Guards the one-time Visual Builder SDK init (see the constructor). */
+  private initialized = false;
+  /**
+   * The Contentstack locale (e.g. `en-us`) for the active site language, kept in
+   * sync with `LanguageService`. Used when (re)applying edit tags so they target
+   * the entry in the language the shopper is viewing, not the init-time locale.
+   */
+  protected currentCsLocale: string | undefined;
 
   constructor(
     protected contentstackAngularService: ContentstackAngularService,
@@ -44,21 +53,25 @@ export class ContentstackLivePreviewService {
     if (!this.config.contentstack?.delivery?.livePreview) {
       return;
     }
-    // Initialize the Live Preview SDK ONCE, with the language active at preview
-    // start. `ContentstackAngularService.init` is guarded against re-init, and
-    // the SDK does not cleanly support switching locale mid-session — so a
-    // preview session is single-locale. `take(1)` makes that explicit rather
-    // than subscribing to every language change and silently no-opping.
-    this.languageService
-      .getActive()
-      .pipe(take(1))
-      .subscribe((language) => {
+    // Track the active language for the whole session. The Visual Builder SDK
+    // is initialized ONCE (it does not re-init cleanly, so the VB *session* is
+    // single-locale), but the storefront's on-page edit tags must still follow
+    // the shopper's language — so on every subsequent language change we rewrite
+    // the tags in place (see `retagEditTagsForLocale`) rather than freezing them
+    // at the init-time locale.
+    this.languageService.getActive().subscribe((language) => {
+      const csLocale = this.resolveLocale(language);
+      this.currentCsLocale = csLocale;
+      if (!this.initialized) {
+        this.initialized = true;
         const delivery = this.config.contentstack?.delivery;
         this.contentstackAngularService.init({
           apiKey: delivery?.apiKey ?? '',
           environment: delivery?.environment ?? '',
           branch: delivery?.branch ?? 'main',
-          locale: language,
+          // The Contentstack locale, mapped from the Spartacus isocode — NOT the
+          // raw `en`/`de` code, which wouldn't match the stack's `en-us` locale.
+          locale: csLocale,
           ssr: false,
           mode: 'builder',
         });
@@ -69,7 +82,53 @@ export class ContentstackLivePreviewService {
         this.contentstackAngularService.onEntryChange(() =>
           this.customRefetch ? this.customRefetch() : this.refetchCurrentPage(),
         );
-      });
+      } else {
+        // Language switched mid-session: retarget every already-rendered edit
+        // tag at the new locale. Component wrappers are decorated once at
+        // creation and Spartacus reuses them across a language switch, so the
+        // wrapper tags would otherwise stay stuck on the init-time locale.
+        this.retagEditTagsForLocale(csLocale);
+      }
+    });
+  }
+
+  /**
+   * Map a Spartacus site-language isocode (e.g. `de`) to the Contentstack locale
+   * content is authored in (e.g. `de-de`) via `localeMapping` — identity
+   * fallback for unmapped codes, `en-us` when no language is resolved yet.
+   * Mirrors the delivery client's `resolveLocale` so tags and fetched content
+   * agree on the locale.
+   */
+  protected resolveLocale(locale?: string): string {
+    if (!locale) {
+      return 'en-us';
+    }
+    return this.config.contentstack?.localeMapping?.[locale] ?? locale;
+  }
+
+  /**
+   * Rewrite the locale segment of every `data-cslp` edit tag currently in the
+   * DOM to `csLocale`. A Contentstack CSLP v1 tag is
+   * `${contentTypeUid}.${entryUid}.${locale}[.${field}…]`, and an entry's uid is
+   * the SAME across locales, so retargeting an edit tag at another language is
+   * purely a locale-segment swap — no re-fetch or re-render needed. Runs on a
+   * language switch to keep Visual Builder's edit buttons pointing at the entry
+   * in the language the shopper is viewing (browser-only; no-op under SSR).
+   */
+  protected retagEditTagsForLocale(csLocale: string): void {
+    if (typeof document === 'undefined' || !csLocale) {
+      return;
+    }
+    document.querySelectorAll('[data-cslp]').forEach((el) => {
+      const current = el.getAttribute('data-cslp');
+      if (!current) {
+        return;
+      }
+      const next = retargetTagLocale(current, csLocale);
+      if (next !== current) {
+        el.setAttribute('data-cslp', next);
+      }
+    });
   }
 
   /**
@@ -152,7 +211,10 @@ export class ContentstackLivePreviewService {
     const entry = component.properties?.data as
       { uid?: string; _content_type_uid?: string; locale?: string } | undefined;
     if (entry?.uid && entry._content_type_uid) {
-      const locale = entry.locale ?? 'en-us';
+      // Prefer the active site locale so a wrapper tagged at creation already
+      // matches the current language; fall back to the entry's own locale, then
+      // master. A later language switch is handled by `retagEditTagsForLocale`.
+      const locale = this.currentCsLocale ?? entry.locale ?? 'en-us';
       renderer.setAttribute(
         element,
         'data-cslp',

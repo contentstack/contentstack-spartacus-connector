@@ -29,6 +29,24 @@ export function tagEntryTree(entry: TaggableEntry, contentTypeUid: string, local
   tagChildren(entry, locale);
 }
 
+/**
+ * Retarget a single CSLP v1 tag string at a different locale by swapping ONLY
+ * its locale segment. A tag is `${contentTypeUid}.${entryUid}.${locale}[.${field}…]`
+ * and a Contentstack entry's uid is the same across locales, so pointing an edit
+ * tag at another language is purely a locale-segment swap. Returns the tag
+ * unchanged when it has fewer than 3 segments or already matches `locale`. Pure,
+ * so the language-switch retag in `ContentstackLivePreviewService` stays
+ * unit-testable without a DOM.
+ */
+export function retargetTagLocale(tag: string, locale: string): string {
+  const segments = tag.split('.');
+  if (segments.length < 3 || segments[2] === locale) {
+    return tag;
+  }
+  segments[2] = locale;
+  return segments.join('.');
+}
+
 function tagChildren(node: TaggableEntry, locale: string): void {
   for (const value of Object.values(node)) {
     const items = Array.isArray(value) ? value : [value];
