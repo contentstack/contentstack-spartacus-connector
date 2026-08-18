@@ -21,10 +21,35 @@ Product data still hydrates live from SAP at render time.
 | Intercept CMS routing | `ContentstackCmsPageAdapter` / `ContentstackCmsComponentAdapter` replace the OCC adapters and query Contentstack by URL slug |
 | Translate the payload | `ContentstackCmsPageNormalizer` maps the `cms_page` schema (named per-slot reference fields → resolved component entries) into Spartacus's native `CmsStructureModel` (page → slots → components), mapping slot field uids to SAP slot names and content-type uids to SAP typecodes |
 | Map content types to components | `CmsConfig.cmsComponents` maps each SAP typecode (e.g. `SimpleResponsiveBannerComponent`) to an Angular component |
-| Resolve component-specific fields | `ContentstackCmsComponentNormalizer` composes three content-type-specific normalizers by typecode (`cms/converters/components/`): banner media (`media_container` or a direct file field), navigation (recursive `nav_node` walk into `CmsNavigationNode`), product carousel (OCC product URLs → `productCodes`) |
+| Resolve component-specific fields | `ContentstackCmsComponentNormalizer` composes three content-type-specific normalizers by typecode (`cms/converters/components/`): banner media (`media_container` or a direct file field), navigation (flat `nav_node_flat` `all_nodes` pool reassembled into a `CmsNavigationNode` tree by `parent_id`), product carousel (OCC product URLs → `productCodes`) |
 | Hydrate SAP data | Components read the SAP SKU from Contentstack and pull live price/stock/add-to-cart via Spartacus `ProductService` / `ActiveCartFacade` (see `src/examples/hero-banner`) |
 | Bypass SAP SmartEdit | Never imports `SmartEditRootModule`; `smartEditBypassGuard` neutralizes inbound preview params |
 | Code-split the integration | `ContentstackCmsFeatureModule` (the module you import) only registers config; the actual CMS override + Live Preview wiring lives in `ContentstackModule`, lazy-loaded via `CmsConfig.featureModules` — the same convention every real Spartacus feature library uses |
+
+## Supported features & known limitations
+
+**Supported**
+
+| Capability | Notes |
+| --- | --- |
+| Hybrid rendering | OCC serves the base page + all commerce data; Contentstack overrides authored slots. `occFallback: true` (default) keeps unauthored slots/pages on OCC. |
+| Flat navigation | Header + footer menus of any depth via the `*_flat` adjacency-list model (`all_nodes` pool + text `parent_id`) — resolves in a constant, shallow include chain, so the Delivery API's plan-gated reference-depth cap never applies. |
+| Editorial components | Banner, responsive banner, product carousel, paragraph, tab paragraph, link, flex → stock Spartacus components by SAP typecode; no `cmsComponents` config needed. |
+| Multi-language | `localeMapping` (site isocode → Contentstack locale) plus master-locale fallback; `includeFallback` adds query-time fallback. |
+| Live Preview / Visual Builder | Entry tagging + live updates via `CsEditableDirective` / `CsEmptyBlockParentDirective` (non-production). |
+| Access gating | Opt-in per-entry `access_tags` (`_require-login`, `_require-anonymous`, `_require-<roleGroupId>`). |
+
+**Known limitations**
+
+| Limitation | Detail |
+| --- | --- |
+| Page-type resolution | Per-route pages resolve against the single `cmsPageContentType` (the starter pack authors the home as `landing_page`). **Shared-layout** types (product, category) get their own content type via `pageTypeMapping` (`contentTypeUid` + `sharedSlug`) — the pack ships `product_page` / `category_page` for this. Serving multiple *distinct per-route* content types isn't supported yet; unmapped page types fall back to OCC. |
+| Reference fields, not Modular Blocks | Slots are multi-reference fields; the connector resolves referenced component entries via `includeReference`. Contentstack **Modular Blocks** (inline composed blocks) are **not** read — model components as separate content types referenced from the page/shell. |
+| Author into slots the template renders | A component shows only if the SAP page template renders its slot. `LandingPage2Template` renders `Section1`, `Section2A/2B/2C`, `Section3`–`Section5` — there is **no bare `Section2`** (that's `CategoryPageTemplate`), and `Section2A/2B/2C` are narrow 1/3-width columns, so full-width content belongs in `Section1`/`Section3`–`5`. |
+| Access gating is presentation-level | Hides content in the client based on the user's SAP login state / role groups — **not** a server-side security boundary. Off by default (`accessControl.enabled: false`). |
+| Shared-slug product/category pages | One shared entry serves every PDP / PLP; product and facet data always come from OCC. |
+| Live Preview is non-production | Ignored in production builds; the `previewToken` grants draft read access — treat it as a secret, keep it out of committed source and prod. |
+| Content i18n only | Content localizes via Contentstack locales; Spartacus's own UI-label i18n is unchanged. |
 
 ## Architecture
 
@@ -114,16 +139,57 @@ Angular `fileReplacements`.
 
 ## Configuration reference
 
-See `ContentstackConfig` (`src/config/contentstack-config.ts`). Key fields:
-`delivery.{apiKey,deliveryToken,environment,region,branch,livePreview}`,
-`cmsPageContentType`, `slugField`, `slugTransform`, `pageTypeMapping`, `includeReferences`,
-`accessControl` (opt-in presentation-level content gating — see `CONTENT-MODEL.md` §4.5)
-(defaults to all slot + header/footer fields), `timeoutMs`, and
-`componentContentType` (only for standalone component lookups — see D9).
-Set `delivery.livePreview: true` to enable Live Preview / Visual Editor
-(entry tagging + live updates); import the library's `CsEditableDirective` /
-`CsEmptyBlockParentDirective` in your slot/component templates for per-field
-and empty-slot editing.
+Every option lives on the `ContentstackConfig` interface (`src/config/contentstack-config.ts`)
+and is **fully typed** — because the library augments Spartacus's `Config`, your editor
+autocompletes and type-checks the whole `provideConfig(<ContentstackConfig>{ contentstack: … })`
+block, with each field's JSDoc on hover. The complete set:
+
+**`contentstack.delivery`** — connection & credentials
+
+| Option | Required | Default |
+| --- | --- | --- |
+| `apiKey` | yes | — |
+| `deliveryToken` | yes | — |
+| `environment` | yes | — |
+| `region` | | `Region.US` |
+| `branch` | | `main` |
+| `livePreview` | | `false` |
+| `previewToken` | when `livePreview` | — |
+| `previewHost` | | US preview host |
+
+**`contentstack`** — behavior
+
+| Option | Default / note |
+| --- | --- |
+| `cmsPageContentType` | page content type queried by slug (the starter pack uses `landing_page`) |
+| `slugField` | `url` — field holding the page slug |
+| `slugTransform` | `{ pattern, replacement }` regex rewrite of the route slug before querying |
+| `localeMapping` | site isocode → Contentstack locale (e.g. `{ en: 'en-us' }`); identity fallback |
+| `includeFallback` | `false` — request master-locale fallback for unlocalized entries |
+| `occFallback` | `true` — hybrid (OCC base + CS overrides); `false` = full-replacement |
+| `globalSlots` | `{ contentType, title? }` — shared shell merged into every page |
+| `pageTypeMapping` | per-`PageType` `{ contentTypeUid, slugField?, sharedSlug? }` (shared-layout pages) |
+| `additionalSlotFields` | extra `{ fieldUid: 'SapSlotPosition' }` beyond the built-in slot map |
+| `componentContentType` | content type for standalone component lookups (else components ship in pages) |
+| `componentTypeMapping` | block uid → SAP typeCode (for author-named blocks without a `type_code`) |
+| `includeReferences` | reference fields to expand; defaults to all slot + header/footer fields |
+| `accessControl` | presentation-level gating — see below |
+| `timeoutMs` | `10000` — Delivery API call timeout |
+
+**`contentstack.accessControl`** — opt-in content gating (see also `CONTENT-MODEL.md` §4.5)
+
+| Option | Default |
+| --- | --- |
+| `enabled` | `false` |
+| `accessField` | `access_tags` |
+| `anonymousToken` | `_require-anonymous` |
+| `loginToken` | `_require-login` |
+| `rolePrefix` | `_require-` (role `b2badmingroup` → `_require-b2badmingroup`) |
+| `gateSharedSlugPages` | `false` |
+
+Set `delivery.livePreview: true` (with a `previewToken`) to enable Live Preview / Visual Builder;
+import the library's `CsEditableDirective` / `CsEmptyBlockParentDirective` in your slot/component
+templates for per-field and empty-slot editing.
 
 ## Verification
 

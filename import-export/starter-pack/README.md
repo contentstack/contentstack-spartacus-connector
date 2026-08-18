@@ -112,7 +112,19 @@ These use the auth-state tokens, which work on any SAP backend. To gate by **SAP
 - **Provisioning = `csdx auth:login`** (or a scoped, expiring management token) — dev machine
   only, never committed, never shipped.
 
-## Known connector follow-up
-The connector resolves a **single** `cmsPageContentType` per route. With per-template page
-types, point it at `landing_page` for the home demo; other page types fall back to OCC until
-the connector supports resolving across multiple page content types.
+## Page-type resolution
+Per-route pages resolve against the single `cmsPageContentType` (the pack authors the home as
+`landing_page`). **Shared-layout** page types get their own content type via `pageTypeMapping`
+(`contentTypeUid` + `sharedSlug`) — the pack ships `product_page` / `category_page` for this
+(one shared entry per PDP/PLP; product data from OCC):
+
+```ts
+// key = Spartacus PageType; sharedSlug = the value the shared entry stores in slugField
+pageTypeMapping: {
+  ProductPage:  { contentTypeUid: 'product_page',  sharedSlug: 'ProductPage',  slugField: 'page_type' },
+  CategoryPage: { contentTypeUid: 'category_page', sharedSlug: 'CategoryPage', slugField: 'page_type' },
+}
+```
+
+Serving multiple *distinct per-route* content types isn't supported yet; unmapped page types
+fall back to OCC.
