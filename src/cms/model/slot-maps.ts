@@ -22,16 +22,13 @@ export const TYPECODE_MAP: Readonly<Record<string, string>> = {
   cms_link_component: 'CMSLinkComponent',
   search_box_component: 'SearchBoxComponent',
   mini_cart_component: 'MiniCartComponent',
-  category_navigation_component: 'CategoryNavigationComponent',
-  footer_navigation_component: 'FooterNavigationComponent',
-  // Flat (adjacency-list) navigation model: renders through the same SAP
-  // typecodes as the recursive types, so Spartacus selects the identical
-  // Angular component — the only difference is how the node tree is assembled
-  // (flat `all_nodes` pool reassembled by `parent_id` vs. nested references).
+  // Flat (adjacency-list) navigation model: the nav components render through
+  // the standard SAP nav typecodes, so Spartacus selects the stock Angular
+  // component; `nav_node_flat` carries the individual nodes, reassembled into a
+  // tree in code by `parent_id`.
   category_navigation_flat: 'CategoryNavigationComponent',
   footer_navigation_flat: 'FooterNavigationComponent',
   cms_paragraph_component: 'CMSParagraphComponent',
-  nav_node: 'NavNode',
   nav_node_flat: 'NavNode',
   breadcrumb_component: 'BreadcrumbComponent',
   cms_page: 'cmsPage',
@@ -109,7 +106,7 @@ export const SLOT_FIELD_TO_SAP_NAME: Readonly<Record<string, string>> = {
  * the ones a banner happens to occupy in a given page -- otherwise
  * `media_container` round-trips as an unresolved `{uid, _content_type_uid}`
  * stub with no image data, however the referenced entry's own file fields
- * are populated (see `navTreeIncludeRefs()` for the same class of bug on nav
+ * are populated (see `navFlatIncludeRefs()` for the same class of bug on nav
  * trees).
  */
 const BANNER_MEDIA_FIELD = 'media_container';

@@ -112,17 +112,21 @@ describe('ContentstackCmsComponentNormalizer', () => {
   it('routes navigation typecodes through the navigation normalizer', () => {
     const component = normalizer.convert({
       uid: 'blt_nav',
-      _content_type_uid: 'footer_navigation_component',
-      navigation_node: {
-        uid: 'blt_node',
-        _content_type_uid: 'nav_node',
-        created_at: '2026-01-01T00:00:00.000Z',
-        uid_val: 'FooterRoot',
-        title: 'Footer',
-      },
+      _content_type_uid: 'footer_navigation_flat',
+      all_nodes: [
+        {
+          uid: 'blt_node',
+          _content_type_uid: 'nav_node_flat',
+          created_at: '2026-01-01T00:00:00.000Z',
+          node_id: 'FooterRoot',
+          title: 'Footer',
+          parent_id: '',
+          sort_order: 1,
+        },
+      ],
     });
     expect(component.typeCode).toBe('FooterNavigationComponent');
-    expect((component as any).navigationNode?.uid).toBe('FooterRoot');
+    expect((component as any).navigationNode?.children?.[0].uid).toBe('FooterRoot');
   });
 
   it('routes product carousel through the carousel normalizer (products → productCodes)', () => {

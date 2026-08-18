@@ -12,7 +12,7 @@ const BANNER_TYPE_CODES = new Set<string>([
   'SimpleResponsiveBannerComponent',
   'SimpleBannerComponent',
 ]);
-/** SAP typecodes whose `navigation_node` reference resolves via the same walk. */
+/** SAP nav typecodes resolved via the flat-nav normalizer (`all_nodes` pool). */
 const NAVIGATION_TYPE_CODES = new Set<string>([
   'CategoryNavigationComponent',
   'FooterNavigationComponent',

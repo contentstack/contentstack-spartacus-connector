@@ -7,30 +7,23 @@ import {
 } from '@spartacus/core';
 import { ContentstackEntry, ContentstackReference } from '../../model/contentstack.model';
 import { toTypeCode } from '../../model/slot-maps';
-import { isNavigationNode, isResolvedEntry } from '../../model/type-guards';
+import { isResolvedEntry } from '../../model/type-guards';
 
 /**
- * Resolves the navigation tree shared by `category_navigation_component`,
- * `footer_navigation_component`, and `navigation_component` into Spartacus's
- * recursive `CmsNavigationNode` tree. Two source shapes are supported:
+ * Resolves the navigation tree carried by `category_navigation_flat`,
+ * `footer_navigation_flat`, and `navigation_component` into Spartacus's
+ * recursive `CmsNavigationNode` tree.
  *
- * 1. **Flat (adjacency list)** — the component carries an `all_nodes` pool of
- *    `nav_node_flat` entries, each pointing at its parent by the plain-text
- *    `parent_id` (a `node_id` value, NOT a reference). The tree is reassembled
- *    here by grouping on `parent_id` and ordering by `sort_order`. Because the
- *    hierarchy lives in text fields, the whole menu resolves in a constant,
- *    shallow include chain (`<field>.all_nodes` + `.all_nodes.links`) no matter
- *    how deep it nests — the Delivery API's plan-gated reference-depth cap never
- *    applies. This is the preferred model.
+ * **Flat (adjacency list) model** — the component carries an `all_nodes` pool of
+ * `nav_node_flat` entries, each pointing at its parent by the plain-text
+ * `parent_id` (a `node_id` value, NOT a reference). The tree is reassembled here
+ * by grouping on `parent_id` and ordering by `sort_order`. Because the hierarchy
+ * lives in text fields, the whole menu resolves in a constant, shallow include
+ * chain (`<field>.all_nodes` + `.all_nodes.links`) no matter how deep it nests —
+ * the Delivery API's plan-gated reference-depth cap never applies.
  *
- * 2. **Recursive (legacy)** — the component carries a single `navigation_node`
- *    reference whose `children` self-references build the hierarchy. Kept for
- *    stacks still on the nested `nav_node` schema; requires the adapter's
- *    per-level `navTreeIncludeRefs` includes and is subject to the depth cap.
- *
- * Either way, `entries` resolve into leaf `CmsNavigationEntry` items (the linked
- * `cms_link_component` references), and the emitted `CmsNavigationNode` tree is
- * identical — so nothing downstream of this normalizer changes between models.
+ * Each node's `links` resolve into leaf `CmsNavigationEntry` items (the linked
+ * `cms_link_component` references).
  */
 @Injectable({ providedIn: 'root' })
 export class ContentstackCmsNavigationComponentNormalizer implements Converter<
@@ -38,21 +31,10 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
   CmsNavigationComponent
 > {
   convert(source: ContentstackEntry, target: CmsNavigationComponent = {}): CmsNavigationComponent {
-    // Preferred: flat adjacency-list model (`all_nodes` pool). Present and
-    // resolved ⇒ reassemble the tree from it.
+    // Flat adjacency-list model (`all_nodes` pool): reassemble the tree from it.
     const flatNodes = this.resolvedList(source['all_nodes']);
     if (flatNodes.length) {
       target.navigationNode = this.buildFromFlat(flatNodes, source.uid ?? 'NavigationNode');
-      return target;
-    }
-
-    // Legacy: recursive `navigation_node` reference tree. Contentstack delivers
-    // reference fields as arrays even for a single reference, so unwrap
-    // `[rootNode]` before resolving the tree.
-    const raw = source['navigation_node'];
-    const node = (Array.isArray(raw) ? raw[0] : raw) as ContentstackReference | undefined;
-    if (isNavigationNode(node)) {
-      target.navigationNode = this.toNavigationNode(node);
     }
     return target;
   }
@@ -62,7 +44,7 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
    * Top-level nodes are those with an empty (or absent) `parent_id`; every other
    * node hangs under the node whose `node_id` equals its `parent_id`. Siblings
    * are ordered by `sort_order`. A synthetic root (`rootUid`) holds the
-   * top-level nodes, mirroring the single root the recursive model produces.
+   * top-level nodes, matching the single-root shape Spartacus expects.
    */
   private buildFromFlat(nodes: ContentstackEntry[], rootUid: string): CmsNavigationNode {
     const byParent = new Map<string, ContentstackEntry[]>();
@@ -106,27 +88,6 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
     const value = node['sort_order'];
     const n = typeof value === 'number' ? value : Number(value);
     return Number.isFinite(n) ? n : 0;
-  }
-
-  private toNavigationNode(entry: ContentstackEntry): CmsNavigationNode {
-    const node: CmsNavigationNode = {
-      uid: (entry['uid_val'] as string | undefined) ?? entry.uid,
-      title: entry.title,
-    };
-
-    const children = this.resolvedList(entry['children']);
-    if (children.length) {
-      node.children = children
-        .filter(isNavigationNode)
-        .map((child) => this.toNavigationNode(child));
-    }
-
-    const entries = this.resolvedList(entry['entries']);
-    if (entries.length) {
-      node.entries = entries.map((linkEntry) => this.toNavigationEntry(linkEntry));
-    }
-
-    return node;
   }
 
   private toNavigationEntry(entry: ContentstackEntry): CmsNavigationEntry {

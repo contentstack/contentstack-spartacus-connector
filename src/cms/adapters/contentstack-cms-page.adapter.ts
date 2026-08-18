@@ -100,11 +100,9 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
 
     // Shared shell (header/footer/nav): fetched once per navigation and merged
     // into the page structure so every page renders the global slots. The shell
-    // carries deep navigation references (nav component → nav_node tree → link
-    // leaves), so extend the page-level includes with those nested paths — a
-    // one-level include would leave the nav tree unresolved.
+    // carries navigation references (nav component → flat `all_nodes` pool →
+    // link leaves), so extend the page-level includes with the flat-nav paths.
     const global = cs?.globalSlots;
-    const navTreeDepth = cs?.navTreeIncludeDepth ?? 2;
     const navFields = ['navigation_bar', 'footer', 'header_links'];
     const globalIncludeRefs = [
       ...includeRefs,
@@ -112,10 +110,6 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
       // the whole menu regardless of depth — the component's `all_nodes` pool
       // plus one hop to each node's link leaves. No depth cap ever applies.
       ...navFields.flatMap(navFlatIncludeRefs),
-      // Legacy recursive `navigation_node` model: per-level `.children` includes,
-      // bounded by `navTreeIncludeDepth`. Harmless no-ops for flat components
-      // (the paths reference a `navigation_node` field they don't have).
-      ...navFields.flatMap((field) => navTreeIncludeRefs(field, navTreeDepth)),
     ];
 
     const occFallback = cs?.occFallback ?? true;
@@ -240,47 +234,14 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
 }
 
 /**
- * The Contentstack Delivery API's `includeReference` has no wildcard/deep
- * mode — every level of a nested reference chain must be spelled out as its
- * own dotted path, or that level comes back as an unresolved `{uid,
- * _content_type_uid}` stub. A nav tree's depth varies with how deeply an
- * editor nests categories (a flat "Follow Us" footer list vs. a multi-level
- * category mega-menu), so this generates paths up to `maxDepth` levels of
- * `.children` rather than hand-enumerating a fixed couple of levels — which
- * silently drops any node nested deeper than what's listed (the original bug:
- * a 3-level-deep footer tree with only 2 levels of includes came back with
- * zero resolvable leaf links).
- *
- * `maxDepth` has no universally-safe value baked in here — the caller passes
- * it (from `ContentstackConfig.navTreeIncludeDepth`, default `2`). Contentstack
- * rejects the ENTIRE query (`error_code: 141`, "include_depth should not be
- * greater than N") once any include path exceeds a dot-segment ceiling that
- * **varies by stack plan/tier** (5 is the lowest confirmed; higher tiers can
- * allow more). For a `<field>.navigation_node...` path the safe value is
- * `N - 3` (2 base segments + a trailing `.entries`, so each `.children` level
- * costs one more against the plan's cap) — see the config field's JSDoc for
- * the full formula. Passing a value too high for the actual plan breaks every
- * nav tree in the query, not just the deep one, so raise it deliberately.
- */
-export function navTreeIncludeRefs(field: string, maxDepth: number): string[] {
-  const root = `${field}.navigation_node`;
-  const paths = [root, `${root}.entries`];
-  let prefix = root;
-  for (let depth = 0; depth < maxDepth; depth++) {
-    prefix += '.children';
-    paths.push(prefix, `${prefix}.entries`);
-  }
-  return paths;
-}
-
-/**
- * Include paths for the FLAT (adjacency-list) navigation model. Unlike the
- * recursive tree, depth is irrelevant: the component holds every node in a
- * single `all_nodes` reference pool (one level), and each node's link leaves are
- * one further hop (`all_nodes.links`). So a fixed two-path include resolves a
- * menu of ANY depth — there is no per-level enumeration and no depth-cap risk.
- * The `.links` path is a constant 3 dot-segments (`<field>.all_nodes.links`),
- * comfortably under the lowest plan ceiling.
+ * Include paths for the flat (adjacency-list) navigation model. Depth is
+ * irrelevant: the component holds every node in a single `all_nodes` reference
+ * pool (one level), and each node's link leaves are one further hop
+ * (`all_nodes.links`). So a fixed two-path include resolves a menu of ANY depth —
+ * no per-level enumeration and no depth-cap risk. The `.links` path is a
+ * constant 3 dot-segments (`<field>.all_nodes.links`), comfortably under the
+ * lowest plan ceiling (Contentstack rejects a query with `error_code: 141` once
+ * any include path exceeds a plan-gated dot-segment cap).
  */
 export function navFlatIncludeRefs(field: string): string[] {
   return [`${field}.all_nodes`, `${field}.all_nodes.links`];

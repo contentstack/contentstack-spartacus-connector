@@ -239,25 +239,6 @@ export abstract class ContentstackConfig {
     includeReferences?: string[];
 
     /**
-     * How many levels of `.children` nesting to request when resolving nav
-     * trees (`navigation_bar`/`footer`/`header_links`) via `includeReference`.
-     * Defaults to `2`.
-     *
-     * Contentstack's Delivery API rejects an entire query once any single
-     * `includeReference` path exceeds a maximum number of dot-segments
-     * (`error_code: 141`, "include_depth should not be greater than N") — and
-     * that ceiling **is not fixed**, it's set by your stack's plan/tier (5 is
-     * common; higher tiers can allow more, e.g. 10 or 15). For a
-     * `<field>.navigation_node...` path the safe value is `N - 3` (2 fixed
-     * segments — `<field>.navigation_node` — plus a trailing `.entries`, so
-     * every level of `.children` costs one more segment against your plan's
-     * cap). Raise this only as far as your actual plan allows: going over
-     * breaks every nav tree in the query, not just the deep one. See
-     * `navTreeIncludeRefs()` in `contentstack-cms-page.adapter.ts`.
-     */
-    navTreeIncludeDepth?: number;
-
-    /**
      * Timeout (ms) applied to Delivery API calls. Defaults to 10000. Exposed so
      * a CMS slow-down never hangs the storefront (see resilience handling in the
      * client service).

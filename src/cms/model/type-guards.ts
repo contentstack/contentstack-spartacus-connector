@@ -29,12 +29,6 @@ export function isMediaContainer(
   return isResolvedEntry(field) && field._content_type_uid === 'media_container';
 }
 
-export function isNavigationNode(
-  field: ContentstackReference | undefined | null,
-): field is ContentstackEntry {
-  return isResolvedEntry(field) && field._content_type_uid === 'nav_node';
-}
-
 /**
  * Contentstack file fields are delivered inline on the entry (`{url, filename,
  * content_type}`), never as a separately-linked entry — so this checks field
