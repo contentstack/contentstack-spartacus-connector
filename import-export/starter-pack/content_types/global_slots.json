@@ -90,9 +90,8 @@
       "uid": "navigation_bar",
       "data_type": "reference",
       "reference_to": [
-        "category_navigation_component",
-        "footer_navigation_component",
         "category_navigation_flat",
+        "footer_navigation_flat",
         "cms_link_component"
       ],
       "mandatory": false,
@@ -133,8 +132,8 @@
       "uid": "site_links",
       "data_type": "reference",
       "reference_to": [
-        "category_navigation_component",
-        "footer_navigation_component",
+        "category_navigation_flat",
+        "footer_navigation_flat",
         "cms_link_component"
       ],
       "mandatory": false,
@@ -152,8 +151,8 @@
       "uid": "header_links",
       "data_type": "reference",
       "reference_to": [
-        "category_navigation_component",
-        "footer_navigation_component",
+        "category_navigation_flat",
+        "footer_navigation_flat",
         "cms_link_component"
       ],
       "mandatory": false,
@@ -171,8 +170,7 @@
       "uid": "footer",
       "data_type": "reference",
       "reference_to": [
-        "category_navigation_component",
-        "footer_navigation_component",
+        "category_navigation_flat",
         "footer_navigation_flat",
         "cms_link_component"
       ],

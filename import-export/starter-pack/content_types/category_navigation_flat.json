@@ -1,7 +1,7 @@
 {
   "title": "Category Navigation (Flat)",
   "uid": "category_navigation_flat",
-  "description": "Header/category navigation, FLAT model. SAP typeCode CategoryNavigationComponent. Holds every node of the menu in a single all_nodes reference pool (an adjacency list); the connector reassembles the tree from each node's parent_id. Resolves in a constant, shallow include chain regardless of menu depth.",
+  "description": "Header/category navigation (flat model, SAP CategoryNavigationComponent). all_nodes holds every node of the menu; the connector rebuilds the tree from each node's parent_id in one shallow include chain, whatever the depth.",
   "schema": [
     {
       "display_name": "Title",
@@ -36,8 +36,8 @@
         "nav_node_flat"
       ],
       "mandatory": false,
-      "unique": false,
       "multiple": true,
+      "unique": false,
       "non_localizable": false,
       "field_metadata": {
         "ref_multiple": true,

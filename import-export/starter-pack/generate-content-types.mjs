@@ -26,9 +26,13 @@ const titleField = (instruction = 'Internal name (not shown on the storefront).'
   display_name: 'Title', uid: 'title', data_type: 'text', mandatory: true, unique: false,
   multiple: false, non_localizable: false, field_metadata: { _default: true, instruction },
 });
-const text = (uid, name, { instruction = '', multiline = false, multiple = false } = {}) => ({
-  display_name: name, uid, data_type: 'text', mandatory: false, unique: false, multiple,
-  non_localizable: false, field_metadata: { ...(multiline ? { multiline: true } : {}), instruction },
+const text = (uid, name, { instruction = '', multiline = false, multiple = false, mandatory = false, nonLocalizable = false } = {}) => ({
+  display_name: name, uid, data_type: 'text', mandatory, unique: false, multiple,
+  non_localizable: nonLocalizable, field_metadata: { ...(multiline ? { multiline: true } : {}), instruction },
+});
+const number = (uid, name, { instruction = '', nonLocalizable = false } = {}) => ({
+  display_name: name, uid, data_type: 'number', mandatory: false, unique: false, multiple: false,
+  non_localizable: nonLocalizable, field_metadata: { instruction },
 });
 const file = (uid, name, instruction = '') => ({
   display_name: name, uid, data_type: 'file', mandatory: false, multiple: false, unique: false,
@@ -67,7 +71,8 @@ const EDITORIAL = [
   'simple_responsive_banner_component', 'simple_banner_component', 'product_carousel_component',
   'cms_paragraph_component', 'cms_tab_paragraph_component', 'cms_link_component', 'cms_flex_component',
 ];
-const NAV = ['category_navigation_component', 'footer_navigation_component', 'cms_link_component'];
+// Shell nav/footer slots: the flat nav components, plus a standalone link.
+const NAV = ['category_navigation_flat', 'footer_navigation_flat', 'cms_link_component'];
 
 // Page common fields (title + routing metadata).
 const pageMeta = (template) => [
@@ -146,18 +151,27 @@ const contentTypes = [
   ct('CMS Flex Component', 'cms_flex_component',
     'A functional block selected by its flex type (e.g. ProductIntroComponent). SAP typeCode CMSFlexComponent.',
     [titleField('Internal name.'), text('flex_type', 'Flex Type', { instruction: 'The SAP flexType that selects the Angular component (e.g. ProductIntroComponent, PageTitleComponent).' }), accessTags()]),
-  ct('Nav Node', 'nav_node',
-    'A node in a navigation tree: a heading with children and/or link leaves.',
-    [titleField('Display label for this node (e.g. "Digital Cameras").'),
-     text('uid_val', 'Node Id', { instruction: 'Stable SAP node id for this navigation node.' }),
-     ref('children', 'Children', ['nav_node'], 'Child navigation nodes.'),
-     ref('entries', 'Entries', ['cms_link_component'], 'Link leaves under this node.')]),
-  ct('Category Navigation Component', 'category_navigation_component',
-    'Header/category navigation. SAP typeCode CategoryNavigationComponent.',
-    [titleField('Internal name.'), text('wrap_after', 'Wrap After', { instruction: 'Optional: wrap the menu after N items.' }), ref('navigation_node', 'Navigation Node', ['nav_node'], 'Root of the navigation tree.')]),
-  ct('Footer Navigation Component', 'footer_navigation_component',
-    'Footer navigation. SAP typeCode FooterNavigationComponent.',
-    [titleField('Internal name.'), text('wrap_after', 'Wrap After', { instruction: 'Optional: wrap the columns after N items.' }), ref('navigation_node', 'Navigation Node', ['nav_node'], 'Root of the footer navigation tree.')]),
+  // --- navigation (flat adjacency-list model — the connector rebuilds the tree
+  //     in code from parent_id, so menu depth never hits the Delivery API
+  //     include-depth cap. See buildFromFlat in
+  //     contentstack-cms-navigation-component.normalizer.ts.) ---
+  ct('Nav Node (Flat)', 'nav_node_flat',
+    "Flat navigation node. parent_id is plain text (the parent's node_id, not a reference); the component's all_nodes pool holds every node and the connector rebuilds the tree in code, so menu depth never hits the include-depth cap.",
+    [titleField('Display label shown in the menu (e.g. "Power Drills"). For SAP leaf categories that had no title, seed this from the linked link\'s name.'),
+     text('node_id', 'Node Id', { mandatory: true, nonLocalizable: true, instruction: 'Stable, unique id for THIS node (e.g. the SAP node id). Other nodes point at it via their Parent Id.' }),
+     text('parent_id', 'Parent Id', { nonLocalizable: true, instruction: 'Node Id of the parent node. Leave EMPTY for a top-level item. Plain text on purpose (not a reference) so building the tree costs zero reference-resolution depth.' }),
+     number('sort_order', 'Sort Order', { nonLocalizable: true, instruction: 'Position among siblings (1, 2, 3 ...).' }),
+     ref('links', 'Links', ['cms_link_component'], 'The clickable link leaf under this node. The only reference in the model — one hop, always resolves. Heading nodes leave this empty.')]),
+  ct('Category Navigation (Flat)', 'category_navigation_flat',
+    "Header/category navigation (flat model, SAP CategoryNavigationComponent). all_nodes holds every node of the menu; the connector rebuilds the tree from each node's parent_id in one shallow include chain, whatever the depth.",
+    [titleField('Internal name.'),
+     number('wrap_after', 'Wrap After', { instruction: 'Optional: wrap the menu after N items.' }),
+     ref('all_nodes', 'All Nodes', ['nav_node_flat'], "The flat pool of every node in this menu (all levels). The connector builds the tree from each node's parent_id.")]),
+  ct('Footer Navigation (Flat)', 'footer_navigation_flat',
+    "Footer navigation (flat model, SAP FooterNavigationComponent). all_nodes holds every node; the connector rebuilds the tree from each node's parent_id. Same shape as category_navigation_flat.",
+    [titleField('Internal name.'),
+     number('wrap_after', 'Wrap After', { instruction: 'Optional: wrap the columns after N items.' }),
+     ref('all_nodes', 'All Nodes', ['nav_node_flat'], "The flat pool of every node in this footer menu (all levels). The connector builds the tree from each node's parent_id.")]),
 
   // --- page types (per SAP template; only relevant slot fields) ---
   ct('Landing Page', 'landing_page',
