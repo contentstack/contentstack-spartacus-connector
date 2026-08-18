@@ -38,6 +38,9 @@ console.log('\n[3] Entry references + publish_details');
 const perLocale = {};
 for (const ct of readdirSync(join(PACK, 'entries'))) {
   for (const loc of readdirSync(join(PACK, 'entries', ct))) {
+    // csdx scaffolds empty <locale> folders into the data-dir on import; skip
+    // any locale dir without an index.json (it holds no entries to check).
+    if (!existsSync(join(PACK, 'entries', ct, loc, 'index.json'))) continue;
     perLocale[loc] = (perLocale[loc] ?? 0);
     const idx = rd('entries', ct, loc, 'index.json');
     for (const chunk of Object.values(idx)) {

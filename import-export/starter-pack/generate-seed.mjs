@@ -6,8 +6,9 @@
  *
  * Demonstrates the hybrid + flat-navigation + multi-language story:
  *  - a home `landing_page` ("/") with a Contentstack hero paragraph + promo banner
- *    (Section1, full-width) and a product carousel (Section3). Product data,
- *    and anything not authored here, still comes live from SAP OCC.
+ *    (Section1, full-width), a product carousel (Section3), and a two-block
+ *    access-gating demo (Section4). Product data, and anything not authored here,
+ *    still comes live from SAP OCC.
  *  - a `global_slots` shell wiring a flat category navigation (`navigation_bar`)
  *    and a flat footer navigation (`footer`) — each a `*_flat` component whose
  *    `all_nodes` pool the connector reassembles into a tree by `parent_id`.
@@ -48,6 +49,25 @@ const HERO = {
     '<h2>This section is served from Contentstack</h2><p>The header, navigation, footer, and all product data on this page come live from SAP Commerce. This hero is an editable Contentstack &quot;island&quot; layered on top.</p>',
   'de-de':
     '<h2>Dieser Bereich wird von Contentstack bereitgestellt</h2><p>Kopfzeile, Navigation, Fu&szlig;zeile und alle Produktdaten auf dieser Seite kommen live von SAP Commerce. Dieser Hero ist eine bearbeitbare Contentstack-&quot;Insel&quot;.</p>',
+};
+
+// Access-gating demo (Section4). Two paragraphs tagged with access tokens: with
+// the storefront's accessControl.enabled=false (default) BOTH render (tags are
+// ignored → everything public); flip it to true and they swap by auth state.
+// Uses the auth-state tokens (_require-login / _require-anonymous), which work on
+// any SAP backend — role-group gating (_require-<roleGroupId>) needs that role to
+// exist in SAP, so it's documented rather than seeded.
+const GATE_MEMBER = {
+  'en-us':
+    '<h3>&#10003; Member exclusive</h3><p>Free shipping this week for signed-in members. This block is tagged <code>_require-login</code> — with access control enabled it shows only when you are signed in.</p>',
+  'de-de':
+    '<h3>&#10003; Exklusiv f&uuml;r Mitglieder</h3><p>Diese Woche kostenloser Versand f&uuml;r angemeldete Mitglieder. Dieser Block ist mit <code>_require-login</code> markiert — bei aktivierter Zugriffskontrolle nur sichtbar, wenn Sie angemeldet sind.</p>',
+};
+const GATE_GUEST = {
+  'en-us':
+    '<h3>&#128075; New here?</h3><p>Sign in to unlock member pricing. This block is tagged <code>_require-anonymous</code> — with access control enabled it hides once you sign in.</p>',
+  'de-de':
+    '<h3>&#128075; Neu hier?</h3><p>Melden Sie sich an, um Mitgliederpreise freizuschalten. Dieser Block ist mit <code>_require-anonymous</code> markiert — bei aktivierter Zugriffskontrolle wird er ausgeblendet, sobald Sie angemeldet sind.</p>',
 };
 
 // Link leaves (`cms_link_component`) shared by the nav trees.
@@ -93,6 +113,18 @@ for (const locale of LOCALES) {
   put('cms_paragraph_component', locale, 'seed_hero', {
     title: 'Home Hero (Contentstack)',
     content: HERO[locale],
+  });
+  // Access-gating demo blocks (Section4). access_tags is the shipped gating field
+  // (opt-in via accessControl.enabled on the storefront).
+  put('cms_paragraph_component', locale, 'seed_gate_member', {
+    title: 'Member Exclusive (gated)',
+    content: GATE_MEMBER[locale],
+    access_tags: ['_require-login'],
+  });
+  put('cms_paragraph_component', locale, 'seed_gate_guest', {
+    title: 'Guest Prompt (gated)',
+    content: GATE_GUEST[locale],
+    access_tags: ['_require-anonymous'],
   });
   put('product_carousel_component', locale, 'seed_carousel', {
     title: t('Bestsellers — managed in Contentstack', 'Bestseller — verwaltet in Contentstack')[locale],
@@ -152,6 +184,12 @@ for (const locale of LOCALES) {
       ref('seed_banner', 'simple_banner_component'),
     ],
     section3: [ref('seed_carousel', 'product_carousel_component')],
+    // Section4 (full-width): the access-gating demo. Both show until the
+    // storefront sets accessControl.enabled=true, then they gate by auth state.
+    section4: [
+      ref('seed_gate_guest', 'cms_paragraph_component'),
+      ref('seed_gate_member', 'cms_paragraph_component'),
+    ],
   });
 }
 

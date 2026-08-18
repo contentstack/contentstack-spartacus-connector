@@ -12,9 +12,10 @@ import format. See `../../CONTENT-MODEL.md` for the design.
   how deep it nests — the Delivery API's plan-gated reference-depth cap never applies.
   Functional components render from OCC in the hybrid model.
 - `locales/` — `en-us` (master) + `de-de`, `ja-jp`, `zh-cn` (all fall back to `en-us`).
-- `entries/` — a focused hybrid demo seed (**50 entry records**, `en-us` + `de-de`):
+- `entries/` — a focused hybrid demo seed (**54 entry records**, `en-us` + `de-de`):
   - a home `landing_page` (`/`) with a Contentstack hero paragraph + promo banner
-    (Section1, full-width) and a product carousel (Section3);
+    (Section1, full-width), a product carousel (Section3), and a two-block **access-gating
+    demo** (Section4);
   - a `global_slots` shell wiring a flat **category navigation** (`navigation_bar`) and a flat
     **footer navigation** (`footer`) — each a `*_flat` component whose `all_nodes` pool of
     `nav_node_flat` entries the connector reassembles into a tree by `parent_id`;
@@ -42,7 +43,7 @@ csdx cm:stacks:import --stack-api-key <YOUR_STACK_API_KEY> \
   --data-dir ./import-export/starter-pack --yes
 ```
 
-One command imports the **17** content types, **4** locales, **50** seed entry records
+One command imports the **17** content types, **4** locales, **54** seed entry records
 (`en-us` + `de-de`), the **1** hero-banner asset, and creates a **`development`** environment.
 Then, in the Contentstack UI, **publish** the seed entries **and the asset** to `development`
 and create a **delivery token** for that environment — that token + the stack API key are the
@@ -96,6 +97,15 @@ fall back to the English labels.
    the en-us seed even with `includeFallback: false`.
 2. **Query `include_fallback`** (`includeFallback: true` on the storefront) — belt-and-suspenders
    for edge cases the locale chain doesn't cover. Optional given (1), but harmless to leave on.
+
+## Access gating (optional demo)
+Section4 of the home page ships two paragraph blocks tagged in their `access_tags` field:
+`seed_gate_guest` (`_require-anonymous`) and `seed_gate_member` (`_require-login`).
+
+- **Default** — gating is **off** (`accessControl.enabled: false`), so `access_tags` is ignored and **both** blocks render.
+- **Turn it on** — set `accessControl.enabled: true` on the storefront's `ContentstackConfig`. Now the **guest** block shows only when signed out and the **member** block only when signed in — they swap on login.
+
+These use the auth-state tokens, which work on any SAP backend. To gate by **SAP role group**, tag a component `_require-<roleGroupId>` (e.g. `_require-b2badmingroup`). Gating is **presentation-level** (hides content in the client), not a server-side security boundary.
 
 ## Two-token security
 - **Runtime = delivery token** (read-only) — the only Contentstack credential in the storefront.
