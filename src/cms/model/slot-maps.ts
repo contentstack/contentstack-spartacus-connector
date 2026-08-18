@@ -24,8 +24,15 @@ export const TYPECODE_MAP: Readonly<Record<string, string>> = {
   mini_cart_component: 'MiniCartComponent',
   category_navigation_component: 'CategoryNavigationComponent',
   footer_navigation_component: 'FooterNavigationComponent',
+  // Flat (adjacency-list) navigation model: renders through the same SAP
+  // typecodes as the recursive types, so Spartacus selects the identical
+  // Angular component — the only difference is how the node tree is assembled
+  // (flat `all_nodes` pool reassembled by `parent_id` vs. nested references).
+  category_navigation_flat: 'CategoryNavigationComponent',
+  footer_navigation_flat: 'FooterNavigationComponent',
   cms_paragraph_component: 'CMSParagraphComponent',
   nav_node: 'NavNode',
+  nav_node_flat: 'NavNode',
   breadcrumb_component: 'BreadcrumbComponent',
   cms_page: 'cmsPage',
   cms_header: 'cmsHeader',

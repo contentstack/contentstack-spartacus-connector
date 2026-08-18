@@ -350,6 +350,26 @@ describe('ContentstackCmsPageAdapter', () => {
       // Depth 1 must NOT reach into a second level of `.children`.
       expect(includeRefs).not.toContain('navigation_bar.navigation_node.children.children');
     });
+
+    it('always requests the flat-nav include chain for every nav field, independent of depth', () => {
+      const { adapter, client } = create({
+        cs: { globalSlots: { contentType: 'global_slots' }, navTreeIncludeDepth: 1 },
+        client: {
+          getPageBySlug: jest.fn().mockReturnValue(of(undefined)),
+          getGlobalSlots: jest.fn().mockReturnValue(of(undefined)),
+        },
+      });
+
+      firstValue(adapter.load(ctx('home')));
+
+      const [, , includeRefs] = client.getGlobalSlots.mock.calls[0];
+      // The flat model resolves any depth with this fixed two-path chain per field.
+      for (const field of ['navigation_bar', 'footer', 'header_links']) {
+        expect(includeRefs).toEqual(
+          expect.arrayContaining([`${field}.all_nodes`, `${field}.all_nodes.links`]),
+        );
+      }
+    });
   });
 
   describe('locale threading', () => {

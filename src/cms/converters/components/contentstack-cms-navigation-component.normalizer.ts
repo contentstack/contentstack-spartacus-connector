@@ -10,15 +10,27 @@ import { toTypeCode } from '../../model/slot-maps';
 import { isNavigationNode, isResolvedEntry } from '../../model/type-guards';
 
 /**
- * Resolves the `navigation_node` reference shared by `category_navigation_component`,
+ * Resolves the navigation tree shared by `category_navigation_component`,
  * `footer_navigation_component`, and `navigation_component` into Spartacus's
- * recursive `CmsNavigationNode` tree via a `nav_node` walk: `children` recurse
- * into further nodes, `entries` resolve into leaf `CmsNavigationEntry` items
- * (here, always `cms_link_component` references — the only leaf type the
- * starter-pack schema links).
+ * recursive `CmsNavigationNode` tree. Two source shapes are supported:
  *
- * `nav_node.uid_val` (renamed from the reserved `uid` field name) carries the
- * SAP-meaningful node id; Contentstack's own system `uid` is unrelated.
+ * 1. **Flat (adjacency list)** — the component carries an `all_nodes` pool of
+ *    `nav_node_flat` entries, each pointing at its parent by the plain-text
+ *    `parent_id` (a `node_id` value, NOT a reference). The tree is reassembled
+ *    here by grouping on `parent_id` and ordering by `sort_order`. Because the
+ *    hierarchy lives in text fields, the whole menu resolves in a constant,
+ *    shallow include chain (`<field>.all_nodes` + `.all_nodes.links`) no matter
+ *    how deep it nests — the Delivery API's plan-gated reference-depth cap never
+ *    applies. This is the preferred model.
+ *
+ * 2. **Recursive (legacy)** — the component carries a single `navigation_node`
+ *    reference whose `children` self-references build the hierarchy. Kept for
+ *    stacks still on the nested `nav_node` schema; requires the adapter's
+ *    per-level `navTreeIncludeRefs` includes and is subject to the depth cap.
+ *
+ * Either way, `entries` resolve into leaf `CmsNavigationEntry` items (the linked
+ * `cms_link_component` references), and the emitted `CmsNavigationNode` tree is
+ * identical — so nothing downstream of this normalizer changes between models.
  */
 @Injectable({ providedIn: 'root' })
 export class ContentstackCmsNavigationComponentNormalizer implements Converter<
@@ -26,14 +38,74 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
   CmsNavigationComponent
 > {
   convert(source: ContentstackEntry, target: CmsNavigationComponent = {}): CmsNavigationComponent {
-    // Contentstack delivers reference fields as arrays even for a single
-    // reference, so unwrap `[rootNode]` before resolving the tree.
+    // Preferred: flat adjacency-list model (`all_nodes` pool). Present and
+    // resolved ⇒ reassemble the tree from it.
+    const flatNodes = this.resolvedList(source['all_nodes']);
+    if (flatNodes.length) {
+      target.navigationNode = this.buildFromFlat(flatNodes, source.uid ?? 'NavigationNode');
+      return target;
+    }
+
+    // Legacy: recursive `navigation_node` reference tree. Contentstack delivers
+    // reference fields as arrays even for a single reference, so unwrap
+    // `[rootNode]` before resolving the tree.
     const raw = source['navigation_node'];
     const node = (Array.isArray(raw) ? raw[0] : raw) as ContentstackReference | undefined;
     if (isNavigationNode(node)) {
       target.navigationNode = this.toNavigationNode(node);
     }
     return target;
+  }
+
+  /**
+   * Reassemble a flat `nav_node_flat` pool into a `CmsNavigationNode` tree.
+   * Top-level nodes are those with an empty (or absent) `parent_id`; every other
+   * node hangs under the node whose `node_id` equals its `parent_id`. Siblings
+   * are ordered by `sort_order`. A synthetic root (`rootUid`) holds the
+   * top-level nodes, mirroring the single root the recursive model produces.
+   */
+  private buildFromFlat(nodes: ContentstackEntry[], rootUid: string): CmsNavigationNode {
+    const byParent = new Map<string, ContentstackEntry[]>();
+    for (const n of nodes) {
+      const key = this.parentKey(n);
+      const siblings = byParent.get(key) ?? [];
+      siblings.push(n);
+      byParent.set(key, siblings);
+    }
+    for (const siblings of byParent.values()) {
+      siblings.sort((a, b) => this.sortOrder(a) - this.sortOrder(b));
+    }
+
+    const build = (parentKey: string): CmsNavigationNode[] =>
+      (byParent.get(parentKey) ?? []).map((n) => {
+        const nodeId = (n['node_id'] as string) ?? n.uid;
+        const node: CmsNavigationNode = { uid: nodeId, title: n['title'] as string };
+
+        const links = this.resolvedList(n['links']);
+        if (links.length) {
+          node.entries = links.map((linkEntry) => this.toNavigationEntry(linkEntry));
+        }
+        const children = build(nodeId);
+        if (children.length) {
+          node.children = children;
+        }
+        return node;
+      });
+
+    return { uid: rootUid, children: build('') };
+  }
+
+  /** The parent grouping key: a node's `parent_id`, normalized to '' for top level. */
+  private parentKey(node: ContentstackEntry): string {
+    const parent = node['parent_id'];
+    return typeof parent === 'string' && parent.length ? parent : '';
+  }
+
+  /** Numeric `sort_order` (tolerates string/undefined), defaulting to 0. */
+  private sortOrder(node: ContentstackEntry): number {
+    const value = node['sort_order'];
+    const n = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(n) ? n : 0;
   }
 
   private toNavigationNode(entry: ContentstackEntry): CmsNavigationNode {

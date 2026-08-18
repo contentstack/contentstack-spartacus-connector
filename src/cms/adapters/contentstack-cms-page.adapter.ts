@@ -105,11 +105,17 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     // one-level include would leave the nav tree unresolved.
     const global = cs?.globalSlots;
     const navTreeDepth = cs?.navTreeIncludeDepth ?? 2;
+    const navFields = ['navigation_bar', 'footer', 'header_links'];
     const globalIncludeRefs = [
       ...includeRefs,
-      ...navTreeIncludeRefs('navigation_bar', navTreeDepth),
-      ...navTreeIncludeRefs('footer', navTreeDepth),
-      ...navTreeIncludeRefs('header_links', navTreeDepth),
+      // Flat (adjacency-list) nav model: a constant, shallow chain that resolves
+      // the whole menu regardless of depth — the component's `all_nodes` pool
+      // plus one hop to each node's link leaves. No depth cap ever applies.
+      ...navFields.flatMap(navFlatIncludeRefs),
+      // Legacy recursive `navigation_node` model: per-level `.children` includes,
+      // bounded by `navTreeIncludeDepth`. Harmless no-ops for flat components
+      // (the paths reference a `navigation_node` field they don't have).
+      ...navFields.flatMap((field) => navTreeIncludeRefs(field, navTreeDepth)),
     ];
 
     const occFallback = cs?.occFallback ?? true;
@@ -265,4 +271,17 @@ export function navTreeIncludeRefs(field: string, maxDepth: number): string[] {
     paths.push(prefix, `${prefix}.entries`);
   }
   return paths;
+}
+
+/**
+ * Include paths for the FLAT (adjacency-list) navigation model. Unlike the
+ * recursive tree, depth is irrelevant: the component holds every node in a
+ * single `all_nodes` reference pool (one level), and each node's link leaves are
+ * one further hop (`all_nodes.links`). So a fixed two-path include resolves a
+ * menu of ANY depth — there is no per-level enumeration and no depth-cap risk.
+ * The `.links` path is a constant 3 dot-segments (`<field>.all_nodes.links`),
+ * comfortably under the lowest plan ceiling.
+ */
+export function navFlatIncludeRefs(field: string): string[] {
+  return [`${field}.all_nodes`, `${field}.all_nodes.links`];
 }
