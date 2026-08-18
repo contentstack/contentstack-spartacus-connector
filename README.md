@@ -91,6 +91,27 @@ npm install @contentstack/contentstack-spartacus-connector @contentstack/deliver
 3. **(Optional) SmartEdit bypass guard** — attach `smartEditBypassGuard` to your
    content route to strip legacy SmartEdit preview params.
 
+## Connect to your stack
+
+Four values point the storefront at your Contentstack stack:
+
+| Value | Where to get it |
+|---|---|
+| `apiKey` | Settings → Stack settings → **API Key** |
+| `deliveryToken` | Settings → Tokens → **Delivery Tokens** (scope it to your environment) |
+| `environment` | your publishing environment, e.g. `development` |
+| `region` | your stack's data center (`Region.US` / `EU` / `AZURE_NA` / …) |
+
+Put them in `src/environments/contentstack.environment.ts` — copy
+[`contentstack.environment.example.ts`](contentstack.environment.example.ts) as a starting
+point (or let `ng add` generate it). Then set `cmsPageContentType` (the starter pack authors the
+home as `landing_page`) and, for a localized site, `localeMapping`.
+
+**Secret hygiene:** `apiKey` + `deliveryToken` are read-only and safe in the client bundle. A
+`previewToken` (Live Preview only) is a **secret** — keep it out of committed source; `.env*` is
+already gitignored, and you can gitignore the real credentials file or swap it per build via
+Angular `fileReplacements`.
+
 ## Configuration reference
 
 See `ContentstackConfig` (`src/config/contentstack-config.ts`). Key fields:
