@@ -9,7 +9,9 @@
     "schematics/**/*.js",
     "import-export/starter-pack/**/*.json",
     "import-export/starter-pack/**/*.md",
-    "import-export/starter-pack/**/.gitkeep"
+    "import-export/starter-pack/**/.gitkeep",
+    "import-export/starter-pack/**/*.mjs",
+    "import-export/starter-pack/assets/files/**/*"
   ],
   "allowedNonPeerDependencies": [
     "@contentstack/delivery-sdk",
