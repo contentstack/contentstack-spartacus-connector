@@ -1,0 +1,60 @@
+name: Publish to npm
+
+# Publishes @contentstack/contentstack-spartacus-connector to the public npm
+# registry whenever a GitHub Release is published. Uses npm's OIDC trusted
+# publisher flow: GitHub issues a short-lived OIDC token that npm exchanges
+# for a publish token at publish time. No NPM_TOKEN secret is used or needed.
+#
+# One-time setup required before this workflow can succeed:
+#  - npm: configure this package's "Trusted Publisher" (npmjs.com → package
+#    settings → Publishing access) to this repo + this workflow filename.
+#  - GitHub: repo must be public (private repos can't publish public packages
+#    via OIDC trusted publishing in this flow).
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Build & publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      # npm's OIDC trusted-publishing support requires npm >= 11.5.1;
+      # actions/setup-node@v4 on node 22 currently bundles an older npm.
+      - name: Update npm for OIDC trusted publishing
+        run: npm install -g npm@latest
+
+      # @spartacus/* (core, cart, storefront, schematics) at 2211.x are
+      # published only on SAP's private RBSC registry (see .npmrc / ci.yml).
+      # Needed here so `npm ci` can resolve peer/dev deps for the build.
+      - name: Configure SAP RBSC registry auth
+        run: |
+          {
+            echo "legacy-peer-deps=true"
+            echo "//73554900100900004337.npmsrv.cdn.repositories.cloud.sap/:_auth=$RBSC_NPM_AUTH"
+          } > .npmrc
+        env:
+          RBSC_NPM_AUTH: ${{ secrets.RBSC_NPM_AUTH }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build
+
+      # ng-packagr writes the publish-ready package (its own package.json,
+      # dist bundles, schematics, starter pack assets) to dist/.
+      - name: Publish to npm
+        working-directory: dist
+        run: npm publish --access public --provenance
