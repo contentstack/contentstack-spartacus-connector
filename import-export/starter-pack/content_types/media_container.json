@@ -1,0 +1,74 @@
+{
+  "title": "Media Container",
+  "uid": "media_container",
+  "description": "A reusable per-breakpoint image set, referenced from the Media Container field on banner components so one asset set can back multiple banners. SAP typeCode MediaContainer.",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "mandatory": true,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "_default": true,
+        "instruction": "Internal name for this media set."
+      }
+    },
+    {
+      "display_name": "Desktop",
+      "uid": "desktop",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the desktop breakpoint (optional)."
+      }
+    },
+    {
+      "display_name": "Mobile",
+      "uid": "mobile",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the mobile breakpoint (optional)."
+      }
+    },
+    {
+      "display_name": "Tablet",
+      "uid": "tablet",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the tablet breakpoint (optional)."
+      }
+    },
+    {
+      "display_name": "Widescreen",
+      "uid": "widescreen",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the widescreen breakpoint (optional)."
+      }
+    }
+  ],
+  "options": {
+    "is_page": false,
+    "singleton": false,
+    "sub_title": [],
+    "title": "title"
+  }
+}

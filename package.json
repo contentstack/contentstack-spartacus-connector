@@ -1,0 +1,85 @@
+{
+  "name": "@contentstack/contentstack-spartacus-connector",
+  "version": "0.1.0",
+  "description": "Contentstack CMS feature library for SAP Composable Storefront (Spartacus). Overrides the Spartacus CMS layer so page and component content resolve from Contentstack, while SAP OCC remains the commerce engine.",
+  "keywords": [
+    "spartacus",
+    "sap-commerce-cloud",
+    "composable-storefront",
+    "contentstack",
+    "headless-cms",
+    "angular"
+  ],
+  "license": "MIT",
+  "author": "Contentstack",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/contentstack/contentstack-spartacus-connector"
+  },
+  "bugs": {
+    "url": "github.com/contentstack/contentstack-spartacus-connector/issues"
+  },
+  "homepage": "github.com/contentstack/contentstack-spartacus-connector#readme",
+  "sideEffects": false,
+  "schematics": "./schematics/collection.json",
+  "scripts": {
+    "clean:schematics": "node scripts/clean-schematics.cjs",
+    "build:schematics": "npm run clean:schematics && tsc -p tsconfig.schematics.json",
+    "build": "npm run build:schematics && ng-packagr -p ng-package.json && node scripts/finalize-dist.cjs",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"{src,schematics}/**/*.ts\"",
+    "format:check": "prettier --check \"{src,schematics}/**/*.ts\"",
+    "test": "jest -c jest.config.cjs",
+    "pretest:schematics": "node scripts/setup-schematics-test-stub.cjs",
+    "test:schematics": "jest -c jest.schematics.config.cjs",
+    "test:all": "npm test && npm run test:schematics"
+  },
+  "peerDependencies": {
+    "@angular-devkit/schematics": "^21.2.0",
+    "@angular/common": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@ngrx/store": "^21.0.0",
+    "@spartacus/cart": ">=2211.0.0",
+    "@spartacus/core": ">=2211.0.0",
+    "@spartacus/schematics": ">=2211.0.0",
+    "@spartacus/storefront": ">=2211.0.0",
+    "rxjs": "^7.8.0"
+  },
+  "dependencies": {
+    "@contentstack/delivery-sdk": "^4.0.0",
+    "@contentstack/live-preview-utils": "^4.4.4",
+    "@contentstack/utils": "^1.9.1",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/schematics": "^21.2.19",
+    "@angular/common": "^21.2.18",
+    "@angular/compiler": "^21.2.18",
+    "@angular/compiler-cli": "^21.2.18",
+    "@angular/core": "^21.2.18",
+    "@angular/platform-browser": "^21.2.18",
+    "@angular/router": "^21.2.18",
+    "@eslint/js": "^9.39.5",
+    "@ngrx/effects": "^21.1.1",
+    "@ngrx/store": "^21.1.1",
+    "@schematics/angular": "^21.2.19",
+    "@spartacus/cart": "221121.15.1",
+    "@spartacus/core": "221121.15.1",
+    "@spartacus/schematics": "221121.15.1",
+    "@spartacus/storefront": "221121.15.1",
+    "@types/jest": "^30.0.0",
+    "angular-eslint": "^21.4.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.0.0",
+    "jest-preset-angular": "^17.0.0",
+    "ng-packagr": "^21.0.0",
+    "prettier": "^3.9.6",
+    "rxjs": "^7.8.2",
+    "ts-jest": "^29.4.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.65.0"
+  }
+}
