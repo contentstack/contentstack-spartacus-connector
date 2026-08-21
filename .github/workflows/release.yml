@@ -42,8 +42,10 @@ jobs:
         run: |
           {
             echo "legacy-peer-deps=true"
-            echo "//73554900100900004337.npmsrv.cdn.repositories.cloud.sap/:_auth=${{ secrets.RBSC_NPM_AUTH }}"
+            echo "//73554900100900004337.npmsrv.cdn.repositories.cloud.sap/:_auth=$RBSC_NPM_AUTH"
           } > .npmrc
+        env:
+          RBSC_NPM_AUTH: ${{ secrets.RBSC_NPM_AUTH }}
 
       - name: Install dependencies
         run: npm ci
