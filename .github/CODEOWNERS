@@ -1,4 +1,3 @@
 * @contentstack/marketplace-pr-reviewers
-.github/workflows/sca-scan.yml @contentstack/security-admin
-.github/workflows/policy-scan.yml @contentstack/security-admin
+.github/workflows/ @contentstack/security-admin
 **/.snyk @contentstack/security-admin
