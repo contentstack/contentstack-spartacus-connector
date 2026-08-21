@@ -1,0 +1,22 @@
+{
+  "//": "Offline typecheck config. Resolves @angular/*, @angular-devkit/schematics, rxjs, and @ngrx/store from real node_modules (installed as devDependencies, since those packages ARE on the public registry — only @spartacus/* itself is registry-gapped) and @spartacus/*/@spartacus/schematics from the shims in typings/. Run: npx tsc -p tsconfig.typecheck.json",
+  "//2": "Previously pointed at a sibling ../spartacus/ monorepo for Angular/rxjs/ngrx — that vendored source isn't present in every environment this repo is cloned into, so this now resolves those (genuinely public, installable) packages from this repo's own node_modules instead. Only @spartacus/* itself needs typings/ shims, since SAP's real 2211.x line isn't on the public registry.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "strict": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "baseUrl": "."
+  },
+  "include": ["src/**/*.ts", "schematics/**/*.ts", "typings/**/*.d.ts"],
+  "exclude": ["src/**/*.spec.ts", "schematics/**/*.spec.ts", "node_modules", "dist"]
+}

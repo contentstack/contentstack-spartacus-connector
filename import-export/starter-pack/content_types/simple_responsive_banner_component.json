@@ -1,0 +1,127 @@
+{
+  "title": "Simple Responsive Banner Component",
+  "uid": "simple_responsive_banner_component",
+  "description": "A responsive banner with per-breakpoint images and a click-through link. SAP typeCode SimpleResponsiveBannerComponent.",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "mandatory": true,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "_default": true,
+        "instruction": "Internal name for this banner."
+      }
+    },
+    {
+      "display_name": "URL Link",
+      "uid": "url_link",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Click-through destination."
+      }
+    },
+    {
+      "display_name": "Media Container",
+      "uid": "media_container",
+      "data_type": "reference",
+      "reference_to": [
+        "media_container"
+      ],
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "ref_multiple": false,
+        "ref_multiple_content_types": false,
+        "instruction": "Reusable per-breakpoint image set (desktop/mobile/tablet/widescreen). Takes priority over the direct Media fields below — set this OR them, not both."
+      }
+    },
+    {
+      "display_name": "Media",
+      "uid": "media",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Fallback image, used for any breakpoint without its own image below."
+      }
+    },
+    {
+      "display_name": "Media Mobile",
+      "uid": "media_mobile",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the mobile breakpoint (optional)."
+      }
+    },
+    {
+      "display_name": "Media Tablet",
+      "uid": "media_tablet",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the tablet breakpoint (optional)."
+      }
+    },
+    {
+      "display_name": "Media Desktop",
+      "uid": "media_desktop",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the desktop breakpoint (optional)."
+      }
+    },
+    {
+      "display_name": "Media Widescreen",
+      "uid": "media_widescreen",
+      "data_type": "file",
+      "mandatory": false,
+      "multiple": false,
+      "unique": false,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Image for the widescreen breakpoint (optional)."
+      }
+    },
+    {
+      "display_name": "Access Tags",
+      "uid": "access_tags",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": true,
+      "non_localizable": false,
+      "field_metadata": {
+        "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+      }
+    }
+  ],
+  "options": {
+    "is_page": false,
+    "singleton": false,
+    "sub_title": [],
+    "title": "title"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "dist",
+  "lib": {
+    "entryFile": "src/public-api.ts"
+  },
+  "assets": [
+    "schematics/**/*.json",
+    "schematics/**/*.js",
+    "import-export/starter-pack/**/*.json",
+    "import-export/starter-pack/**/*.md",
+    "import-export/starter-pack/**/.gitkeep",
+    "import-export/starter-pack/**/*.mjs",
+    "import-export/starter-pack/assets/files/**/*"
+  ],
+  "allowedNonPeerDependencies": [
+    "@contentstack/delivery-sdk",
+    "@contentstack/live-preview-utils",
+    "@contentstack/utils",
+    "tslib"
+  ]
+}
