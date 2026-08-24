@@ -21,6 +21,8 @@ describe('PAGE_REFERENCE_FIELDS', () => {
   });
 
   it('never nests media_container two levels deep', () => {
-    expect(PAGE_REFERENCE_FIELDS.some((f) => f.includes('media_container.media_container'))).toBe(false);
+    expect(PAGE_REFERENCE_FIELDS.some((f) => f.includes('media_container.media_container'))).toBe(
+      false,
+    );
   });
 });

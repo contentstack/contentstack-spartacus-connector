@@ -205,7 +205,11 @@ export class ContentstackClientService {
           let entry = res?.entries?.[0];
           // Filter gated content BEFORE it is persisted to TransferState.
           if (entry && access) {
-            entry = this.restrictions.sanitizeForTransfer(entry, access.permissions, access.gateRoot);
+            entry = this.restrictions.sanitizeForTransfer(
+              entry,
+              access.permissions,
+              access.gateRoot,
+            );
           }
           if (entry && this.config.contentstack?.delivery?.livePreview) {
             this.tagForLivePreview(entry, contentTypeUid);
@@ -293,7 +297,11 @@ export class ContentstackClientService {
         let result = e ?? undefined;
         // Filter gated content BEFORE it is persisted to TransferState.
         if (result && access) {
-          result = this.restrictions.sanitizeForTransfer(result, access.permissions, access.gateRoot);
+          result = this.restrictions.sanitizeForTransfer(
+            result,
+            access.permissions,
+            access.gateRoot,
+          );
         }
         return result;
       });

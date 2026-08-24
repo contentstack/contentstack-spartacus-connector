@@ -31,8 +31,7 @@ export class ContentstackCmsBannerComponentNormalizer implements Converter<
     // same pattern as ContentstackCmsNavigationComponentNormalizer.
     const rawContainer = source['media_container'];
     const container = (Array.isArray(rawContainer) ? rawContainer[0] : rawContainer) as
-      | ContentstackReference
-      | undefined;
+      ContentstackReference | undefined;
     if (isMediaContainer(container)) {
       const media: CmsBannerComponent['media'] = {};
       for (const breakpoint of BREAKPOINTS) {

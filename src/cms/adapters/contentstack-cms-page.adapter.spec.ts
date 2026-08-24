@@ -456,7 +456,11 @@ describe('ContentstackCmsPageAdapter', () => {
         cs: {
           ...GATING,
           pageTypeMapping: {
-            ProductPage: { sharedSlug: 'product', slugField: 'url', contentTypeUid: 'product_page' },
+            ProductPage: {
+              sharedSlug: 'product',
+              slugField: 'url',
+              contentTypeUid: 'product_page',
+            },
           },
         },
         client: { getPageBySlug },

@@ -225,7 +225,9 @@ describe('ContentstackCmsComponentAdapter', () => {
       // leaves + banners + OCC-shaped ids together. Each Contentstack type must be
       // fetched as itself; only genuinely OCC-shaped, unresolved ids go to OCC.
       const getEntriesByUids = jest.fn((type: string, uids: string[]) =>
-        of(uids.filter((u) => u.startsWith('blt')).map((uid) => ({ uid, _content_type_uid: type }))),
+        of(
+          uids.filter((u) => u.startsWith('blt')).map((uid) => ({ uid, _content_type_uid: type })),
+        ),
       );
       const { adapter, occComponentAdapter } = create({
         registry: { bltbanner: 'simple_responsive_banner_component' },
@@ -240,7 +242,11 @@ describe('ContentstackCmsComponentAdapter', () => {
         adapter.findComponentsByIds(['bltlink', 'bltbanner', 'QuickOrderLink'], ctx),
       );
       // bltlink + QuickOrderLink resolve to the configured default; banner to its own type.
-      expect(getEntriesByUids).toHaveBeenCalledWith('cms_component', ['bltlink', 'QuickOrderLink'], 'en');
+      expect(getEntriesByUids).toHaveBeenCalledWith(
+        'cms_component',
+        ['bltlink', 'QuickOrderLink'],
+        'en',
+      );
       expect(getEntriesByUids).toHaveBeenCalledWith(
         'simple_responsive_banner_component',
         ['bltbanner'],
@@ -312,7 +318,9 @@ describe('ContentstackCmsComponentAdapter', () => {
       const { adapter, occComponentAdapter } = create({
         client: { getEntriesByUids: jest.fn().mockReturnValue(of([{ uid: 'a' }])) },
         occ: {
-          findComponentsByIds: jest.fn().mockReturnValue(of([{ uid: 'occ-link', typeCode: 'OCC' }])),
+          findComponentsByIds: jest
+            .fn()
+            .mockReturnValue(of([{ uid: 'occ-link', typeCode: 'OCC' }])),
         },
       });
       const res = firstValue(adapter.findComponentsByIds(['a', 'bltmissing', 'occ-link'], ctx));
