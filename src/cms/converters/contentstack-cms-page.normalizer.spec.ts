@@ -164,7 +164,11 @@ describe('ContentstackCmsPageNormalizer', () => {
       _content_type_uid: 'cms_page',
       type: 'ProductPage',
       tabs: [
-        { uid: 'blt_tabs_empty', _content_type_uid: 'cms_tab_paragraph_container', tab_components: null },
+        {
+          uid: 'blt_tabs_empty',
+          _content_type_uid: 'cms_tab_paragraph_container',
+          tab_components: null,
+        },
       ],
     });
     expect(result.page?.slots?.['Tabs']?.components).toEqual([]);

@@ -6,9 +6,9 @@ import { retargetTagLocale } from './tag-entry-tree';
  */
 describe('retargetTagLocale', () => {
   it('swaps the locale segment of a wrapper tag (contentType.uid.locale)', () => {
-    expect(
-      retargetTagLocale('simple_responsive_banner_component.blt123.en-us', 'de-de'),
-    ).toBe('simple_responsive_banner_component.blt123.de-de');
+    expect(retargetTagLocale('simple_responsive_banner_component.blt123.en-us', 'de-de')).toBe(
+      'simple_responsive_banner_component.blt123.de-de',
+    );
   });
 
   it('swaps the locale segment of a per-field tag, preserving trailing segments', () => {

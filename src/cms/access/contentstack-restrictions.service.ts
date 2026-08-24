@@ -122,7 +122,9 @@ export class ContentstackRestrictionsService {
 
   /** Whether a value is a Contentstack entry node (an object carrying a string uid). */
   protected isEntryLike(value: unknown): value is ContentstackEntry {
-    return !!value && typeof value === 'object' && typeof (value as { uid?: unknown }).uid === 'string';
+    return (
+      !!value && typeof value === 'object' && typeof (value as { uid?: unknown }).uid === 'string'
+    );
   }
 
   /**

@@ -21,7 +21,13 @@ describe('ContentstackCmsNavigationComponentNormalizer', () => {
     parent_id: parentId,
     sort_order: sortOrder,
     links: link
-      ? [{ uid: link, _content_type_uid: 'cms_link_component', created_at: '2026-01-01T00:00:00.000Z' }]
+      ? [
+          {
+            uid: link,
+            _content_type_uid: 'cms_link_component',
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ]
       : [],
   });
 
@@ -51,7 +57,11 @@ describe('ContentstackCmsNavigationComponentNormalizer', () => {
 
     const handTools = component.navigationNode?.children?.[0];
     expect(handTools?.entries).toEqual([
-      { itemId: 'blt_handtools_link', itemSuperType: 'AbstractCMSComponent', itemType: 'CMSLinkComponent' },
+      {
+        itemId: 'blt_handtools_link',
+        itemSuperType: 'AbstractCMSComponent',
+        itemType: 'CMSLinkComponent',
+      },
     ]);
 
     // Depth 3: wrapper heading (no link) with ordered leaf children.
@@ -75,7 +85,11 @@ describe('ContentstackCmsNavigationComponentNormalizer', () => {
   it('derives leaf itemType from the entry content type (not hard-coded)', () => {
     const customLink = node('Root', 'Root', '', 1);
     customLink['links'] = [
-      { uid: 'blt_custom_leaf', _content_type_uid: 'my_custom_link', created_at: '2026-01-01T00:00:00.000Z' },
+      {
+        uid: 'blt_custom_leaf',
+        _content_type_uid: 'my_custom_link',
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
     ];
     const component = normalizer.convert(flatComponent([customLink]));
     expect(component.navigationNode?.children?.[0].entries?.[0]).toEqual({

@@ -1,9 +1,4 @@
-import {
-  isContentstackFile,
-  isMediaContainer,
-  isResolvedEntry,
-  isString,
-} from './type-guards';
+import { isContentstackFile, isMediaContainer, isResolvedEntry, isString } from './type-guards';
 
 describe('type-guards', () => {
   it('isString', () => {
