@@ -32,8 +32,12 @@ jobs:
 
       # npm's OIDC trusted-publishing support requires npm >= 11.5.1;
       # actions/setup-node@v4 on node 22 currently bundles an older npm.
+      # Pinned to the 11.x line (not `latest`/npm 12) because npm 12 defaults
+      # `allow-remote=none`, which rejects installing @spartacus/* from the
+      # SAP RBSC registry (its package-lock.json entries resolve to raw
+      # tarball URLs, not plain registry packages) — see EALLOWREMOTE.
       - name: Update npm for OIDC trusted publishing
-        run: npm install -g npm@latest
+        run: npm install -g npm@^11.5.1
 
       # @spartacus/* (core, cart, storefront, schematics) at 2211.x are
       # published only on SAP's private RBSC registry (see .npmrc / ci.yml).
