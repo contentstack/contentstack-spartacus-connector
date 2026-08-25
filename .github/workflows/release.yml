@@ -3,16 +3,25 @@ name: Publish to npm
 # Publishes @contentstack/contentstack-spartacus-connector to the public npm
 # registry whenever a GitHub Release is published. Uses npm's OIDC trusted
 # publisher flow: GitHub issues a short-lived OIDC token that npm exchanges
-# for a publish token at publish time. No NPM_TOKEN secret is used or needed.
+# for a publish token at publish time. No token secret is needed for ongoing
+# publishes once bootstrap (below) is complete and removed.
 #
-# One-time setup required before this workflow can succeed:
-#  - npm: configure this package's "Trusted Publisher" (npmjs.com → package
-#    settings → Publishing access) to this repo + this workflow filename.
-#  - GitHub: repo must be public (private repos can't publish public packages
-#    via OIDC trusted publishing in this flow).
+# ONE-TIME BOOTSTRAP INSTRUCTIONS (only needed because the package has never
+# been published before — npm has no page to configure a Trusted Publisher
+# for a package that doesn't exist yet):
+#  1. Add a temporary secret named `NPM_TOKEN` in Repo Settings -> Secrets.
+#  2. Run this workflow manually via Actions -> "Publish to npm" -> "Run workflow".
+#  3. Go to npmjs.com -> package settings -> Publishing access and set up
+#     Trusted Publisher for:
+#       - Repo: contentstack/contentstack-spartacus-connector
+#       - Workflow: release.yml
+#  4. Delete the `NPM_TOKEN` secret from GitHub repository settings.
+#  5. Future publishes will run automatically on GitHub Release via OIDC.
+
 on:
   release:
     types: [published]
+  workflow_dispatch: # Allows manual trigger for the one-time bootstrap publish
 
 permissions:
   contents: read
@@ -22,6 +31,12 @@ jobs:
   publish:
     name: Build & publish
     runs-on: ubuntu-latest
+    # secrets.* can't be used directly in `if:` conditionals (GitHub Actions
+    # doesn't recognize the secrets context there), so the bootstrap token's
+    # presence is surfaced as a job-level env var and the steps below branch
+    # on that instead.
+    env:
+      HAS_BOOTSTRAP_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,9 +54,7 @@ jobs:
       - name: Update npm for OIDC trusted publishing
         run: npm install -g npm@^11.5.1
 
-      # @spartacus/* (core, cart, storefront, schematics) at 2211.x are
-      # published only on SAP's private RBSC registry (see .npmrc / ci.yml).
-      # Needed here so `npm ci` can resolve peer/dev deps for the build.
+      # Configure SAP RBSC registry auth for build dependencies
       - name: Configure SAP RBSC registry auth
         run: |
           {
@@ -57,8 +70,19 @@ jobs:
       - name: Build library
         run: npm run build
 
-      # ng-packagr writes the publish-ready package (its own package.json,
-      # dist bundles, schematics, starter pack assets) to dist/.
-      - name: Publish to npm
+      # Step A: OIDC publish — runs automatically on Release, and on any
+      # manual run once the NPM_TOKEN bootstrap secret has been deleted.
+      - name: Publish to npm (OIDC)
+        if: env.HAS_BOOTSTRAP_TOKEN != 'true'
         working-directory: dist
         run: npm publish --access public --provenance
+
+      # Step B: one-time bootstrap publish — runs only while NPM_TOKEN
+      # exists, to claim the package name before a Trusted Publisher can be
+      # configured for it. Delete the secret right after this succeeds.
+      - name: Publish to npm (one-time bootstrap token)
+        if: env.HAS_BOOTSTRAP_TOKEN == 'true'
+        working-directory: dist
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
