@@ -75,9 +75,9 @@ csdx cm:stacks:import --stack-api-key <STACK_API_KEY> \
   --yes
 ```
 
-One command imports the **17 content types** (4 per-template page types + a `global_slots` shell + 12 component types), the **4 locales** (`en-us` master + `de-de`, `ja-jp`, `zh-cn`, all with `fallback_locale: en-us`), the **54 seed entry records** (`en-us` + `de-de`, references resolved), the **1 placeholder hero-banner asset**, and creates a **`development`** environment. No manual environment setup is needed — the pack ships `development` for you. See [`import-export/starter-pack/README.md`](../import-export/starter-pack/README.md) for the full manifest.
+One command imports the **17 content types** (4 per-template page types + a `global_slots` shell + 12 component types), the **4 locales** (`en-us` master, plus `de-de`, `ja-jp`, `zh-cn` — each of the three added locales has `fallback_locale: en-us`; the master has none), the **54 seed entry records** (`en-us` + `de-de`, references resolved), the **1 placeholder hero-banner asset**, and creates a **`development`** environment. No manual environment setup is needed — the pack ships `development` for you. See [`import-export/starter-pack/README.md`](../import-export/starter-pack/README.md) for the full manifest.
 
-**Expected output (abridged):** csdx logs each module as it imports and finishes with the environment:
+**Expected output (illustrative — csdx's exact wording varies by CLI version):** csdx logs each module as it imports and finishes with the environment. The shape resembles:
 
 ```
 Starting import of content types ...

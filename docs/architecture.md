@@ -3,7 +3,7 @@ title: "Architecture"
 product: spartacus-connector
 type: architecture
 tags: [spartacus-connector, architecture]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # Architecture
@@ -92,7 +92,7 @@ sequenceDiagram
 
 1. **Route change** → Spartacus's `CmsPageConnector` asks the `CmsPageAdapter` to load the page for the current context (slug).
 2. **`ContentstackCmsPageAdapter`** ([`src/cms/adapters/contentstack-cms-page.adapter.ts`](../src/cms/adapters/contentstack-cms-page.adapter.ts)) resolves the request via `resolveRequest()` — a `sharedSlug` route (product/category) maps to one shared layout entry; the homepage maps to slug `/`; every other route maps per-slug on `slugField == pageContext.id` (optionally rewritten by `slugTransform`). It then queries Contentstack through **`ContentstackClientService`** ([`src/client/contentstack-client.service.ts`](../src/client/contentstack-client.service.ts)), expanding configured reference fields via the Delivery SDK's `includeReference`.
-3. **In parallel**, the adapter also fetches the shared shell (`getGlobalSlots`) and — when `occFallback` is on (the default) — the SAP page for this route via the injected `OccCmsPageAdapter`. A CMS failure is caught and degrades to no-base so navigation never breaks (`.pipe(catchError(() => of(undefined)))`, page adapter L138).
+3. **In parallel**, the adapter also fetches the shared shell (`getGlobalSlots`) and — when `occFallback` is on (the default) — the SAP page for this route via the injected `OccCmsPageAdapter`. An OCC base-fetch failure is caught and degrades to no base so navigation never breaks (`.pipe(catchError(() => of(undefined)))` wraps the `OccCmsPageAdapter.load` call, page adapter L138); Contentstack fetch failures are handled separately inside the client.
 4. **`ContentstackCmsPageNormalizer`** ([`src/cms/converters/contentstack-cms-page.normalizer.ts`](../src/cms/converters/contentstack-cms-page.normalizer.ts)) translates the entry — named per-slot reference fields, each holding resolved component entries — into Spartacus's native `CmsStructureModel` (page → slots → components). It maps:
    - slot **field uids → SAP slot names** (`SLOT_FIELD_TO_SAP_NAME`), and
    - component **content-type uids → SAP typecodes** (`toTypeCode`).

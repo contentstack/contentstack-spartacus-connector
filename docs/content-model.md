@@ -3,7 +3,7 @@ title: "Content Model"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, content-model, starter-pack]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # Content Model
@@ -29,7 +29,7 @@ Slot names are **not arbitrary** — they are Spartacus's template **positions**
 | SAP template (page type) | SAP slot positions | Contentstack field uid |
 |---|---|---|
 | **Shell** (header/footer, every page) | `SiteLogo`, `SearchBox`, `MiniCart`, `NavigationBar`, `SiteContext`, `SiteLinks`, `HeaderLinks`, `Footer` | `site_logo`, `search_box`, `mini_cart`, `navigation_bar`, `site_context`, `site_links`, `header_links`, `footer` |
-| **LandingPage2Template** (home/landing) | `Section1`, `Section2`, `Section2A`, `Section2B`, `Section2C`, `Section3`, `Section4`, `Section5` | `section1`, `section2`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` |
+| **LandingPage2Template** (home/landing) | `Section1`, `Section2A`, `Section2B`, `Section2C`, `Section3`, `Section4`, `Section5` | `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` |
 | **ContentPage1Template** (FAQ, terms, …) | `Section1`, `Section2A/B/C`, `Section3`, `BodyContent`, `SideContent` | `section1`, `section2_a/b/c`, `section3`, `body_content`, `side_content` |
 | **ProductDetailsPageTemplate** (PDP) | `Summary`, `UpSelling`, `CrossSelling`, `Tabs`, `PlaceholderContentSlot` | `summary`, `up_selling`, `cross_selling`, `tabs`, `placeholder_content_slot` |
 | **ProductListPageTemplate** (PLP/category/search) | `ProductLeftRefinements`, `ProductGridSlot`, `ProductListSlot`, `SearchResultsGridSlot` | `product_left_refinements`, `product_grid_slot`, `product_list_slot`, `search_results_grid_slot` |
@@ -38,7 +38,7 @@ Slot names are **not arbitrary** — they are Spartacus's template **positions**
 The full mapping lives in [`src/cms/model/slot-maps.ts`](../src/cms/model/slot-maps.ts) → `SLOT_FIELD_TO_SAP_NAME`. That table is the connector's **slot allowlist**: on every page fetch the page normalizer only treats a Contentstack field as a slot if its uid is a key in this map (plus any [custom slots](#custom-slots-unlimited) you register). The map ships more positions than the six templates above list — for example `bottom_header_slot` → `BottomHeaderSlot`, `middle_content` → `MiddleContent`, `left_content_slot` → `LeftContentSlot` — so most stock Spartacus positions already resolve without extra config.
 
 > [!NOTE]
-> `LandingPage2Template` renders `Section1`, `Section2`, `Section2A/2B/2C`, and `Section3`–`Section5`. `Section2A/2B/2C` are narrow 1/3-width columns, so full-width content belongs in the full-width sections (`Section1`, `Section2`, `Section3`–`5`).
+> `LandingPage2Template` renders `Section1`, `Section2A/2B/2C`, and `Section3`–`Section5` — there is **no bare `Section2`** position in this template (that name belongs to `CategoryPageTemplate`). The `landing_page` content type still carries a `section2` field, but with no matching template position it never renders — leave it empty. `Section2A/2B/2C` are narrow 1/3-width columns, so full-width content belongs in `Section1` or `Section3`–`5`.
 
 **How to discover the slots for any page** (since OCC already renders it):
 1. Inspect the live page — `<cx-page-slot position="Section1">` — the `position` is the slot name.
@@ -60,10 +60,10 @@ erDiagram
   section_field }o--o{ carousel_component : "multi-reference"
   banner_component ||--o| media_container : "media_container ref"
   media_container ||--o{ image_file : "desktop / mobile / tablet / widescreen"
-  nav_node ||--o{ nav_node : "children"
-  nav_node ||--o{ cms_link_component : "entries"
+  nav_node_flat ||--o{ nav_node_flat : "parent_id (flat tree)"
+  nav_node_flat ||--o{ cms_link_component : "links"
 ```
-*A page content type exposes slot fields; each slot field multi-references reusable component types, banners nest a `media_container`, and navigation is a self-referencing tree of `nav_node` with `cms_link_component` leaves.*
+*A page content type exposes slot fields; each slot field multi-references reusable component types, banners nest a `media_container`, and navigation is a flat pool of `nav_node_flat` rows linked by a text `parent_id` (rebuilt into a tree in code), each row carrying `cms_link_component` leaves.*
 
 ### Page content types
 
@@ -77,7 +77,7 @@ Common fields on every page type: `title` (required), `url` (slug), `page_type`,
 | `category_page` | ProductListPageTemplate | `product_left_refinements`, `product_grid_slot`, `product_list_slot`, `search_results_grid_slot` |
 | `global_slots` | shell (merged into every page) | `site_logo`, `search_box`, `mini_cart`, `navigation_bar`, `site_context`, `site_links`, `header_links`, `footer` |
 
-The page entry also carries two single references, `header` and `footer` (to `cms_header` / `cms_footer`), which the connector expands alongside the slot fields — see [`ContentstackCmsPageEntry`](../src/cms/model/contentstack.model.ts). The `global_slots` entry is layered into *every* page's shell rather than resolved per-route, so its positions (`SiteLogo`, `Footer`, …) show up on the home page and the cart page alike.
+The page entry also carries two single references, `header` and `footer` (to `cms_header` / `cms_footer`), which the connector expands alongside the slot fields — see [`ContentstackCmsPageEntry`](../src/cms/model/contentstack.model.ts). The `global_slots` entry is layered into *every* page's shell rather than resolved per-route, so its positions (`SiteLogo`, `Footer`, …) show up on the home page and the cart page alike. (The `landing_page.section2` field listed above has no rendering position in `LandingPage2Template` — see the slot-reference note — so leave it empty.)
 
 Help-text pattern per slot field, e.g. on `landing_page.section1`:
 > *"Top hero band (SAP slot `Section1`). Add a banner/carousel to override just this section; leave empty to keep SAP's."*
@@ -89,7 +89,7 @@ Naming every field after its SAP position in the help text is what makes the mod
 | Content type (uid) → SAP typeCode | Key fields |
 |---|---|
 | `simple_responsive_banner_component` → SimpleResponsiveBannerComponent | `title`, `url_link`, `media_container` (→media_container), `media`, `media_mobile`, `media_tablet`, `media_desktop`, `media_widescreen` (file) |
-| `simple_banner_component` → SimpleBannerComponent | `title`, `url_link`, `media_container` (→media_container), `media*` |
+| `simple_banner_component` → SimpleBannerComponent | `title`, `url_link`, `media_container` (→media_container), `media` (single file — no per-breakpoint fields) |
 | `media_container` → MediaContainer | `title`, `desktop`, `mobile`, `tablet`, `widescreen` (file) — a reusable image set referenced from a banner's `media_container` field |
 | `product_carousel_component` → ProductCarouselComponent | `title`, `products` (multi-value text: OCC product-URL strings) |
 | `cms_paragraph_component` → CMSParagraphComponent | `title`, `content` (multiline/rich text) |
@@ -97,18 +97,18 @@ Naming every field after its SAP position in the help text is what makes the mod
 | `cms_link_component` → CMSLinkComponent | `title`, `link_name`, `url`, `target` |
 | `cms_flex_component` → CMSFlexComponent | `title`, `flex_type` |
 | `cms_tab_paragraph_container` → CMSTabParagraphContainer | `title`, `component_uid` (optional stable id), `tab_components` (multiline text: JSON array of `{uid, type_code}`) — a tab strip whose panels hydrate **from OCC by component id** |
-| `nav_node_flat` (+ `category_navigation_flat`, `footer_navigation_flat`, `navigation_component`) | nav tree (authoring view — actual delivery is a flat `parent_id`/`sort_order` pool, see below): `uid_val`, `title`, `children`, `entries` (→cms_link_component) |
+| `nav_node_flat` (+ container types `category_navigation_flat`, `footer_navigation_flat`) | flat nav pool: `node_id`, `title`, `parent_id`, `sort_order`, `links` (→cms_link_component). The connector rebuilds the tree in code by grouping on `parent_id` — see below. (`navigation_component` → `NavigationComponent` is also mapped in `TYPECODE_MAP` but is **not** shipped in the starter pack.) |
 
 Every uid → typeCode pair above is defined in [`slot-maps.ts`](../src/cms/model/slot-maps.ts) → `TYPECODE_MAP`, and `toTypeCode()` performs the lookup (with an identity fallback for custom types). The typeCode matters because Spartacus selects the Angular component to render by it, via `CmsConfig.cmsComponents` — so `SimpleResponsiveBannerComponent` reaches Spartacus's stock `BannerComponent`, `ProductCarouselComponent` reaches the carousel, and so on. Get the uid wrong and the component resolves to a typeCode Spartacus doesn't recognize; the slot renders nothing rather than crashing.
 
 Two component types have non-obvious normalizer behavior worth knowing before you author them:
 
 - **`product_carousel_component`** — `products` is a **multi-value text** field of raw OCC product-URL strings (not a reference field). [`ContentstackCmsProductCarouselComponentNormalizer`](../src/cms/converters/components/contentstack-cms-product-carousel-component.normalizer.ts) extracts the SKU from each with `url.split('/').pop()` and joins them into a single space-separated `productCodes` string, matching OCC's own delivery shape. So authoring `.../products/1934793` yields the code `1934793`; a bare SKU works too, since `split('/').pop()` returns it unchanged.
-- **Navigation** — in the actual delivery shape the connector reads a **flat adjacency-list** pool (`category_navigation_flat` / `footer_navigation_flat`, whose nodes are `nav_node_flat` entries linked by a plain-text `parent_id`); [`ContentstackCmsNavigationComponentNormalizer`](../src/cms/converters/components/contentstack-cms-navigation-component.normalizer.ts) reassembles the tree in code by grouping on `parent_id` and ordering by `sort_order`. Because the hierarchy lives in text fields rather than nested references, the whole menu resolves in a constant, shallow include chain no matter how deep it nests — the Delivery API's plan-gated reference-depth cap never applies. The conceptual `children` / `entries` tree shown in the table above is the *authoring* view of that same data.
+- **Navigation** — in the actual delivery shape the connector reads a **flat adjacency-list** pool (`category_navigation_flat` / `footer_navigation_flat`, whose nodes are `nav_node_flat` entries linked by a plain-text `parent_id`); [`ContentstackCmsNavigationComponentNormalizer`](../src/cms/converters/components/contentstack-cms-navigation-component.normalizer.ts) reassembles the tree in code by grouping on `parent_id` and ordering by `sort_order`. Because the hierarchy lives in text fields (`parent_id` / `sort_order`) rather than nested references, the whole menu resolves in a constant, shallow include chain no matter how deep it nests — the Delivery API's plan-gated reference-depth cap never applies. Authors still see and build a familiar parent/child tree in the UI; the flat `parent_id` pool is just how that same tree is stored and delivered.
 
 Functional components (search box, mini-cart, breadcrumb, add-to-cart, refinements, …) carry **no editorial data** — they hydrate from OCC. In hybrid mode you usually don't author these at all; `TYPECODE_MAP` still lists their uids (`search_box_component`, `mini_cart_component`, `breadcrumb_component`, `product_add_to_cart_component`, …) so that *if* you place one via Contentstack it maps to the right SAP typeCode, but the component's live data still comes from OCC.
 
-Every editorial component type above (and the `landing_page` / `content_page` page types) also carries an optional **`access_tags`** field for content gating — see [access-control](access-control.md).
+The content-bearing editorial component types — banner, responsive banner, product carousel, paragraph, tab paragraph, link, and flex — plus the `landing_page` / `content_page` page types carry an optional **`access_tags`** field for content gating. The functional/structural types (`media_container`, `cms_tab_paragraph_container`, and the navigation types) and the shared-slug `product_page` / `category_page` / `global_slots` do **not**. See [access-control](access-control.md).
 
 #### How references resolve (the `created_at` test)
 

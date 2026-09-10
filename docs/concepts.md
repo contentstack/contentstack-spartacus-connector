@@ -3,7 +3,7 @@ title: "Concepts"
 product: spartacus-connector
 type: concepts
 tags: [spartacus-connector, concepts]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # Concepts
@@ -83,7 +83,7 @@ A representative slice of `SLOT_FIELD_TO_SAP_NAME`:
 
 ### Author only into positions the template renders
 
-A component appears **only if** the SAP page template renders its slot. `LandingPage2Template` renders `Section1`, `Section2`, `Section2A/2B/2C`, and `Section3`–`Section5`, where `Section2A/2B/2C` are narrow one-third-width columns. So full-width hero content belongs in `Section1`, `Section2`, or `Section3`–`Section5`; authoring it into `Section2A` will render, but in a 1/3 column. To discover the exact positions any page exposes, inspect the live OCC page for `<cx-page-slot position="…">`, or read `contentSlot.position` from `GET /occ/v2/<site>/cms/pages`.
+A component appears **only if** the SAP page template renders its slot. `LandingPage2Template` renders `Section1`, `Section2A/2B/2C`, and `Section3`–`Section5`, where `Section2A/2B/2C` are narrow one-third-width columns. There is **no bare `Section2`** slot in this template (that name belongs to `CategoryPageTemplate`) — the `landing_page` content type carries a `section2` field, but it has no rendering position here, so content authored into it never appears. Full-width hero content belongs in `Section1` or `Section3`–`Section5`; authoring it into `Section2A` will render, but in a 1/3 column. To discover the exact positions any page exposes, inspect the live OCC page for `<cx-page-slot position="…">`, or read `contentSlot.position` from `GET /occ/v2/<site>/cms/pages`.
 
 ### Adding a slot beyond the shipped set
 
@@ -115,7 +115,7 @@ The mapping table lives in `TYPECODE_MAP` in [`src/cms/model/slot-maps.ts`](../s
 Two special cases the source encodes:
 
 - **Flex components.** For a `CMSFlexComponent`, Spartacus selects the Angular component by the authored `flex_type` (e.g. `ProductIntroComponent`), not by the typeCode. `resolveFlexType()` returns `flex_type` for `CMSFlexComponent` and the plain typeCode for everything else, so the page normalizer and the field mapper can't drift.
-- **Author-named blocks without a `type_code`.** If a block has no explicit `type_code` field, `componentTypeMapping` (block uid → SAP typeCode) lets the app supply one without editing content.
+- **Author-named blocks without a `type_code` (reserved).** `componentTypeMapping` (block uid → SAP typeCode) is declared on `ContentstackConfig` for this purpose, but the current connector does **not** read it — typecodes are resolved via `TYPECODE_MAP` / `toTypeCode` and page types via `pageTypeMapping`. Treat it as reserved config until it is wired up.
 
 ---
 
@@ -123,7 +123,7 @@ Two special cases the source encodes:
 
 Slots are **multi-reference fields**. The connector resolves the referenced component entries inline via the Delivery SDK's `includeReference`. Contentstack **Modular Blocks** (inline composed blocks) are **not** read — model components as separate content types referenced from the page or shell.
 
-The `includeReferences` config controls which reference fields are expanded (defaults to all page slot + header/footer fields). Nested references — like a banner's own `media_container` — need their full path added explicitly. See [Media Container](content-model.md#media-container-resolving-a-nested-reference).
+The `includeReferences` config controls which reference fields are expanded. The default already expands `<slot>.media_container` for every standard slot (see line below), so a banner placed directly in a standard slot resolves its image set out of the box. Only a `media_container` nested deeper than the default expects — e.g. inside a banner in a non-default/custom slot — needs its full path added explicitly. See [Media Container](content-model.md#media-container-resolving-a-nested-reference).
 
 ### Why references and not Modular Blocks
 

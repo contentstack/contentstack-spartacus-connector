@@ -3,7 +3,7 @@ title: "Live Preview"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, live-preview, visual-builder]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # Live Preview
@@ -81,14 +81,14 @@ When Live Preview *is* on, the flow from an editor keystroke to a re-rendered st
 sequenceDiagram
     participant Ed as Editor (Visual Builder)
     participant SDK as Live Preview SDK
-    participant LP as ContentstackLivePreviewService
     participant NG as ContentstackAngularService
+    participant LP as ContentstackLivePreviewService
     participant Store as CMS NgRx store
     participant DOM as Storefront (csEditable tags)
     Note over Ed,DOM: Non-production preview build only
+    Note over NG,LP: At init, LP registers its callback via ContentstackAngularService.onEntryChange()
     Ed->>SDK: edit an entry field
-    SDK->>NG: onEntryChange() (global, no args)
-    NG->>LP: fire registered callback
+    SDK->>LP: registered onEntryChange callback fires (global, no args)
     LP->>LP: client.applyLivePreviewHash(hash) → re-fetch draft page
     LP->>Store: dispatch component + page updates
     Store->>DOM: Angular change detection re-renders

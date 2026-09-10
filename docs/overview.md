@@ -37,7 +37,7 @@ flowchart TB
     subgraph Page["One storefront page"]
         H[Header / Nav]
         S1[Section1 - hero]
-        S2[Section2 - grid]
+        S2[Section2A/B/C - columns]
         S3[Section3 - promo]
         S4[Section4-5]
         F[Footer]
