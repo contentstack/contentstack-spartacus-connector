@@ -24,7 +24,7 @@ Product data still hydrates live from SAP at render time.
 | Resolve component-specific fields | `ContentstackCmsComponentNormalizer` composes three content-type-specific normalizers by typecode (`cms/converters/components/`): banner media (`media_container` or a direct file field), navigation (flat `nav_node_flat` `all_nodes` pool reassembled into a `CmsNavigationNode` tree by `parent_id`), product carousel (OCC product URLs → `productCodes`) |
 | Hydrate SAP data | Components read the SAP SKU from Contentstack and pull live price/stock/add-to-cart via Spartacus `ProductService` / `ActiveCartFacade` (see `src/examples/hero-banner`) |
 | Bypass SAP SmartEdit | Never imports `SmartEditRootModule`; `smartEditBypassGuard` neutralizes inbound preview params |
-| Code-split the integration | `ContentstackCmsFeatureModule` (the module you import) only registers config; the actual CMS override + Live Preview wiring lives in `ContentstackModule`, lazy-loaded via `CmsConfig.featureModules` — the same convention every real Spartacus feature library uses |
+| Bundle the integration | `ContentstackCmsFeatureModule` (the module you import) registers config and **eagerly imports** `ContentstackCmsModule` (the CMS adapter override) + `ContentstackLivePreviewModule`. They must be eager — the adapter resolves the very first page at bootstrap and the Live Preview decorator is consulted as components render — so the standard lazy `CmsConfig.featureModules` gate isn't used (it only fires for a feature-tagged `cmsComponents` entry this connector never registers) |
 
 ## Supported features & known limitations
 
