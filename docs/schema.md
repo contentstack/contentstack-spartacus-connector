@@ -1,16 +1,16 @@
 ---
-title: "SAP Spartacus Connector Wiki Schema"
+title: "Documentation Conventions"
 product: spartacus-connector
 type: schema
 tags: [schema, meta]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
-# SAP Spartacus Connector Wiki Schema
+# Documentation Conventions
 
-This file defines the structural rules for the SAP Spartacus Connector documentation. **Read this file before making any edits to `docs/`.** It is the meta page for the doc set — it does not describe the connector; it describes how the pages that describe the connector are named, structured, linked, and illustrated. Treat it the way you would treat a style guide or a linter config: the rules here keep every page consistent, keep anchors stable so cross-links do not rot, and keep the set liftable into the central wiki without a rewrite.
+This is a contributor guide for the connector's documentation. **Read it before making any edits to `docs/`.** It does not describe the connector; it describes how the pages that describe the connector are named, structured, linked, and illustrated. Treat it the way you would treat a style guide or a linter config: the rules here keep every page consistent and keep anchors stable so cross-links do not rot.
 
-These docs follow the [Contentstack product-wiki](https://github.com/contentstack/product-wiki) conventions (YAML frontmatter, relative Markdown link navigation, callouts) so the docs team can review them and, if desired, lift them into the central wiki as a `spartacus-connector` product directory. Following the same conventions the wiki already uses means promotion is a move-and-adjust operation rather than a reformat — the frontmatter, the link style, and the callout syntax all already match.
+The docs are plain Markdown with YAML frontmatter, relative-link navigation, and GitHub-flavored callouts, so they render correctly in the GitHub file browser, a local clone, and on the published docs site without any special tooling.
 
 The doc set is deliberately a **flat spine** of single-topic pages rather than a deep tree. The two anchor pages, `index.md` and `schema.md`, point at everything else; every content page is a leaf off that spine.
 
@@ -52,7 +52,7 @@ These three files are the only ones guaranteed to exist at every stage of the do
 - No spaces, no underscores, no camelCase in filenames.
 - Descriptive names that reflect content, not document type.
 
-The reason for the hyphen-and-lowercase rule is portability: these filenames become URL slugs and anchor targets on GitHub and in the central wiki, and both are case- and separator-sensitive. A file named `Content_Model.md` and one named `content-model.md` produce different links, so a single convention avoids broken cross-references when a page moves between environments. "Descriptive, not document type" means prefer `live-preview.md` over `guide.md` or `page3.md` — the name should tell a reader what the page holds before they open it.
+The reason for the hyphen-and-lowercase rule is portability: these filenames become URL slugs and anchor targets on GitHub and on the published docs site, and both are case- and separator-sensitive. A file named `Content_Model.md` and one named `content-model.md` produce different links, so a single convention avoids broken cross-references when a page moves between environments. "Descriptive, not document type" means prefer `live-preview.md` over `guide.md` or `page3.md` — the name should tell a reader what the page holds before they open it.
 
 ---
 
@@ -72,7 +72,7 @@ last_updated: "<YYYY-MM-DD>"
 
 Update `last_updated` whenever a file is modified.
 
-The frontmatter is what lets the central wiki index, filter, and group these pages automatically once they are promoted, so it is not optional decoration. Keep `product: spartacus-connector` identical on every page — it is the key the wiki uses to collect the set into one product directory. Pick the `type` from the enumerated list rather than inventing a new value; the list mirrors the categories the wiki already understands. `tags` should always lead with `spartacus-connector` and then add a few topic tags that describe the page's subject (for example `[spartacus-connector, live-preview, visual-builder]`). The `last_updated` date is a freshness signal for reviewers — a page whose body changed but whose date did not looks stale even when it is current, so treat bumping the date as part of the edit, not an afterthought.
+The frontmatter lets a docs site (or any indexer) title, categorize, and group these pages automatically, so it is not optional decoration. Keep `product: spartacus-connector` identical on every page — it is the key that collects the set into one product group. Pick the `type` from the enumerated list rather than inventing a new value. `tags` should always lead with `spartacus-connector` and then add a few topic tags that describe the page's subject (for example `[spartacus-connector, live-preview, visual-builder]`). The `last_updated` date is a freshness signal — a page whose body changed but whose date did not looks stale even when it is current, so treat bumping the date as part of the edit, not an afterthought.
 
 ---
 
@@ -85,12 +85,10 @@ Use standard relative Markdown links for internal navigation so they render ever
 
 Link out to the repository's source-of-truth Markdown (`README.md`, `GETTING_STARTED.md`, `CONTENT-MODEL.md`, `TROUBLESHOOTING.md`) and to `src/` files with relative Markdown links.
 
-Relative links are the only form that survives every place these pages are read — the GitHub file browser, a local clone opened in an editor, and the rendered wiki all resolve `overview.md` and `../README.md` correctly, whereas absolute or site-rooted URLs break the moment the docs move. Section links use the GitHub-style slug of the heading text (lowercased, spaces to hyphens, punctuation dropped), which is exactly why the [heading-preservation rule](#category-map-what-each-page-holds) matters: renaming a heading silently breaks every `#anchor` link pointing at it. When you cite the shipped source rather than another doc page, link to the actual file with a `../` path so a reader can jump straight to the ground truth.
+Relative links are the only form that survives every place these pages are read — the GitHub file browser, a local clone opened in an editor, and the published docs site all resolve `overview.md` and `../README.md` correctly, whereas absolute or site-rooted URLs break the moment the docs move. Section links use the GitHub-style slug of the heading text (lowercased, spaces to hyphens, punctuation dropped), which is exactly why the [heading-preservation rule](#category-map-what-each-page-holds) matters: renaming a heading silently breaks every `#anchor` link pointing at it. When you cite the shipped source rather than another doc page, link to the actual file with a `../` path so a reader can jump straight to the ground truth.
 
 > [!NOTE]
-> The central product-wiki is an Obsidian vault that prefers `[[wikilink]]` syntax. If these docs are later promoted into that wiki, convert the relative Markdown links to wikilinks at that point.
-
-Until that promotion happens, do **not** author `[[wikilinks]]` here — they do not render on GitHub or in most Markdown viewers, so they would break navigation in exactly the environments these docs live in today. The conversion is a one-time, mechanical step performed during promotion, not something to pre-empt.
+> Do **not** author Obsidian-style `[[wikilinks]]` — they don't render on GitHub or on the published docs site, so they would break navigation in the environments these docs actually live in. Use relative Markdown links, as shown above.
 
 ---
 

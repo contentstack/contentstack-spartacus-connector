@@ -3,7 +3,7 @@ title: "Installation"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, installation, getting-started]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # Installation
@@ -202,7 +202,7 @@ import { ContentstackCmsFeatureModule } from '@contentstack/contentstack-spartac
 export class SpartacusFeaturesModule {}
 ```
 
-With the manual path you provide the config yourself (Step 4) rather than having `ng add` scaffold it. `ContentstackCmsFeatureModule` only registers config; the actual CMS override + Live Preview wiring lives in `ContentstackModule`, lazy-loaded via `CmsConfig.featureModules` — the same convention every real Spartacus feature library uses.
+With the manual path you provide the config yourself (Step 4) rather than having `ng add` scaffold it. `ContentstackCmsFeatureModule` is the single entry point: it registers the connector's default config and **eagerly imports** the CMS override module (`ContentstackCmsModule`) and the Live Preview module (`ContentstackLivePreviewModule`). The import is deliberately eager — the CMS adapter has to be in the DI graph *before* the first page resolves at bootstrap — so the connector does **not** use the lazy `CmsConfig.featureModules` gate (that gate only fires when a feature-tagged `cmsComponents` entry renders, which this library never registers). Importing `ContentstackCmsFeatureModule` after the base modules is all the wiring you need.
 
 > [!WARNING]
 > **Ordering matters — and failures are silent.** If `ContentstackCmsFeatureModule` is imported *before* the stock Spartacus modules (or omitted), the OCC adapters win the DI race, pages keep rendering straight from SAP OCC, and **no error is thrown**. If content isn't coming from Contentstack, check this ordering first.

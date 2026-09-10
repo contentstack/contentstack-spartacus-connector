@@ -3,7 +3,7 @@ title: "API Reference"
 product: spartacus-connector
 type: api
 tags: [spartacus-connector, api, reference]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # API Reference
@@ -117,7 +117,7 @@ provideConfig(<ContentstackConfig>{
 });
 ```
 
-The shipped defaults include `slugField: 'url'`, `occFallback: true` (hybrid mode), `includeFallback: false`, `cmsPageContentType: 'cms_page'`, `timeoutMs: 10000`, `delivery.branch: 'main'`, `delivery.livePreview: false`, `accessControl.enabled: false`, and an `includeReferences` list covering every `cms_page` slot plus header/footer (from `PAGE_REFERENCE_FIELDS` in `slot-maps.ts`).
+The shipped defaults include `slugField: 'url'`, `occFallback: true` (hybrid mode), `includeFallback: false`, `cmsPageContentType: 'cms_page'`, `timeoutMs: 10000`, `delivery.branch: 'main'`, `delivery.livePreview: false`, `accessControl.enabled: false`, and an `includeReferences` list covering every page slot plus header/footer (from `PAGE_REFERENCE_FIELDS` in `slot-maps.ts`). Note `cms_page` is a generic placeholder default — the starter pack models pages as `landing_page`, so set `cmsPageContentType` accordingly.
 
 ---
 
@@ -156,7 +156,7 @@ Its public methods: `getPageBySlug(...)`, `getGlobalSlots(...)`, `getEntryByUid(
 
 - **`ContentstackCmsPageAdapter`** — on navigation, Spartacus resolves a `PageContext` and calls `load()`; the adapter translates it into a Delivery API query by URL slug and runs the result through `ContentstackCmsPageNormalizer`. It merges in `globalSlots` (shared shell) and, for `SMART_EDIT_CONTEXT`, returns an empty structure.
 - **`ContentstackCmsComponentAdapter`** — mostly dormant: the page normalizer already emits a flat `components[]` that Spartacus loads into the store, so this adapter fires only when Spartacus asks for a shared/reusable component by uid that isn't in the store. In hybrid mode (`occFallback: true`, default) a component Contentstack doesn't have is served from SAP via the injected `OccCmsComponentAdapter`; with `occFallback: false` it returns a shell result and standalone lookups require `componentContentType`.
-- **`ContentstackCmsPageNormalizer`** — translates a raw `cms_page` entry into a native `CmsStructureModel` (`page` + flat `components[]`), so the stock rendering engine (`PageLayoutComponent → PageSlotComponent → ComponentWrapperDirective`) draws Contentstack content with no forked renderer. Slot discovery is an allowlist driven by `SLOT_FIELD_TO_SAP_NAME`.
+- **`ContentstackCmsPageNormalizer`** — translates a raw page entry (e.g. a `landing_page`) into a native `CmsStructureModel` (`page` + flat `components[]`), so the stock rendering engine (`PageLayoutComponent → PageSlotComponent → ComponentWrapperDirective`) draws Contentstack content with no forked renderer. Slot discovery is an allowlist driven by `SLOT_FIELD_TO_SAP_NAME`.
 - **`ContentstackCmsComponentNormalizer`** — builds the base `CmsComponent` shape, resolves the SAP `typeCode` via `toTypeCode`, then composes the banner / navigation / product-carousel normalizers by direct method call keyed off the typecode.
 - **`ContentstackFieldMapper`** — maps an author-friendly block's fields (`image_url`, `link_name`, …) onto the exact field names the **stock** Spartacus components read from `CmsComponentData`, so authors don't have to mirror OCC's payload shape. Unknown types fall through as a raw passthrough.
 

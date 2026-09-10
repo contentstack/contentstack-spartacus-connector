@@ -3,7 +3,7 @@ title: "Overview"
 product: spartacus-connector
 type: overview
 tags: [spartacus-connector, overview]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # Overview
@@ -130,9 +130,10 @@ What these mean in practice:
 `0.1.0`.
 
 - **Validated end-to-end** (real Spartacus app + SAP OCC + Contentstack): framework core, Live Preview / Visual Editor bindings, and the `ng add` schematic installer.
-- **Separate deliverables:** the content-model starter pack, a reference storefront, and B2B support.
+- **Ships in the repo:** the content-model starter pack (`import-export/starter-pack/`), imported via `csdx` — see [installation](installation.md#step-2-provision-the-content-model-demo-seed-csdx).
+- **Tracked separately:** a reference storefront and B2B support.
 
-Put another way, the parts that override Spartacus's CMS layer — the adapters, the page and component normalizers, the Live Preview / Visual Editor services, and the `ng add` schematic that wires it all in — have each been exercised against a live Spartacus app talking to a real SAP OCC backend and a real Contentstack stack. The content model you import (the starter pack), the reference storefront, and B2B support are tracked and shipped separately from the library itself.
+Put another way, the parts that override Spartacus's CMS layer — the adapters, the page and component normalizers, the Live Preview / Visual Editor services, and the `ng add` schematic that wires it all in — have each been exercised against a live Spartacus app talking to a real SAP OCC backend and a real Contentstack stack. The content model you import — the starter pack — ships with the repo under `import-export/starter-pack/`; a reference storefront and B2B support are tracked separately from the library itself.
 
 > [!NOTE]
 > This library targets `@spartacus/*` public contracts. A full end-to-end run requires a live SAP OCC backend + a Contentstack stack. In-repo verification is available via `npm run typecheck`, `npm test`, and `npm run test:schematics` — see [Verification](installation.md#verification-in-repo).

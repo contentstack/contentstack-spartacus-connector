@@ -3,7 +3,7 @@ title: "Configuration"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, configuration, reference]
-last_updated: "2026-09-09"
+last_updated: "2026-09-10"
 ---
 
 # Configuration
@@ -85,7 +85,7 @@ delivery: {
 
 | Option | Default / note |
 |---|---|
-| `cmsPageContentType` | Page content type queried by slug. Default `cms_page`. |
+| `cmsPageContentType` | Page content type queried by slug. Default `cms_page`; set to `landing_page` when using the starter pack. |
 | `slugField` | `url` — field holding the page slug. |
 | `slugTransform` | `{ pattern, replacement }` regex rewrite of the route slug before querying. |
 | `localeMapping` | Site isocode → Contentstack locale (e.g. `{ en: 'en-us' }`); identity fallback. |
@@ -102,7 +102,7 @@ delivery: {
 
 Per-option detail, grounded in the class JSDoc:
 
-- **`cmsPageContentType`** — `string`, default `cms_page`. The content type uid whose entries model **CMS pages**; the page adapter queries this content type by slug to resolve a route. The starter/import seed ships a `cms_page` content type, so the default works out of the box.
+- **`cmsPageContentType`** — `string`, default `cms_page`. The content type uid whose entries model **CMS pages**; the page adapter queries this content type by slug to resolve a route. The `cms_page` default is a generic placeholder — the **starter pack does not ship a `cms_page` type**. It models pages per template (`landing_page` for the home/landing routes, `content_page` for content routes), so when you import the starter pack, set `cmsPageContentType: 'landing_page'` (exactly as [installation Step 4](installation.md#step-4-configure) does).
 - **`slugField`** — `string`, default `url`. The **field uid that holds the page URL/slug** on page content types. Can be overridden per page type via `pageTypeMapping[...].slugField`.
 - **`slugTransform`** — `{ pattern: RegExp; replacement: string }`, no default. A **regex rewrite applied to the route slug** (`PageContext.id`) before it is queried against `slugField`, via `slug.replace(pattern, replacement)` (same semantics as `String.replace`). Use it when OCC's route and the CMS entry's authored slug don't match byte-for-byte — a locale/category prefix OCC includes but the entry omits, differing separators, and so on. Only applies to **per-route content pages**; page types resolved via `pageTypeMapping[...].sharedSlug` use that fixed value directly and are never route-derived, so a rewrite has nothing to act on there.
   ```ts
@@ -209,7 +209,7 @@ The shipped defaults live in [`src/config/default-contentstack-config.ts`](../sr
 | `occFallback` | `true` |
 | `includeFallback` | `false` |
 | `cmsPageContentType` | `cms_page` |
-| `includeReferences` | every `cms_page` slot + header/footer field (`PAGE_REFERENCE_FIELDS`) |
+| `includeReferences` | every page slot + header/footer field (`PAGE_REFERENCE_FIELDS`) |
 | `timeoutMs` | `10000` |
 | `accessControl.enabled` | `false` |
 | `accessControl.accessField` | `access_tags` |
