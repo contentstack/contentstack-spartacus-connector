@@ -166,18 +166,20 @@ describe('ContentstackCmsNavigationComponentNormalizer', () => {
       expect(tops[0].children?.map((n) => n.uid)).toEqual(['Child']);
     });
 
-    it('does not let an empty node_id adopt every root node as its children', () => {
+    it('falls a blank node_id back to the entry uid instead of colliding with the root', () => {
       const component = normalizer.convert(
         flatComponent([node('', 'Empty', '', 1), node('Real', 'Real', '', 2)]),
       );
       const tops = component.navigationNode?.children ?? [];
-      // Both are top-level; the empty-id node must NOT pull the other roots under it.
-      expect(tops.map((n) => n.uid)).toEqual(['', 'Real']);
-      expect(tops.find((n) => n.uid === '')?.children).toBeUndefined();
+      // The blank-id node takes its uid ('blt_') as identity, so it stays a normal
+      // top-level node and does NOT adopt the other root nodes as children.
+      expect(tops.map((n) => n.uid)).toEqual(['blt_', 'Real']);
+      expect(tops.find((n) => n.uid === 'blt_')?.children).toBeUndefined();
     });
 
-    it('guards a deeper cycle reachable from a real root without hanging', () => {
-      // Root → Mid, and a stray pair (X→Y→X) that must not be walked into forever.
+    it('ignores a disconnected parent cycle while still building the reachable tree', () => {
+      // Root → Mid is a real tree; the stray pair (X→Y→X) never reaches the root,
+      // so it is dropped rather than walked into forever.
       const component = normalizer.convert(
         flatComponent([
           node('Root', 'Root', '', 1),
