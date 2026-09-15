@@ -435,7 +435,7 @@ describe('ContentstackCmsComponentAdapter', () => {
         client: { getEntriesByUids },
       });
 
-      let res!: Array<{ uid: string }>;
+      let res!: { uid: string }[];
       expect(() => {
         res = firstValue(adapter.findComponentsByIds(['bltaaaa', 'bltbbbb'], ctx));
       }).not.toThrow();
@@ -452,7 +452,7 @@ describe('ContentstackCmsComponentAdapter', () => {
         client: { getEntriesByUids },
       });
 
-      let res!: Array<{ uid: string }>;
+      let res!: { uid: string }[];
       expect(() => {
         res = firstValue(adapter.findComponentsByIds(['bltaaaa'], ctx));
       }).not.toThrow();
