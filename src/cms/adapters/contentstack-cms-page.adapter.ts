@@ -131,13 +131,24 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
           : this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
         const global$ = global
           ? permissions
-            ? this.client.getGlobalSlots(global.contentType, global.title, globalIncludeRefs, locale, {
-                permissions,
-                // The shell root is never hidden; only restricted nested shell
-                // components (e.g. a login-only header link) are filtered out.
-                gateRoot: false,
-              })
-            : this.client.getGlobalSlots(global.contentType, global.title, globalIncludeRefs, locale)
+            ? this.client.getGlobalSlots(
+                global.contentType,
+                global.title,
+                globalIncludeRefs,
+                locale,
+                {
+                  permissions,
+                  // The shell root is never hidden; only restricted nested shell
+                  // components (e.g. a login-only header link) are filtered out.
+                  gateRoot: false,
+                },
+              )
+            : this.client.getGlobalSlots(
+                global.contentType,
+                global.title,
+                globalIncludeRefs,
+                locale,
+              )
           : of(undefined);
         // Hybrid base: the SAP page for this route. A CMS failure must never
         // break navigation, so degrade to no-base on error.

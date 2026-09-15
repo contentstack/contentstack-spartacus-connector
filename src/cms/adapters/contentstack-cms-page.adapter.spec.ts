@@ -363,7 +363,11 @@ describe('ContentstackCmsPageAdapter', () => {
             getGlobalSlots: jest.fn().mockReturnValue(of({ uid: 'global-entry' })),
           },
           normalizer: { buildStructure },
-          occ: { load: jest.fn().mockReturnValue(of({ page: { template: 'T', slots: {} }, components: [] })) },
+          occ: {
+            load: jest
+              .fn()
+              .mockReturnValue(of({ page: { template: 'T', slots: {} }, components: [] })),
+          },
         });
 
         firstValue(adapter.load(ctx('home')));

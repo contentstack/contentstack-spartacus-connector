@@ -334,29 +334,31 @@ export class ContentstackClientService {
         access?.permissions,
       )}`,
     );
-    return this.withTransferState(key, () => {
-      let entries = this.stack.contentType(contentTypeUid).entry();
-      if (csLocale) {
-        entries = entries.locale(csLocale);
-        if (this.includeFallback) {
-          entries = entries.includeFallback();
+    return this.withTransferState(
+      key,
+      () => {
+        let entries = this.stack.contentType(contentTypeUid).entry();
+        if (csLocale) {
+          entries = entries.locale(csLocale);
+          if (this.includeFallback) {
+            entries = entries.includeFallback();
+          }
         }
-      }
-      return entries
-        .query()
-        .where('uid', QueryOperation.INCLUDES, uids)
-        .find<ContentstackEntry>()
-        .then((res) => {
-          const list = res?.entries ?? [];
-          // Filter gated content BEFORE it is persisted to TransferState:
-          // each restricted entry is redacted to a tags-only stub so the adapter
-          // still counts it as "found" (no OCC refetch) without shipping content.
-          return access
-            ? list.map((entry) =>
-                this.restrictions.sanitizeForTransfer(entry, access.permissions, access.gateRoot),
-              )
-            : list;
-        });
+        return entries
+          .query()
+          .where('uid', QueryOperation.INCLUDES, uids)
+          .find<ContentstackEntry>()
+          .then((res) => {
+            const list = res?.entries ?? [];
+            // Filter gated content BEFORE it is persisted to TransferState:
+            // each restricted entry is redacted to a tags-only stub so the adapter
+            // still counts it as "found" (no OCC refetch) without shipping content.
+            return access
+              ? list.map((entry) =>
+                  this.restrictions.sanitizeForTransfer(entry, access.permissions, access.gateRoot),
+                )
+              : list;
+          });
       },
       // Failure fallback: an empty array, never `undefined` — the return type is
       // `ContentstackEntry[]` and callers (component adapter) flat-map the result,
