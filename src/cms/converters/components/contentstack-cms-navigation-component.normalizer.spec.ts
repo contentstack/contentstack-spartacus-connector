@@ -166,6 +166,16 @@ describe('ContentstackCmsNavigationComponentNormalizer', () => {
       expect(tops[0].children?.map((n) => n.uid)).toEqual(['Child']);
     });
 
+    it('does not let an empty node_id adopt every root node as its children', () => {
+      const component = normalizer.convert(
+        flatComponent([node('', 'Empty', '', 1), node('Real', 'Real', '', 2)]),
+      );
+      const tops = component.navigationNode?.children ?? [];
+      // Both are top-level; the empty-id node must NOT pull the other roots under it.
+      expect(tops.map((n) => n.uid)).toEqual(['', 'Real']);
+      expect(tops.find((n) => n.uid === '')?.children).toBeUndefined();
+    });
+
     it('guards a deeper cycle reachable from a real root without hanging', () => {
       // Root → Mid, and a stray pair (X→Y→X) that must not be walked into forever.
       const component = normalizer.convert(

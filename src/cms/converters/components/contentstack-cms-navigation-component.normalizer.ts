@@ -87,7 +87,10 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
         if (links.length) {
           node.entries = links.map((linkEntry) => this.toNavigationEntry(linkEntry));
         }
-        if (!ancestors.has(nodeId)) {
+        // Only descend for a real, non-empty id not already on the path. An empty
+        // id can't be a parent key distinct from the root sentinel (''), so an
+        // empty-id node must not recurse into build('') and adopt every root node.
+        if (nodeId && !ancestors.has(nodeId)) {
           const children = build(nodeId, new Set(ancestors).add(nodeId));
           if (children.length) {
             node.children = children;

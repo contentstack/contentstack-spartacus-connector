@@ -256,10 +256,10 @@ export class ContentstackClientService {
       }
       return query.find<ContentstackCmsPageEntry>().then((res) => {
         let entry = res?.entries?.[0];
-        // Filter gated content (nested restricted shell components) BEFORE it is
-        // persisted to TransferState — the shell is gated the same as the page.
-        // gateRoot is false: the shell entry itself is never hidden, only its
-        // restricted nested components are dropped.
+        // Filter gated content on every fetch (before the SSR TransferState write,
+        // and again on any client-side re-fetch) — the shell is gated like the
+        // page. gateRoot is false: the shell entry itself is never hidden, only
+        // its restricted nested components are stripped.
         if (entry && access) {
           entry = this.restrictions.sanitizeForTransfer(entry, access.permissions, false);
         }

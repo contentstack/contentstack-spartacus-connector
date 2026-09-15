@@ -188,8 +188,10 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     globalEntry: ContentstackCmsPageEntry,
     permissions?: Set<string>,
   ): CmsStructureModel {
-    // Thread permissions so restricted shell components are dropped on the CSR
-    // path too (sanitizeForTransfer only guards the SSR TransferState payload).
+    // Filter the shell by the viewer's permissions, mirroring the page path
+    // (normalizer.convert(entry, {}, permissions)). This is the render-time gate;
+    // the client's sanitizeForTransfer independently strips restricted nested
+    // entries from every fetch (SSR + CSR) before they reach here — belt and braces.
     const { slots, components } = this.normalizer.buildStructure(globalEntry, permissions);
     return { page: { slots }, components };
   }
