@@ -171,7 +171,6 @@ block, with each field's JSDoc on hover. The complete set:
 | `pageTypeMapping` | per-`PageType` `{ contentTypeUid, slugField?, sharedSlug? }` (shared-layout pages) |
 | `additionalSlotFields` | extra `{ fieldUid: 'SapSlotPosition' }` beyond the built-in slot map |
 | `componentContentType` | content type for standalone component lookups (else components ship in pages) |
-| `componentTypeMapping` | block uid → SAP typeCode (for author-named blocks without a `type_code`) |
 | `includeReferences` | reference fields to expand; defaults to all slot + header/footer fields |
 | `accessControl` | presentation-level gating — see below |
 | `timeoutMs` | `10000` — Delivery API call timeout |

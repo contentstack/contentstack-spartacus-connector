@@ -47,9 +47,26 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
    * top-level nodes, matching the single-root shape Spartacus expects.
    */
   private buildFromFlat(nodes: ContentstackEntry[], rootUid: string): CmsNavigationNode {
-    const byParent = new Map<string, ContentstackEntry[]>();
+    // Guard against malformed authoring data: a duplicated `node_id`, a node that
+    // names itself as its own parent, or a parent/child cycle. Any of these would
+    // otherwise spawn duplicate subtrees or recurse forever (stack overflow).
+
+    // 1) Dedupe by node_id (first wins), so a duplicated id can't produce two
+    //    conflicting nodes or an ambiguous parent lookup.
+    const byId = new Map<string, ContentstackEntry>();
     for (const n of nodes) {
-      const key = this.parentKey(n);
+      const id = this.nodeId(n);
+      if (!byId.has(id)) {
+        byId.set(id, n);
+      }
+    }
+
+    // 2) Group by parent. A node whose parent_id equals its own node_id is
+    //    self-referencing — treat it as top-level rather than let it parent
+    //    itself (which would recurse infinitely).
+    const byParent = new Map<string, ContentstackEntry[]>();
+    for (const n of byId.values()) {
+      const key = this.parentKey(n) === this.nodeId(n) ? '' : this.parentKey(n);
       const siblings = byParent.get(key) ?? [];
       siblings.push(n);
       byParent.set(key, siblings);
@@ -58,23 +75,33 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
       siblings.sort((a, b) => this.sortOrder(a) - this.sortOrder(b));
     }
 
-    const build = (parentKey: string): CmsNavigationNode[] =>
+    // 3) Build recursively, carrying the set of ancestor ids on the current path.
+    //    A node whose id is already an ancestor closes a cycle — stop descending
+    //    (a fully cyclic pool simply yields no top-level nodes, i.e. an empty menu).
+    const build = (parentKey: string, ancestors: Set<string>): CmsNavigationNode[] =>
       (byParent.get(parentKey) ?? []).map((n) => {
-        const nodeId = (n['node_id'] as string) ?? n.uid;
+        const nodeId = this.nodeId(n);
         const node: CmsNavigationNode = { uid: nodeId, title: n['title'] as string };
 
         const links = this.resolvedList(n['links']);
         if (links.length) {
           node.entries = links.map((linkEntry) => this.toNavigationEntry(linkEntry));
         }
-        const children = build(nodeId);
-        if (children.length) {
-          node.children = children;
+        if (!ancestors.has(nodeId)) {
+          const children = build(nodeId, new Set(ancestors).add(nodeId));
+          if (children.length) {
+            node.children = children;
+          }
         }
         return node;
       });
 
-    return { uid: rootUid, children: build('') };
+    return { uid: rootUid, children: build('', new Set()) };
+  }
+
+  /** A node's identity: its `node_id`, falling back to the entry uid. */
+  private nodeId(node: ContentstackEntry): string {
+    return (node['node_id'] as string) ?? node.uid;
   }
 
   /** The parent grouping key: a node's `parent_id`, normalized to '' for top level. */

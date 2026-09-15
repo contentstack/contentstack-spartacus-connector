@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@angular/core';
 import { Observable, combineLatest, forkJoin, of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import {
   CmsComponent,
   CmsComponentAdapter,
@@ -168,13 +168,24 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       switchMap(([locale, permissions]) =>
         forkJoin(
           [...byType.entries()].map(([type, uids]) =>
-            permissions
+            (permissions
               ? this.client.getEntriesByUids(type, uids, locale, { permissions, gateRoot: true })
-              : this.client.getEntriesByUids(type, uids, locale),
+              : this.client.getEntriesByUids(type, uids, locale)
+            ).pipe(
+              // Defense in depth: one content-type group failing must not fail the
+              // whole batch (forkJoin errors if any source errors) — degrade that
+              // group to no entries so its ids fall back to OCC/shells below.
+              catchError(() => of([] as ContentstackEntry[])),
+            ),
           ),
         ).pipe(
           switchMap((groups: ContentstackEntry[][]) => {
-            const entries = groups.flat();
+            // Guard against a malformed group (e.g. a client that ever emits a
+            // non-array) so `.flat()`/`.map()` can't throw on `undefined`.
+            const entries = groups
+              .filter((g): g is ContentstackEntry[] => Array.isArray(g))
+              .flat()
+              .filter((e): e is ContentstackEntry => !!e);
             const accessible = permissions
               ? entries.filter((entry) => this.restrictions.isEntryAccessible(entry, permissions))
               : entries;

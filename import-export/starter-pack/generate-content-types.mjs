@@ -178,7 +178,9 @@ const contentTypes = [
     'CMS page on SAP LandingPage2Template (home / marketing landing).',
     [...pageMeta('LandingPage2Template'),
      slot('section1', 'Section 1', 'Section1', EDITORIAL, 'Top hero band. '),
-     slot('section2', 'Section 2', 'Section2'),
+     // NB: LandingPage2Template has no bare `Section2` render position (that
+     // belongs to CategoryPageTemplate), so this page type intentionally omits a
+     // `section2` slot field — only Section2A/2B/2C exist here.
      slot('section2_a', 'Section 2A', 'Section2A'),
      slot('section2_b', 'Section 2B', 'Section2B'),
      slot('section2_c', 'Section 2C', 'Section2C'),

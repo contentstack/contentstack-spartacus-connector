@@ -331,6 +331,60 @@ describe('ContentstackCmsPageAdapter', () => {
       expect(client.getGlobalSlots).not.toHaveBeenCalled();
     });
 
+    describe('gating the shell (#4)', () => {
+      const GATING = {
+        accessControl: { enabled: true, accessField: 'access_tags', rolePrefix: '_require-' },
+      };
+
+      it('threads permissions + gateRoot:false into the shell fetch when gating is on', () => {
+        const getGlobalSlots = jest.fn().mockReturnValue(of(undefined));
+        const { adapter } = create({
+          cs: { ...GATING, globalSlots: { contentType: 'global_slots', title: 'Global' } },
+          user: { roles: ['b2badmingroup'] },
+          client: { getPageBySlug: jest.fn().mockReturnValue(of(undefined)), getGlobalSlots },
+        });
+
+        firstValue(adapter.load(ctx('home')));
+        const access = getGlobalSlots.mock.calls[0][4];
+        expect(access?.permissions).toBeInstanceOf(Set);
+        expect(access?.permissions.has('_require-login')).toBe(true);
+        expect(access?.permissions.has('_require-b2badmingroup')).toBe(true);
+        // The shell root is never hidden — only restricted nested components drop.
+        expect(access?.gateRoot).toBe(false);
+      });
+
+      it('passes the permission set into buildStructure so restricted shell components drop on CSR', () => {
+        const buildStructure = jest.fn().mockReturnValue({ slots: {}, components: [] });
+        const { adapter } = create({
+          cs: { ...GATING, globalSlots: { contentType: 'global_slots' } },
+          user: { roles: [] }, // logged in, no roles
+          client: {
+            getPageBySlug: jest.fn().mockReturnValue(of(undefined)),
+            getGlobalSlots: jest.fn().mockReturnValue(of({ uid: 'global-entry' })),
+          },
+          normalizer: { buildStructure },
+          occ: { load: jest.fn().mockReturnValue(of({ page: { template: 'T', slots: {} }, components: [] })) },
+        });
+
+        firstValue(adapter.load(ctx('home')));
+        const permissions = buildStructure.mock.calls[0][1] as Set<string>;
+        expect(permissions).toBeInstanceOf(Set);
+        expect(permissions.has('_require-login')).toBe(true);
+      });
+
+      it('omits the access arg (unchanged behavior) when gating is off', () => {
+        const getGlobalSlots = jest.fn().mockReturnValue(of(undefined));
+        const { adapter } = create({
+          cs: { globalSlots: { contentType: 'global_slots' } },
+          client: { getPageBySlug: jest.fn().mockReturnValue(of(undefined)), getGlobalSlots },
+        });
+
+        firstValue(adapter.load(ctx('home')));
+        // 4 args only — no 5th access argument when access control is off.
+        expect(getGlobalSlots.mock.calls[0][4]).toBeUndefined();
+      });
+    });
+
     it('always requests the flat-nav include chain for every nav field, independent of depth', () => {
       const { adapter, client } = create({
         cs: { globalSlots: { contentType: 'global_slots' } },
