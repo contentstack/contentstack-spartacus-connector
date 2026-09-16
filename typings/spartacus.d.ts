@@ -272,6 +272,14 @@ declare module '@spartacus/storefront' {
     uid: string;
     data$: Observable<T>;
   }
+
+  // Rendering building blocks reused by the connector's editable banner
+  // renderer (real exports of @spartacus/storefront; declared here only so the
+  // offline typecheck resolves the imports — tsc does not check the templates
+  // that actually use `cx-media` / `cx-generic-link`).
+  export class MediaModule {}
+  export class GenericLinkModule {}
+  export class MediaComponent {}
 }
 
 declare module '@spartacus/cart/base/root' {

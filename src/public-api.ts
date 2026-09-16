@@ -35,8 +35,9 @@ export * from './cms/model/slot-maps';
 export * from './cms/access/contentstack-current-user';
 export * from './cms/access/contentstack-restrictions.service';
 
-// Opt-in editable renderers (field-level Live Preview / Visual Builder tags)
+// Editable renderers (field-level Live Preview / Visual Builder tags)
 export * from './cms/components/contentstack-editable-paragraph.component';
+export * from './cms/components/contentstack-editable-banner.component';
 export * from './cms/components/contentstack-editable-components.module';
 
 // SmartEdit bypass

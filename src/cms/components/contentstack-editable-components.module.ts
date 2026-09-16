@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CmsConfig, provideConfig } from '@spartacus/core';
 import { ContentstackEditableParagraphComponent } from './contentstack-editable-paragraph.component';
+import { ContentstackEditableBannerComponent } from './contentstack-editable-banner.component';
 
 /**
  * Swaps Spartacus's stock renderers for connector-owned ones that emit
@@ -15,9 +16,10 @@ import { ContentstackEditableParagraphComponent } from './contentstack-editable-
  * the edit tags are inert outside preview builds (no `entry.$` ⇒ the directive
  * removes the attribute), so normal delivery/production rendering is unchanged.
  *
- * Currently covers `CMSParagraphComponent`; banner and product-carousel are
- * intentionally left to follow-up work (the carousel additionally hydrates live
- * SAP product data, which its editable renderer must preserve).
+ * Currently covers `CMSParagraphComponent` and the banner typeCodes
+ * (`SimpleBannerComponent`, `SimpleResponsiveBannerComponent`). The
+ * product-carousel is intentionally left to follow-up work (it additionally
+ * hydrates live SAP product data, which its editable renderer must preserve).
  */
 @NgModule({
   providers: [
@@ -25,6 +27,12 @@ import { ContentstackEditableParagraphComponent } from './contentstack-editable-
       cmsComponents: {
         CMSParagraphComponent: {
           component: ContentstackEditableParagraphComponent,
+        },
+        SimpleBannerComponent: {
+          component: ContentstackEditableBannerComponent,
+        },
+        SimpleResponsiveBannerComponent: {
+          component: ContentstackEditableBannerComponent,
         },
       },
     } as CmsConfig),
