@@ -30,7 +30,8 @@ export interface ContentstackEditableParagraphData extends CmsComponent {
  * "Invalid CSLP tag" for the entry-level-only tag. Rendering the paragraph here
  * — with `[csEditable]` bound to `data.$.content` — produces that field tag.
  *
- * Registered (opt-in) by {@link ContentstackEditableComponentsModule}. Renders
+ * Registered by {@link ContentstackEditableComponentsModule} (on by default via
+ * {@link ContentstackCmsFeatureModule}). Renders
  * identically to the stock paragraph (same `cx-paragraph` host class + innerHTML
  * content); the only addition is the edit tag, which is inert outside preview
  * builds (no `$` ⇒ CsEditableDirective removes the attribute).
