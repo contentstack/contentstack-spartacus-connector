@@ -47,9 +47,31 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
    * top-level nodes, matching the single-root shape Spartacus expects.
    */
   private buildFromFlat(nodes: ContentstackEntry[], rootUid: string): CmsNavigationNode {
-    const byParent = new Map<string, ContentstackEntry[]>();
+    // Guard against malformed authoring data (duplicate ids, self-references,
+    // parent cycles) with three cheap invariants that make the recursion below
+    // provably terminating WITHOUT a per-node visited set:
+    //   1) unique identities — dedupe by node_id (falling back to the always-
+    //      unique entry uid for a blank/non-string node_id);
+    //   2) no self-parenting — a node naming itself is reparented to the root;
+    //   3) a single parent per node (the data model gives each node one parent_id).
+    // Together these mean the root-reachable nodes form a forest: each node has
+    // exactly one path back to the root, so build() visits every node at most
+    // once. A parent cycle that never reaches the root is simply never entered
+    // (build starts at '') — so it terminates and drops the orphaned cycle.
+
+    // 1) Dedupe by identity (first wins).
+    const byId = new Map<string, ContentstackEntry>();
     for (const n of nodes) {
-      const key = this.parentKey(n);
+      const id = this.nodeId(n);
+      if (!byId.has(id)) {
+        byId.set(id, n);
+      }
+    }
+
+    // 2) Group by parent; reparent a self-referencing node to the root.
+    const byParent = new Map<string, ContentstackEntry[]>();
+    for (const n of byId.values()) {
+      const key = this.parentKey(n) === this.nodeId(n) ? '' : this.parentKey(n);
       const siblings = byParent.get(key) ?? [];
       siblings.push(n);
       byParent.set(key, siblings);
@@ -58,9 +80,10 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
       siblings.sort((a, b) => this.sortOrder(a) - this.sortOrder(b));
     }
 
+    // 3) Build the tree top-down. Linear in the number of nodes (see invariants).
     const build = (parentKey: string): CmsNavigationNode[] =>
       (byParent.get(parentKey) ?? []).map((n) => {
-        const nodeId = (n['node_id'] as string) ?? n.uid;
+        const nodeId = this.nodeId(n);
         const node: CmsNavigationNode = { uid: nodeId, title: n['title'] as string };
 
         const links = this.resolvedList(n['links']);
@@ -75,6 +98,17 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
       });
 
     return { uid: rootUid, children: build('') };
+  }
+
+  /**
+   * A node's stable identity: its `node_id` when a non-empty string, otherwise
+   * the entry uid. Using the uid for a blank/non-string node_id keeps every
+   * identity unique and non-empty, so it can never collide with the root
+   * sentinel ('') or another node.
+   */
+  private nodeId(node: ContentstackEntry): string {
+    const id = node['node_id'];
+    return typeof id === 'string' && id.length ? id : node.uid;
   }
 
   /** The parent grouping key: a node's `parent_id`, normalized to '' for top level. */

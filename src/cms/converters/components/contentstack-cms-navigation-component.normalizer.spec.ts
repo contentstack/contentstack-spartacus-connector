@@ -133,4 +133,63 @@ describe('ContentstackCmsNavigationComponentNormalizer', () => {
     const component = normalizer.convert(flatComponent([withStub]));
     expect(component.navigationNode?.children?.[0].entries).toBeUndefined();
   });
+
+  describe('malformed-data guards (no infinite recursion)', () => {
+    it('treats a self-referencing node (parent_id === node_id) as top-level', () => {
+      const build = () => normalizer.convert(flatComponent([node('Solo', 'Solo', 'Solo', 1)]));
+      // Must not recurse forever: complete and surface the node once, at the top.
+      const component = build();
+      expect(component.navigationNode?.children?.map((n) => n.uid)).toEqual(['Solo']);
+      expect(component.navigationNode?.children?.[0].children).toBeUndefined();
+    });
+
+    it('does not hang on a parent/child cycle (A→B→A); a pure cycle yields no roots', () => {
+      const component = normalizer.convert(
+        flatComponent([node('A', 'A', 'B', 1), node('B', 'B', 'A', 1)]),
+      );
+      // Neither node is top-level (each names the other as parent), so the menu is
+      // empty — the point is that it terminates instead of overflowing the stack.
+      expect(component.navigationNode?.children).toEqual([]);
+    });
+
+    it('deduplicates a repeated node_id (first wins) rather than duplicating a subtree', () => {
+      const component = normalizer.convert(
+        flatComponent([
+          node('Dup', 'First', '', 1, 'blt_first_link'),
+          node('Dup', 'Second', '', 2, 'blt_second_link'),
+          node('Child', 'Child', 'Dup', 1),
+        ]),
+      );
+      const tops = component.navigationNode?.children ?? [];
+      expect(tops.map((n) => n.uid)).toEqual(['Dup']); // only one 'Dup', not two
+      expect(tops[0].title).toBe('First'); // first occurrence wins
+      expect(tops[0].children?.map((n) => n.uid)).toEqual(['Child']);
+    });
+
+    it('falls a blank node_id back to the entry uid instead of colliding with the root', () => {
+      const component = normalizer.convert(
+        flatComponent([node('', 'Empty', '', 1), node('Real', 'Real', '', 2)]),
+      );
+      const tops = component.navigationNode?.children ?? [];
+      // The blank-id node takes its uid ('blt_') as identity, so it stays a normal
+      // top-level node and does NOT adopt the other root nodes as children.
+      expect(tops.map((n) => n.uid)).toEqual(['blt_', 'Real']);
+      expect(tops.find((n) => n.uid === 'blt_')?.children).toBeUndefined();
+    });
+
+    it('ignores a disconnected parent cycle while still building the reachable tree', () => {
+      // Root → Mid is a real tree; the stray pair (X→Y→X) never reaches the root,
+      // so it is dropped rather than walked into forever.
+      const component = normalizer.convert(
+        flatComponent([
+          node('Root', 'Root', '', 1),
+          node('Mid', 'Mid', 'Root', 1),
+          node('X', 'X', 'Y', 1),
+          node('Y', 'Y', 'X', 1),
+        ]),
+      );
+      expect(component.navigationNode?.children?.map((n) => n.uid)).toEqual(['Root']);
+      expect(component.navigationNode?.children?.[0].children?.map((n) => n.uid)).toEqual(['Mid']);
+    });
+  });
 });

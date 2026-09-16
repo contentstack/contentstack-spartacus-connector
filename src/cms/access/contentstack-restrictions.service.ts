@@ -117,7 +117,12 @@ export class ContentstackRestrictionsService {
     if (!permissions || !permissions.size) {
       return '';
     }
-    return `:acl=${[...permissions].sort().join('|')}`;
+    // Encode each token before joining so the `|` delimiter can never collide:
+    // `encodeURIComponent` percent-escapes any literal `|` (→ `%7C`), so the
+    // suffix is injective — `{'a|b'}` and `{'a','b'}` map to distinct keys, and a
+    // token that happens to contain the delimiter can't leak another audience's
+    // cached, permission-filtered payload.
+    return `:acl=${[...permissions].sort().map(encodeURIComponent).join('|')}`;
   }
 
   /** Whether a value is a Contentstack entry node (an object carrying a string uid). */
