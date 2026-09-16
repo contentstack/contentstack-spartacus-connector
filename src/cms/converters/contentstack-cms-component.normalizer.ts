@@ -70,6 +70,12 @@ export class ContentstackCmsComponentNormalizer implements Converter<
       // Contentstack field uids must be lowercase, so this mapping is required
       // — a raw passthrough leaves e.g. links without a visible label.
       ...this.fieldMapper.map(typeCode, fields),
+      // Preserve the Live Preview field-tag map (`entry.$`, added by
+      // tagEntryTree when livePreview is on) so connector-provided editable
+      // components can bind a per-field `data-cslp` via CsEditableDirective.
+      // Only present on preview builds; absent (and omitted) otherwise, so stock
+      // components and production delivery are byte-for-byte unaffected.
+      ...(source['$'] ? { $: source['$'] } : {}),
     } as CmsComponent;
 
     if (BANNER_TYPE_CODES.has(typeCode)) {

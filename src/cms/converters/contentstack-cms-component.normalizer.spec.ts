@@ -52,6 +52,27 @@ describe('ContentstackCmsComponentNormalizer', () => {
     expect(component.modifiedTime).toBeUndefined();
   });
 
+  it('preserves the Live Preview field-tag map ($) so editable components can bind data-cslp', () => {
+    const component = normalizer.convert({
+      uid: 'blt1',
+      _content_type_uid: 'cms_paragraph_component',
+      content: '<p>Hi</p>',
+      $: { content: { 'data-cslp': 'cms_paragraph_component.blt1.en-us.content' } },
+    } as any);
+    expect((component as any).$?.content?.['data-cslp']).toBe(
+      'cms_paragraph_component.blt1.en-us.content',
+    );
+  });
+
+  it('omits $ entirely when the entry was not tagged (non-preview builds unchanged)', () => {
+    const component = normalizer.convert({
+      uid: 'blt1',
+      _content_type_uid: 'cms_paragraph_component',
+      content: '<p>Hi</p>',
+    });
+    expect('$' in (component as any)).toBe(false);
+  });
+
   it('merges onto a provided target rather than replacing it', () => {
     const target = { container: true } as any;
     const component = normalizer.convert(
