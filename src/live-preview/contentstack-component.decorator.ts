@@ -20,8 +20,23 @@ export class ContentstackComponentDecorator extends ComponentDecorator {
     if (!component) {
       return;
     }
+    // Skip the coarse entry-level tag on our own editable renderers
+    // (`<cs-editable-*>`). Those emit **field-level** (4-part) `data-cslp` tags
+    // on the fields inside their templates via `CsEditableDirective`; leaving a
+    // lone **entry-level** (3-part) tag on the host as well makes Visual Builder
+    // report "Invalid CSLP tag" for the whole component (a bare 3-part tag on
+    // the host is not inline-editable). The inner field tag already lets VB
+    // resolve and open the entry, so component-to-entry navigation is preserved.
+    if (this.isEditableRenderer(element)) {
+      return;
+    }
     if (!this.contentstackLivePreviewService.hasEditableTags(element)) {
       this.contentstackLivePreviewService.addInspectorModeTags(element, renderer, component);
     }
+  }
+
+  /** True for the connector's editable renderer hosts (`<cs-editable-*>`). */
+  protected isEditableRenderer(element: Element): boolean {
+    return element.tagName.toLowerCase().startsWith('cs-editable-');
   }
 }
