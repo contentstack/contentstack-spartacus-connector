@@ -37,18 +37,14 @@ export interface ContentstackEditableBannerData extends CmsBannerComponent {
   template: `
     <ng-container *ngIf="data$ | async as data">
       <cx-generic-link *ngIf="data.urlLink; else plain" [url]="data.urlLink">
-        <cx-media
-          [container]="$any(data.media)"
-          [elementType]="'picture'"
-          [csEditable]="data.$?.['media']"
-        ></cx-media>
+        <div [csEditable]="data.$?.['media']">
+          <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
+        </div>
       </cx-generic-link>
       <ng-template #plain>
-        <cx-media
-          [container]="$any(data.media)"
-          [elementType]="'picture'"
-          [csEditable]="data.$?.['media']"
-        ></cx-media>
+        <div [csEditable]="data.$?.['media']">
+          <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
+        </div>
       </ng-template>
     </ng-container>
   `,
