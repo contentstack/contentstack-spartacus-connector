@@ -280,6 +280,10 @@ declare module '@spartacus/storefront' {
   export class MediaModule {}
   export class GenericLinkModule {}
   export class MediaComponent {}
+  export class CarouselModule {}
+  export class CarouselComponent {}
+  export class ProductCarouselModule {}
+  export class ProductCarouselItemComponent {}
 }
 
 declare module '@spartacus/cart/base/root' {

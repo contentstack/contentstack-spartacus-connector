@@ -38,6 +38,7 @@ export * from './cms/access/contentstack-restrictions.service';
 // Editable renderers (field-level Live Preview / Visual Builder tags)
 export * from './cms/components/contentstack-editable-paragraph.component';
 export * from './cms/components/contentstack-editable-banner.component';
+export * from './cms/components/contentstack-editable-product-carousel.component';
 export * from './cms/components/contentstack-editable-components.module';
 
 // SmartEdit bypass

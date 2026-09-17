@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CmsConfig, provideConfig } from '@spartacus/core';
 import { ContentstackEditableParagraphComponent } from './contentstack-editable-paragraph.component';
 import { ContentstackEditableBannerComponent } from './contentstack-editable-banner.component';
+import { ContentstackEditableProductCarouselComponent } from './contentstack-editable-product-carousel.component';
 
 /**
  * Swaps Spartacus's stock renderers for connector-owned ones that emit
@@ -16,10 +17,10 @@ import { ContentstackEditableBannerComponent } from './contentstack-editable-ban
  * the edit tags are inert outside preview builds (no `entry.$` ⇒ the directive
  * removes the attribute), so normal delivery/production rendering is unchanged.
  *
- * Currently covers `CMSParagraphComponent` and the banner typeCodes
- * (`SimpleBannerComponent`, `SimpleResponsiveBannerComponent`). The
- * product-carousel is intentionally left to follow-up work (it additionally
- * hydrates live SAP product data, which its editable renderer must preserve).
+ * Covers `CMSParagraphComponent`, the banner typeCodes (`SimpleBannerComponent`,
+ * `SimpleResponsiveBannerComponent`), and `ProductCarouselComponent` (whose
+ * editable renderer keeps the live SAP product hydration and only adds an
+ * editable tag on the carousel title).
  */
 @NgModule({
   providers: [
@@ -33,6 +34,9 @@ import { ContentstackEditableBannerComponent } from './contentstack-editable-ban
         },
         SimpleResponsiveBannerComponent: {
           component: ContentstackEditableBannerComponent,
+        },
+        ProductCarouselComponent: {
+          component: ContentstackEditableProductCarouselComponent,
         },
       },
     } as CmsConfig),
