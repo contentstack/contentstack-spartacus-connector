@@ -18,9 +18,17 @@ export interface ContentstackEditableBannerData extends CmsBannerComponent {
 
 /**
  * Connector-provided replacement for Spartacus's stock banner renderer that adds
- * a **field-level** `data-cslp` tag on the image, so Contentstack's Visual
- * Builder can edit the banner's `media` (image) field inline — instead of the
- * component only carrying the coarse entry-level tag it flags as invalid.
+ * a **field-level** `data-cslp` tag, so Contentstack's Visual Builder selects the
+ * banner as an editable field — instead of the component only carrying the coarse
+ * entry-level tag it flags as an invalid / incorrectly-generated CSLP tag.
+ *
+ * The tag is placed on the banner's **`url_link`** (a text field), NOT on the
+ * `media` image. Visual Builder's inline `data-cslp` editing only supports
+ * text-type fields; a tag pointing at a file/asset field (`media`) is rejected as
+ * "invalid or incorrectly generated" (unlike the paragraph `content` and carousel
+ * `title` text fields, which tag cleanly). The banner **image** is still fully
+ * editable in Visual Builder — via the entry's form panel, which is the Contentstack
+ * pattern for asset fields — just not by clicking the rendered image inline.
  *
  * Renders the same building blocks as the stock banner — Spartacus's `cx-media`
  * (responsive image) inside `cx-generic-link` (SPA-aware link) — so the visual
@@ -35,18 +43,14 @@ export interface ContentstackEditableBannerData extends CmsBannerComponent {
   imports: [CommonModule, MediaModule, GenericLinkModule, CsEditableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ng-container *ngIf="data$ | async as data">
+    <div *ngIf="data$ | async as data" [csEditable]="data.$?.['url_link']">
       <cx-generic-link *ngIf="data.urlLink; else plain" [url]="data.urlLink">
-        <div [csEditable]="data.$?.['media']">
-          <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
-        </div>
+        <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
       </cx-generic-link>
       <ng-template #plain>
-        <div [csEditable]="data.$?.['media']">
-          <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
-        </div>
+        <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
       </ng-template>
-    </ng-container>
+    </div>
   `,
 })
 export class ContentstackEditableBannerComponent {
