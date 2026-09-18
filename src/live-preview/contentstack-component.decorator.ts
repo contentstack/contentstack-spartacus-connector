@@ -20,13 +20,13 @@ export class ContentstackComponentDecorator extends ComponentDecorator {
     if (!component) {
       return;
     }
-    // Skip the coarse entry-level tag on our own editable renderers
-    // (`<cs-editable-*>`). Those emit **field-level** (4-part) `data-cslp` tags
-    // on the fields inside their templates via `CsEditableDirective`; leaving a
-    // lone **entry-level** (3-part) tag on the host as well makes Visual Builder
-    // report "Invalid CSLP tag" for the whole component (a bare 3-part tag on
-    // the host is not inline-editable). The inner field tag already lets VB
-    // resolve and open the entry, so component-to-entry navigation is preserved.
+    // Do NOT stamp the coarse tag on our own editable renderers (`<cs-editable-*>`).
+    // That coarse tag is a bare 3-part `content_type.entry.locale` string, which is
+    // NOT a valid Contentstack CSLP tag — the SDK only ever emits field-scoped
+    // (4-part) tags. On an editable renderer, Visual Builder therefore reports
+    // "Invalid CSLP tag" for the host. These renderers instead carry a VALID
+    // field-level tag on their section wrapper (via CsEditableDirective), which
+    // both clears the error and provides the open-the-entry affordance.
     if (this.isEditableRenderer(element)) {
       return;
     }

@@ -30,9 +30,14 @@ export interface ContentstackEditableProductCarouselData extends CmsProductCarou
  *
  * The stock `ProductCarouselComponent` renders its title *inside* `cx-carousel`
  * (via the `[title]` input), so it can't be field-tagged there. This component
- * instead renders its own tagged `<h3>` heading (`[csEditable]` → the `title`
- * field's 4-part `data-cslp`) and passes an empty title to `cx-carousel` to avoid
- * a duplicate heading.
+ * instead wraps the whole section in a `<div>` carrying the `title` field's VALID
+ * 4-part `data-cslp` (`[csEditable]` → `title`), renders its own `<h3>` heading,
+ * and passes an empty title to `cx-carousel` to avoid a duplicate heading.
+ *
+ * The section-wrapper tag (not the coarse entry-level host tag, which the
+ * ComponentDecorator deliberately skips for `<cs-editable-*>` hosts) is what
+ * makes the section selectable/openable in Visual Builder WITHOUT the "Invalid
+ * CSLP tag" error — a single valid field tag, no conflicting bare 3-part tag.
  *
  * The products themselves are unchanged: each SKU in `productCodes` is hydrated
  * live from SAP via Spartacus's `ProductService` (same `LIST`+`STOCK` scopes as
@@ -49,8 +54,8 @@ export interface ContentstackEditableProductCarouselData extends CmsProductCarou
   imports: [CommonModule, CarouselModule, ProductCarouselModule, CsEditableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ng-container *ngIf="data$ | async as data">
-      <h3 *ngIf="data.title" class="cs-editable-carousel-title" [csEditable]="data.$?.['title']">
+    <div *ngIf="data$ | async as data" class="cs-editable-carousel" [csEditable]="data.$?.['title']">
+      <h3 *ngIf="data.title" class="cs-editable-carousel-title">
         {{ data.title }}
       </h3>
       <cx-carousel
@@ -60,7 +65,7 @@ export interface ContentstackEditableProductCarouselData extends CmsProductCarou
         itemWidth="285px"
         [title]="''"
       ></cx-carousel>
-    </ng-container>
+    </div>
 
     <ng-template #carouselItem let-item="item" let-itemIndex="itemIndex">
       <cx-product-carousel-item [item]="item" [itemIndex]="itemIndex"></cx-product-carousel-item>
