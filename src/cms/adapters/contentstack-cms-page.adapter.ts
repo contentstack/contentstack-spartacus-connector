@@ -130,7 +130,25 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
             })
           : this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
         const global$ = global
-          ? this.client.getGlobalSlots(global.contentType, global.title, globalIncludeRefs, locale)
+          ? permissions
+            ? this.client.getGlobalSlots(
+                global.contentType,
+                global.title,
+                globalIncludeRefs,
+                locale,
+                {
+                  permissions,
+                  // The shell root is never hidden; only restricted nested shell
+                  // components (e.g. a login-only header link) are filtered out.
+                  gateRoot: false,
+                },
+              )
+            : this.client.getGlobalSlots(
+                global.contentType,
+                global.title,
+                globalIncludeRefs,
+                locale,
+              )
           : of(undefined);
         // Hybrid base: the SAP page for this route. A CMS failure must never
         // break navigation, so degrade to no-base on error.
@@ -154,7 +172,9 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
             }
 
             const csStructure = entry ? this.normalizer.convert(entry, {}, permissions) : undefined;
-            const globalStructure = globalEntry ? this.toGlobalStructure(globalEntry) : undefined;
+            const globalStructure = globalEntry
+              ? this.toGlobalStructure(globalEntry, permissions)
+              : undefined;
 
             // Nothing from Contentstack and no OCC base → not-found (as before).
             if (!csStructure && !occBase) {
@@ -175,8 +195,15 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
    * base and the page: an authored shell overrides OCC's, and unauthored shell
    * slots fall through to OCC.
    */
-  protected toGlobalStructure(globalEntry: ContentstackCmsPageEntry): CmsStructureModel {
-    const { slots, components } = this.normalizer.buildStructure(globalEntry);
+  protected toGlobalStructure(
+    globalEntry: ContentstackCmsPageEntry,
+    permissions?: Set<string>,
+  ): CmsStructureModel {
+    // Filter the shell by the viewer's permissions, mirroring the page path
+    // (normalizer.convert(entry, {}, permissions)). This is the render-time gate;
+    // the client's sanitizeForTransfer independently strips restricted nested
+    // entries from every fetch (SSR + CSR) before they reach here — belt and braces.
+    const { slots, components } = this.normalizer.buildStructure(globalEntry, permissions);
     return { page: { slots }, components };
   }
 

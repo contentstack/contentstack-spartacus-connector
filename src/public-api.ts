@@ -2,7 +2,7 @@
  * Public API surface of @contentstack/contentstack-spartacus-connector
  *
  * Import barrel for consumers of the library. A Spartacus app typically only
- * needs `ContentstackCmsModule` (the root feature module) plus the config type;
+ * needs `ContentstackCmsFeatureModule` (the root feature module) plus the config type;
  * the remaining exports are provided for advanced customization (custom
  * adapters, normalizers, or reusing the client service in bespoke components).
  */

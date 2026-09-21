@@ -1,4 +1,4 @@
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { ContentstackCmsComponentAdapter } from './contentstack-cms-component.adapter';
 import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
 import { ContentstackComponentTypeRegistry } from '../model/contentstack-component-type.registry';
@@ -412,6 +412,51 @@ describe('ContentstackCmsComponentAdapter', () => {
       expect(res).toEqual([{ uid: 'a', typeCode: 'CS' }]);
       // ...and NOT passed to OCC as a "missing" id (it resolved, just restricted).
       expect(occComponentAdapter.findComponentsByIds).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('batch-fetch error handling (#3)', () => {
+    const entry = (uid: string, type: string) => ({
+      uid,
+      _content_type_uid: type,
+      created_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    it('degrades a failed content-type group to empty instead of throwing, keeping healthy groups', () => {
+      // Two distinct learned types → two forkJoin branches; one fails outright.
+      const getEntriesByUids = jest.fn((type: string) =>
+        type === 'type_b'
+          ? throwError(() => new Error('CMS down'))
+          : of([entry('bltaaaa', 'type_a')]),
+      );
+      const { adapter } = create({
+        registry: { bltaaaa: 'type_a', bltbbbb: 'type_b' },
+        cs: { componentContentType: undefined }, // rely on learned types only
+        client: { getEntriesByUids },
+      });
+
+      let res!: { uid: string }[];
+      expect(() => {
+        res = firstValue(adapter.findComponentsByIds(['bltaaaa', 'bltbbbb'], ctx));
+      }).not.toThrow();
+      const uids = res.map((c) => c.uid);
+      expect(uids).toContain('bltaaaa'); // healthy group resolved
+      expect(uids).toContain('bltbbbb'); // failed group degraded to a benign shell
+    });
+
+    it('tolerates a client that emits a non-array (undefined) without crashing', () => {
+      const getEntriesByUids = jest.fn().mockReturnValue(of(undefined as never));
+      const { adapter } = create({
+        registry: { bltaaaa: 'type_a' },
+        cs: { componentContentType: undefined },
+        client: { getEntriesByUids },
+      });
+
+      let res!: { uid: string }[];
+      expect(() => {
+        res = firstValue(adapter.findComponentsByIds(['bltaaaa'], ctx));
+      }).not.toThrow();
+      expect(Array.isArray(res)).toBe(true);
     });
   });
 });

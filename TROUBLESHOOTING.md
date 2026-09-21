@@ -7,6 +7,24 @@ knowing if you extend the client or config wiring yourself.
 
 ---
 
+### Every page still renders from SAP OCC — Contentstack content never appears (no error)
+
+**Symptom:** the app builds and runs fine, but pages come straight from SAP OCC; nothing you
+author in Contentstack shows up, and **no error or warning is logged**.
+
+**Cause:** `ContentstackCmsFeatureModule` was imported *before* the stock Spartacus feature/OCC
+modules, or not imported at all. The connector overrides the abstract `CmsPageAdapter` /
+`CmsComponentAdapter` tokens and relies on Angular DI's *last-provider-wins* rule, so it must be
+imported **after** the base modules (which include `CmsOccModule`). Import it too early and the
+OCC adapters win the race — the integration silently does nothing.
+
+**Fix:** import `ContentstackCmsFeatureModule` **last** in `SpartacusFeaturesModule` (or after
+`StorefrontModule`) — see `GETTING_STARTED.md` → *Wire in the feature module*. Note this is an
+eager import by design; the connector does **not** use the lazy `CmsConfig.featureModules` gate
+(that only fires for a feature-tagged `cmsComponents` entry, which this library never registers).
+
+---
+
 ### A slot renders blank / nothing shows for a block
 
 **Cause:** the `cmsComponents` map key doesn't exactly match the `typeCode` the normalizer emits.

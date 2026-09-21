@@ -110,6 +110,14 @@ describe('ContentstackRestrictionsService', () => {
       // Different audiences get different keys (no cross-serving).
       expect(svc.cacheKeySuffix(new Set(['_require-login']))).not.toBe(a);
     });
+
+    it('is injective even when a token contains the join delimiter', () => {
+      // Without per-token encoding, {'a|b'} and {'a','b'} would collide on `|`,
+      // letting one audience receive another's permission-filtered cache entry.
+      const single = svc.cacheKeySuffix(new Set(['a|b']));
+      const pair = svc.cacheKeySuffix(new Set(['a', 'b']));
+      expect(single).not.toBe(pair);
+    });
   });
 
   describe('redactEntry()', () => {

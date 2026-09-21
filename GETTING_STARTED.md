@@ -97,6 +97,12 @@ import { ContentstackCmsFeatureModule } from '@contentstack/contentstack-spartac
 export class SpartacusFeaturesModule {}
 ```
 
+> ⚠️ **Ordering matters — and failures are silent.** If `ContentstackCmsFeatureModule`
+> is imported *before* the stock Spartacus modules (or omitted), the OCC adapters win the
+> DI race, pages keep rendering straight from SAP OCC, and **no error is thrown** — the
+> integration simply does nothing. If content isn't coming from Contentstack, check this
+> ordering first. See `TROUBLESHOOTING.md`.
+
 ## Step 4 — Configure
 
 In `spartacus-configuration.module.ts`:

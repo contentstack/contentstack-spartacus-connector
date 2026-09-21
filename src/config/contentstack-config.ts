@@ -209,13 +209,6 @@ export abstract class ContentstackConfig {
     pageTypeMapping?: Partial<Record<PageType, ContentstackPageTypeMapping>>;
 
     /**
-     * Optional map of Contentstack block uid → Spartacus typeCode, consulted by
-     * the page normalizer when a block has no explicit `type_code` field. Lets an
-     * app map author-named blocks to stock component types without editing content.
-     */
-    componentTypeMapping?: Record<string, string>;
-
-    /**
      * Shared/global slots (header, footer, navigation, logo, …) authored once and
      * merged into every page. When set, the page adapter fetches this entry and
      * merges its slots + components into each page's `CmsStructureModel`. Omit if
