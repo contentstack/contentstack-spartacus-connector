@@ -3,7 +3,7 @@ title: "Installation"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, installation, getting-started]
-last_updated: "2026-09-10"
+last_updated: "2026-09-21"
 ---
 
 # Installation
@@ -100,22 +100,7 @@ Then, in the Contentstack UI, **publish** the seed entries **and the asset** to 
 - **Partial data-dir.** Point `--data-dir` at the full starter-pack folder, not a subfolder — csdx expects a complete export skeleton (every module folder + a `global_fields` file) and crashes on an incomplete one.
 
 > [!INFO]
-> **Two-token model:** the storefront only ever uses a read-only **delivery token**. The privileged credential (`csdx auth:login`, or a scoped/expiring management token) is for the one-time import on your machine — never commit it, never ship it. See [The two-token security model](concepts.md#the-two-token-security-model).
-
-```mermaid
-flowchart LR
-    subgraph DEV["Dev machine (one time)"]
-      L["csdx auth:login<br/>(management)"] --> IMP["import + provision"]
-    end
-    subgraph APP["Storefront (runtime)"]
-      DT["delivery token<br/>(read-only)"] --> Q["Delivery API queries"]
-    end
-    IMP -.->|"creates content + env"| DT
-
-    classDef cs fill:#6C5CE7,color:#ffffff,stroke:#4834d4
-    class L,IMP cs
-```
-*Two tokens, two lifetimes: the management credential provisions once on your machine; only the read-only delivery token ships in the app.*
+> **Two-token model:** the privileged credential (`csdx auth:login`, or a scoped/expiring management token) provisions the stack once on your dev machine and never leaves it, while the storefront ships only the read-only **delivery token** it uses for Delivery API queries at runtime — never commit the management credential, never ship it. See [The two-token security model](concepts.md#the-two-token-security-model).
 
 ---
 

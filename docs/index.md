@@ -3,7 +3,7 @@ title: "SAP Spartacus Connector"
 product: spartacus-connector
 type: index
 tags: [index, spartacus-connector]
-last_updated: "2026-09-10"
+last_updated: "2026-09-21"
 ---
 
 # SAP Spartacus Connector
@@ -19,27 +19,7 @@ last_updated: "2026-09-10"
 
 Two data planes run side by side. A **content editor** authors pages and components in Contentstack; at request time the **connector** — its adapters and normalizers — fetches that content from the Delivery API and hands Spartacus a native `CmsStructureModel` to render. In parallel, Spartacus keeps talking to **SAP Commerce (OCC)** for the base page structure and for all live commerce data (product price, stock, cart). The result is one page whose *content* comes from Contentstack while its *commerce* stays SAP.
 
-```mermaid
-flowchart LR
-    Editor([Content editor]) -->|authors pages/components| CS[(Contentstack<br/>Delivery API)]
-    CS -->|content JSON| CONN
-    subgraph CONN[Connector]
-        direction TB
-        A[Adapters] --> N[Normalizers]
-    end
-    CONN -->|CmsStructureModel| SPA[Spartacus<br/>rendering]
-    SPA -->|base page + live<br/>product/cart data| OCC[(SAP Commerce<br/>OCC)]
-    OCC -.->|price / stock / cart| SPA
-
-    classDef cs fill:#6C5CE7,color:#ffffff,stroke:#4834d4
-    classDef sap fill:#0FAAFF,color:#04223a,stroke:#0a6fb0
-    class CS,CONN cs
-    class OCC sap
-```
-
-*Content flows Editor → Contentstack → connector → Spartacus; commerce data stays on the Spartacus → SAP OCC path.*
-
-The default mode is **hybrid** (`occFallback: true`): OCC serves the base page and every commerce concern, and Contentstack overrides only the slots you actually author — the "editable islands." See [Concepts](concepts.md) for the full mental model and [Architecture](architecture.md) for the adapter-override chain that implements it.
+The default mode is **hybrid** (`occFallback: true`): OCC serves the base page and every commerce concern, and Contentstack overrides only the slots you actually author — the "editable islands." See [Concepts](concepts.md) for the full mental model, [Architecture](architecture.md) for the adapter-override chain that implements it, and the [Solution Architecture](https://docs.google.com/document/d/14SpcA3-QANEtHt_T8LLp880EqWg6lz3b/edit) document for the design rationale.
 
 ---
 

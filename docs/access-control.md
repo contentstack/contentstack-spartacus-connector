@@ -3,7 +3,7 @@ title: "Access Control"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, access-control, content-gating]
-last_updated: "2026-09-09"
+last_updated: "2026-09-21"
 ---
 
 # Access Control
@@ -143,16 +143,7 @@ Concretely, `sanitizeForTransfer(entry, permissions, gateRoot)` runs before the 
 - **strips** nested referenced entries the viewer can't access from the tree — removed from reference arrays and deleted from single-reference fields (recursively, depth-guarded against cyclic payloads); and
 - when `gateRoot` is true **and** the root entry itself is inaccessible, reduces it to a **tags-only stub** via `redactEntry` — keeping `uid`, `_content_type_uid`, and the access field, dropping every content field. Downstream gating still sees the stub as *restricted* (its tags survive), so "restricted" stays distinct from "absent".
 
-The cache key gets a stable, per-audience suffix from `cacheKeySuffix(permissions)` — of the form `:acl=<sorted tokens joined by |>` — so a payload filtered for one permission set is never replayed to a different audience. When gating is off (or the permission set is empty) the suffix is empty and cache keys are byte-for-byte identical to before.
-
-```mermaid
-flowchart LR
-  F[Fetch entry] --> S[sanitizeForTransfer<br/>strip nested + redact root]
-  S --> K[key + cacheKeySuffix<br/>:acl=sorted tokens]
-  K --> W[Write TransferState]
-  W --> H[SSR HTML to browser]
-```
-*Restricted content is filtered out before the SSR write, and the payload is stored under a per-permission-set cache key.*
+The cache key gets a stable, per-audience suffix from `cacheKeySuffix(permissions)` — of the form `:acl=<sorted tokens joined by |>` — so a payload filtered for one permission set is never replayed to a different audience. When gating is off (or the permission set is empty) the suffix is empty and cache keys are byte-for-byte identical to before. In short: fetch → `sanitizeForTransfer` (strip nested + redact root) → key with `cacheKeySuffix` → write `TransferState` → SSR HTML to the browser.
 
 > [!WARNING]
 > If you put a **shared** cache (CDN / SSR cache) in front of the app, you must still send `Cache-Control: private` (or `Vary` on the identity that drives permissions) for gated routes, so one audience's rendered page is never served to another. The `cacheKeySuffix` only scopes the connector's *internal* TransferState cache; it cannot influence an upstream CDN that keys purely on URL.

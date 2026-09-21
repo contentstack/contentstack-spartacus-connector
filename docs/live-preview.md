@@ -3,7 +3,7 @@ title: "Live Preview"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, live-preview, visual-builder]
-last_updated: "2026-09-10"
+last_updated: "2026-09-21"
 ---
 
 # Live Preview
@@ -75,28 +75,15 @@ Practically: run Live Preview from a dedicated non-production build (`ng serve` 
 
 The eager import adds no cost to normal delivery builds: `ContentstackLivePreviewService` checks `delivery.livePreview` in its constructor and **returns early / stays inert** when Live Preview is off, so the decorator finds no tags to add and does nothing.
 
-When Live Preview *is* on, the flow from an editor keystroke to a re-rendered storefront is:
+When Live Preview *is* on (non-production preview build only), the flow from an editor keystroke to a re-rendered storefront runs entirely inside `ContentstackLivePreviewService`, which at init registers its callback via `ContentstackAngularService.onEntryChange()`:
 
-```mermaid
-sequenceDiagram
-    participant Ed as Editor (Visual Builder)
-    participant SDK as Live Preview SDK
-    participant NG as ContentstackAngularService
-    participant LP as ContentstackLivePreviewService
-    participant Store as CMS NgRx store
-    participant DOM as Storefront (csEditable tags)
-    Note over Ed,DOM: Non-production preview build only
-    Note over NG,LP: At init, LP registers its callback via ContentstackAngularService.onEntryChange()
-    Ed->>SDK: edit an entry field
-    SDK->>LP: registered onEntryChange callback fires (global, no args)
-    LP->>LP: client.applyLivePreviewHash(hash) → re-fetch draft page
-    LP->>Store: dispatch component + page updates
-    Store->>DOM: Angular change detection re-renders
-    Note over DOM: fields re-tagged with data-cslp
-```
-*An edit in Visual Builder fires the global SDK event; the connector re-fetches the draft page and pushes it into the CMS store so Angular re-renders — only in a non-production preview build.*
+1. The editor edits an entry field in Visual Builder.
+2. The registered `onEntryChange` callback fires (a global, argument-less SDK event).
+3. The service calls `client.applyLivePreviewHash(hash)` to point the delivery stack at the draft being edited, then re-fetches the draft page.
+4. It dispatches component + page updates into the CMS NgRx store.
+5. Angular change detection re-renders the storefront, and fields are re-tagged with `data-cslp`.
 
-Key detail: Contentstack's `onEntryChange(callback)` is a **single global, argument-less** listener — it says *that* something changed, not *what*. So the default handler reloads the **whole current page**: it calls `applyLivePreviewHash(hash)` to point the delivery stack at the draft being edited, re-runs the page adapter for the current route, dispatches each component with `LoadCmsComponentSuccess`, then dispatches the page structure with `LoadCmsPageDataSuccess` so slot additions / removals / reordering also render live (component-data updates alone would leave the old slot layout in place).
+Key detail: Contentstack's `onEntryChange(callback)` is a **single global, argument-less** listener — it says *that* something changed, not *what*. So the default handler reloads the **whole current page**: it calls `applyLivePreviewHash(hash)`, re-runs the page adapter for the current route, dispatches each component with `LoadCmsComponentSuccess`, then dispatches the page structure with `LoadCmsPageDataSuccess` so slot additions / removals / reordering also render live (component-data updates alone would leave the old slot layout in place).
 
 In **hybrid mode** the re-run page adapter returns the merged structure (OCC base + Contentstack overrides), so live edits apply to the Contentstack "islands" while OCC-sourced slots stay put. To make an OCC section editable, author that slot in Contentstack so it becomes an island. See [Concepts — hybrid mode](concepts.md) and [The editable islands model](concepts.md).
 

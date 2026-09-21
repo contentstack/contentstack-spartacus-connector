@@ -3,7 +3,7 @@ title: "API Reference"
 product: spartacus-connector
 type: api
 tags: [spartacus-connector, api, reference]
-last_updated: "2026-09-10"
+last_updated: "2026-09-21"
 ---
 
 # API Reference
@@ -16,40 +16,13 @@ Every row in the tables below corresponds one-to-one to an `export * from '...'`
 
 ## What a consumer imports
 
-Almost all of the surface below is reached transitively through one import. `ContentstackCmsFeatureModule` eagerly imports the CMS override module and the Live Preview module, and registers the config, access-control, and guard pieces — so importing that one module activates the whole integration.
+Almost all of the surface below is reached transitively through one import. `ContentstackCmsFeatureModule` eagerly imports two submodules and registers the config/current-user defaults, so importing that one module activates the whole integration:
 
-```mermaid
-flowchart TD
-  App["Spartacus app module<br/>(imports after base modules)"] --> FM
+- **`ContentstackCmsModule`** (eager) — the page + component adapters, the page + component normalizers, `ContentstackClientService`, and `ContentstackRestrictionsService`.
+- **`ContentstackLivePreviewModule`** (eager) — `ContentstackComponentDecorator` plus the Live Preview / Angular services.
+- **Providers** — `defaultContentstackConfig`, `{ provide: ContentstackConfig, useExisting: Config }`, and the core-only `CONTENTSTACK_CURRENT_USER` default.
 
-  subgraph FM["ContentstackCmsFeatureModule"]
-    direction TB
-    CFG["defaultContentstackConfig<br/>+ ContentstackConfig useExisting Config"]
-    USER["CONTENTSTACK_CURRENT_USER<br/>(core-only default)"]
-  end
-
-  FM -->|eager import| CMS
-  FM -->|eager import| LP
-
-  subgraph CMS["ContentstackCmsModule"]
-    ADP["Page + Component adapters"]
-    NRM["Page + Component normalizers"]
-    CLIENT["ContentstackClientService"]
-    RESTR["ContentstackRestrictionsService"]
-  end
-
-  subgraph LP["ContentstackLivePreviewModule"]
-    DEC["ContentstackComponentDecorator"]
-    LPSVC["LivePreview + Angular services"]
-  end
-
-  GUARD["smartEditBypassGuard<br/>(app attaches to routes)"] -. optional .-> App
-
-  classDef cs fill:#6C5CE7,color:#ffffff,stroke:#4834d4
-  class FM cs
-```
-
-*The composition a consumer imports: one feature module eagerly pulls in the CMS override (adapters, normalizers, client, restrictions) and Live Preview, and registers the config + current-user defaults; the SmartEdit bypass guard is the one piece the app attaches itself.*
+`smartEditBypassGuard` is the one piece the app attaches itself (to its routes). See [architecture](architecture.md) for how these compose at runtime and the [Solution Architecture](https://docs.google.com/document/d/14SpcA3-QANEtHt_T8LLp880EqWg6lz3b/edit) document for the composition rationale.
 
 ---
 

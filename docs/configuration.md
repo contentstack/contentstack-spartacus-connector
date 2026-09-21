@@ -3,7 +3,7 @@ title: "Configuration"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, configuration, reference]
-last_updated: "2026-09-10"
+last_updated: "2026-09-21"
 ---
 
 # Configuration

@@ -3,7 +3,7 @@ title: "Documentation Conventions"
 product: spartacus-connector
 type: schema
 tags: [schema, meta]
-last_updated: "2026-09-10"
+last_updated: "2026-09-21"
 ---
 
 # Documentation Conventions
@@ -12,25 +12,9 @@ This is a contributor guide for the connector's documentation. **Read it before 
 
 The docs are plain Markdown with YAML frontmatter, relative-link navigation, and GitHub-flavored callouts, so they render correctly in the GitHub file browser, a local clone, and on the published docs site without any special tooling.
 
-The doc set is deliberately a **flat spine** of single-topic pages rather than a deep tree. The two anchor pages, `index.md` and `schema.md`, point at everything else; every content page is a leaf off that spine.
+The doc set is deliberately a **flat spine** of single-topic pages rather than a deep tree. `index.md` is the table of contents that links readers to every content page (overview, concepts, architecture, and the reference leaves — installation, configuration, content-model, live-preview, access-control, api-reference, troubleshooting), while `schema.md` sets the rules those pages follow. Every content page is a leaf off that spine.
 
-```mermaid
-flowchart TD
-  I[index.md<br/>table of contents]
-  S[schema.md<br/>rules + conventions]
-  O[overview.md]
-  C[concepts.md]
-  A[architecture.md]
-  Rest[installation / configuration<br/>content-model / live-preview<br/>access-control / api-reference<br/>troubleshooting]
-  I --> O
-  I --> C
-  I --> A
-  I --> Rest
-  S -. governs .-> I
-  S -. governs .-> O
-  S -. governs .-> Rest
-```
-*The doc spine: `index.md` links readers to every content page, while `schema.md` sets the rules those pages follow.*
+This set is scoped as **installation / configuration / reference**: it documents how to install, configure, author, and debug the connector, and defers the "why" — design, constraints, composition model — to a separate [Solution Architecture](https://docs.google.com/document/d/14SpcA3-QANEtHt_T8LLp880EqWg6lz3b/edit) document. The conceptual pages (`overview.md`, `concepts.md`, `architecture.md`) are kept deliberately tight and link out to that document for the full rationale rather than reproducing it.
 
 ---
 
@@ -94,7 +78,9 @@ Relative links are the only form that survives every place these pages are read 
 
 ## Diagrams
 
-Diagrams in this doc set are authored as **inline fenced ```mermaid blocks placed directly in the page**, at the section they illustrate. This is the single, consistent convention across every page — there are no separate image or SVG files, and there is no `_attachments` (or similar) folder for diagram assets.
+Diagrams are used **sparingly**. Because design rationale lives in the [Solution Architecture](https://docs.google.com/document/d/14SpcA3-QANEtHt_T8LLp880EqWg6lz3b/edit) document, this set keeps only the handful of diagrams that materially help someone install, configure, or debug — decision flows and resolution paths (for example the install-path flowchart, the route-resolution and access-visibility decisions, the uid↔typeCode and banner-media mappings, and the troubleshooting decision tree). Prefer a short prose summary or a small table over a new diagram; add one only when a control/data flow is genuinely hard to follow in words.
+
+When a diagram does earn its place, author it as an **inline fenced ```mermaid block placed directly in the page**, at the section it illustrates — there are no separate image or SVG files, and no `_attachments` folder for diagram assets.
 
 Rules for every diagram:
 
@@ -103,16 +89,7 @@ Rules for every diagram:
 - **Theme-safe for GitHub light and dark.** GitHub renders Mermaid in both light and dark themes, so avoid custom `fill` colors that become unreadable against one background. Prefer structure that carries the meaning — subgraphs, clear node labels, and edge annotations — over color. If you use `classDef` for emphasis, always set **both** a `fill` and a high-contrast text color together (for example, `classDef cs fill:#6C5CE7,color:#ffffff,stroke:#4834d4`) so the text stays legible in either theme.
 - **Focused and valid.** Keep each diagram to roughly a dozen nodes; split a larger idea into more than one focused diagram rather than one dense graph. Pick the diagram type that fits the idea — `flowchart` for control/data flow, `sequenceDiagram` for request/response ordering, `erDiagram` for content-type relationships, `stateDiagram-v2` for lifecycle states. Keep node labels short, and make sure every ` ```mermaid ` fence is closed with a matching ` ``` ` and parses as valid Mermaid.
 
-```mermaid
-flowchart LR
-  Src[Concept in prose] --> Pick[Pick diagram type]
-  Pick --> Author[Author inline<br/>mermaid block]
-  Author --> Cap[Add italic caption]
-  Cap --> Safe[Keep theme-safe]
-```
-*Authoring flow for a diagram: reason from the prose, choose the right type, write it inline, caption it, and keep it readable in both themes.*
-
-Keeping diagrams inline is what makes them maintainable: when the code they describe changes, the diagram is edited in the same pull request as the doc text, reviewed in the same diff, and can never drift into a stale binary asset that no one remembers how to regenerate.
+Keeping the few diagrams inline is what makes them maintainable: when the code they describe changes, the diagram is edited in the same pull request as the doc text, reviewed in the same diff, and can never drift into a stale binary asset that no one remembers how to regenerate.
 
 ---
 

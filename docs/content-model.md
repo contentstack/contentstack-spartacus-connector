@@ -3,7 +3,7 @@ title: "Content Model"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, content-model, starter-pack]
-last_updated: "2026-09-10"
+last_updated: "2026-09-21"
 ---
 
 # Content Model
@@ -53,17 +53,7 @@ Whichever you use, take the exact PascalCase position and snake_case it for the 
 
 Principle: instead of one giant `cms_page` with every slot field, ship **one page content type per template**, exposing **only that template's slot fields**, each with a friendly display name and help text. Editors then see only relevant, labelled fields.
 
-```mermaid
-erDiagram
-  landing_page ||--o{ section_field : "slot fields"
-  section_field }o--o{ banner_component : "multi-reference"
-  section_field }o--o{ carousel_component : "multi-reference"
-  banner_component ||--o| media_container : "media_container ref"
-  media_container ||--o{ image_file : "desktop / mobile / tablet / widescreen"
-  nav_node_flat ||--o{ nav_node_flat : "parent_id (flat tree)"
-  nav_node_flat ||--o{ cms_link_component : "links"
-```
-*A page content type exposes slot fields; each slot field multi-references reusable component types, banners nest a `media_container`, and navigation is a flat pool of `nav_node_flat` rows linked by a text `parent_id` (rebuilt into a tree in code), each row carrying `cms_link_component` leaves.*
+The relationships in one line: a page content type exposes slot fields; each slot field multi-references reusable component types; banners nest a `media_container` (holding `desktop`/`mobile`/`tablet`/`widescreen` files); and navigation is a flat pool of `nav_node_flat` rows linked by a text `parent_id` (rebuilt into a tree in code), each row carrying `cms_link_component` leaves.
 
 ### Page content types
 
