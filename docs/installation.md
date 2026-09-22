@@ -3,12 +3,12 @@ title: "Installation"
 product: spartacus-connector
 type: reference
 tags: [spartacus-connector, installation, getting-started]
-last_updated: "2026-09-21"
+last_updated: "2026-09-22"
 ---
 
 # Installation
 
-Wire the connector into a **real, normally-scaffolded** Spartacus app (created via `ng add @spartacus/schematics`). This mirrors the repository's [`GETTING_STARTED.md`](../GETTING_STARTED.md); read [concepts](concepts.md) first for the hybrid model.
+Wire the connector into a **real, normally-scaffolded** Spartacus app. If you don't have one yet, **[Step 0](#step-0-create-the-spartacus-base-app)** takes you from an empty machine to a running SAP storefront first; if you already have a Composable Storefront app, skip to [Step 1](#step-1-install). This mirrors the repository's [`GETTING_STARTED.md`](../GETTING_STARTED.md); read [concepts](concepts.md) first for the hybrid model.
 
 The connector runs in **hybrid** mode by default: **SAP Commerce (OCC) is the base for every page**, and Contentstack **overrides only the slots you author**. The shell (header, nav, footer) and functional pages (login, cart, checkout, order, track) keep rendering from SAP, so the storefront works end-to-end from the moment you start — and you manage just the marketing content headlessly. Commerce (products, cart, checkout, users) stays in SAP and hydrates live. See [`occFallback`](#step-4-configure) below and [Concepts › Hybrid rendering](concepts.md).
 
@@ -18,18 +18,51 @@ The connector runs in **hybrid** mode by default: **SAP Commerce (OCC) is the ba
 
 | Requirement | Notes |
 |---|---|
-| A working Spartacus app | Composable Storefront `2211.x`+ (Angular 21+). |
+| **Node.js `^22.22.0`** | Spartacus `221121.15.1` declares this engine. On older 22.x you'll see non-fatal `EBADENGINE` warnings; Node 20 is **not** sufficient. |
+| **Angular CLI 21** | No global install needed — use `npx -p @angular/cli@21 ng …`. |
+| **SAP RBSC registry access** | Required to install `@spartacus/*` — they are **not** on public npm. Needs your organization's RBSC entitlement + an `.npmrc` (below). Skip only if you already have a working Spartacus app. |
+| A reachable SAP OCC backend | A backend URL + a base site (e.g. `electronics-spa`). The connector doesn't change how Spartacus talks to SAP for commerce. |
 | A Contentstack stack | A read-only **delivery token** + **API key** for the storefront, and a **preview token** if you use Live Preview. Provisioning the content model uses `csdx auth:login` — no management token in the app. |
-| A reachable SAP OCC backend | Your storefront already has one; the connector doesn't change how Spartacus talks to SAP for commerce. |
-| Node + npm | Same toolchain your Spartacus app already builds with (the connector installs as a normal npm dependency + peer deps). |
 | `@contentstack/cli` (`csdx`) | Installed globally for the one-time content-model import (Step 2). Dev machine only. |
 
+> [!IMPORTANT]
+> **`@spartacus/*` is not on public npm.** Public npm caps out around `@spartacus/schematics@4.3.8` (Angular 12) — running a bare `ng add @spartacus/schematics` resolves an ancient version and fails against the Angular 21 CLI. The Angular-21 Composable Storefront (release tag **`221121.15.1`**) is distributed **only** via SAP's private RBSC registry. You must configure the `.npmrc` below before Step 0. See [troubleshooting](troubleshooting.md).
+
+### The RBSC `.npmrc` (required to install Spartacus)
+
+Create an `.npmrc` in your project root with your organization's RBSC registry URL and auth:
+
+```ini
+@spartacus:registry=https://<YOUR_RBSC_REGISTRY_HOST>/
+//<YOUR_RBSC_REGISTRY_HOST>/:_auth=<YOUR_RBSC_BASE64_AUTH>
+legacy-peer-deps=true
+```
+
+- The registry host and `_auth` come from your **SAP RBSC subscription** — see SAP's RBSC / Composable Storefront installation docs for obtaining them. Treat `_auth` as a **secret**; never commit it.
+- `legacy-peer-deps=true` is **required** — Spartacus declares a dense set of exact-version Angular/ngrx peers that npm 7+'s strict resolver rejects. This is SAP's own documented install requirement.
+
 > [!NOTE]
-> Public npm's `@spartacus/*` packages cap out around `4.3.8` (Angular 12). The current Angular-21-era Composable Storefront is distributed **only** via SAP's private RBSC registry (requires an SAP Universal ID). See [troubleshooting](troubleshooting.md).
+> Use release tag **`221121.15.1`** (the Angular 21 line), **not** `2211.43.0` — the higher number is an older Angular 19 line and won't match this connector's Angular 21 peers.
+
+### Values you'll supply (and where each goes)
+
+Have these ready before you start — the steps below prompt for them as placeholders. The SAP backend values are needed while scaffolding the app; the Contentstack values are needed while provisioning content and wiring the connector.
+
+| Value | Where you get it | Used in |
+|---|---|---|
+| **OCC base URL** (`<YOUR_OCC_BASE_URL>`) | Your SAP Commerce Cloud backend (e.g. `https://api.<host>:9002`) | [Step 0.2](#02-add-spartacus-from-the-rbsc-registry) — `--base-url` |
+| **Base site** (`<YOUR_BASE_SITE>`) | Your SAP storefront site (e.g. `electronics-spa`, `powertools-spa`) | [Step 0.2](#02-add-spartacus-from-the-rbsc-registry) — `--base-site` |
+| **Stack API key** (`blt…`) | Contentstack → Settings → Stack | [Step 2](#step-2-provision-the-content-model-demo-seed-csdx) (import) + [Step 4](#step-4-configure) (`delivery.apiKey`) |
+| **Delivery token** (`cs…`) | Contentstack → Settings → Tokens → Delivery Tokens (scoped to `development`; created **after** import in Step 2) | [Step 4](#step-4-configure) (`delivery.deliveryToken`) |
+| **Environment** | The `development` environment the starter pack ships | [Step 2](#step-2-provision-the-content-model-demo-seed-csdx) + [Step 4](#step-4-configure) (`delivery.environment`) |
+| **Region** | Your stack's data center | [Step 2](#step-2-provision-the-content-model-demo-seed-csdx) (`csdx config:set:region`) + [Step 4](#step-4-configure) (`delivery.region`) — must match. **Note the spelling differs:** North America is **`NA`** in csdx but **`US`** in the connector (see the mapping below). |
+| **Preview token** (`cs…`, optional) | Contentstack → Settings → Tokens → Delivery Tokens → enable preview | [Step 4](#step-4-configure), only if using Live Preview |
+
+> The OCC base URL and base site are written into config at scaffold time and don't need to be reachable until you `ng serve` — but commerce data (and the `/occ/v2` base page in hybrid mode) won't load until the backend is reachable.
 
 ### The end-to-end install path
 
-The five steps below split cleanly into two lanes that meet at the end: a **content lane** (create the stack, import the model, publish, mint a delivery token) and a **code lane** (install the package, wire the module, configure). Neither renders anything on its own — you need the delivery token from the content lane plugged into the config from the code lane before hybrid works.
+The steps below split cleanly into two lanes that meet at the end: a **content lane** (create the stack, import the model, publish, mint a delivery token) and a **code lane** (build the Spartacus base app, install the package, wire the module, configure). Neither renders anything on its own — you need the delivery token from the content lane plugged into the config from the code lane before hybrid works.
 
 ```mermaid
 flowchart TD
@@ -38,7 +71,8 @@ flowchart TD
     C --> D["Create delivery token<br/>(read-only)"]
     D --> W
 
-    I["npm install connector<br/>+ delivery-sdk"] --> N["ng add (Option A)<br/>or manual wire (Option B)"]
+    S0["Step 0: ng new + RBSC .npmrc<br/>ng add @spartacus 221121.15.1"] --> I["npm install connector<br/>+ delivery-sdk"]
+    I --> N["ng add (Option A)<br/>or manual wire (Option B)"]
     N --> CFG["Configure<br/>ContentstackConfig"]
     CFG --> W["Run: ng serve"]
     W --> V{"Hybrid working?"}
@@ -52,7 +86,68 @@ flowchart TD
 
 ---
 
+## Step 0: Create the Spartacus base app
+
+> Skip this step if you already have a running Composable Storefront (`221121.15.1`) app; go to [Step 1](#step-1-install).
+
+### 0.1 Scaffold an Angular 21 project
+
+Use **Angular CLI 21**. Keep the app standalone (the Angular 21 default) but force **classic filenames** with `--file-name-style-guide=2016` — the Spartacus schematic expects the classic `app.module.ts` layout and bridges it for you. Scaffold with **`--skip-install`** so no `npm install` runs before the `.npmrc` is in place:
+
+```bash
+NG_CLI_ANALYTICS=false npx -y -p @angular/cli@21 ng new my-storefront \
+  --style=scss \
+  --file-name-style-guide=2016 \
+  --ssr=false \
+  --skip-install \
+  --defaults
+```
+
+`--defaults` suppresses the interactive prompts so it runs unattended. The resulting app is zoneless — Spartacus `221121.15.1` builds and runs on it.
+
+> [!IMPORTANT]
+> **Add the `.npmrc` before the first install.** Copy the RBSC [`.npmrc`](#the-rbsc-npmrc-required-to-install-spartacus) into the new `my-storefront/` folder now — its `legacy-peer-deps=true` is required not only to resolve Spartacus's peers but to avoid a known npm 10.x crash (`Cannot read properties of null (reading 'edgesOut')`) that a plain `npm install` on a fresh Angular 21 app hits. Because we used `--skip-install` above, no install has run yet — so add the file, then install:
+> ```bash
+> cd my-storefront
+> # …create .npmrc here…
+> npm install
+> ```
+
+### 0.2 Add Spartacus (from the RBSC registry)
+
+From inside `my-storefront/`, run the Spartacus schematic **pinned to the Angular-21 release tag** `221121.15.1`, pointed at **your** OCC backend and base site:
+
+```bash
+npx ng add @spartacus/schematics@221121.15.1 \
+  --skip-confirmation \
+  --base-url=<YOUR_OCC_BASE_URL> \
+  --base-site=<YOUR_BASE_SITE> \
+  --interactive=false
+```
+
+This installs `@spartacus/*` (from RBSC) and wires the storefront modules, configuration, styles, and shell.
+
+- **The "Which Spartacus features would you like to set up?" prompt is expected** in interactive mode. Press `Enter` to accept the recommended default set (`Space` toggles, arrows move); `--interactive=false` (above) applies that default set with no prompt.
+- **Don't pass `--feature-level=6.7`.** The Angular CLI parses the numeric value as a number and the schematic rejects it (`Data path "/featureLevel" must be string`). Omit it — the schematic applies its default feature level — or set `context.featureLevel` in `spartacus-configuration.module.ts` afterward.
+- **Unattended / CI:** the `--features` option can't take a custom subset on the command line. **Omit `--features`** and add `--interactive=false` — the schematic applies the default feature set with no prompt. For a custom subset non-interactively, install the base first, then add each feature with its own schematic (e.g. `ng add @spartacus/tracking`).
+- **Self-signed OCC cert:** keep an **absolute** `baseUrl` in the generated config and accept the cert in the browser once. Do **not** switch to `baseUrl: '/'` + a dev proxy — Spartacus then builds protocol-relative `//occ/v2/...` URLs that break.
+
+### 0.3 Verify the plain storefront before adding the CMS
+
+```bash
+ng serve --port 4200
+```
+
+You should see a working SAP storefront (header, nav, footer, PLP/PDP, cart) with content served entirely from OCC. Once that renders, continue to Step 1 to add Contentstack.
+
+> [!IMPORTANT]
+> **A completely blank page here almost always means the OCC cert wasn't accepted.** If your backend uses a self-signed certificate (common for dev), the browser silently blocks every OCC call with `ERR_CERT_AUTHORITY_INVALID` and Spartacus can't bootstrap the site context — so nothing renders, Contentstack included. Open the OCC base URL directly in the same browser once and click through the security warning, then reload. See [troubleshooting](troubleshooting.md#err_cert_authority_invalid-or-http-failure-response--0-undefined-calling-occ).
+
+---
+
 ## Step 1: Install
+
+From inside `my-storefront/`, install the connector plus the delivery SDK (the app imports `Region` from it directly):
 
 ```bash
 npm install @contentstack/contentstack-spartacus-connector @contentstack/delivery-sdk
@@ -65,6 +160,12 @@ npm install @contentstack/contentstack-spartacus-connector @contentstack/deliver
 ## Step 2: Provision the content model, demo seed (csdx)
 
 Create an **empty stack** whose master locale is **English – United States (`en-us`)**, then import the **Content Model Starter Pack** (`import-export/starter-pack/`):
+
+> [!TIP]
+> Run the pack's offline preflight check before importing to catch a malformed data-dir early:
+> ```bash
+> node ./node_modules/@contentstack/contentstack-spartacus-connector/import-export/starter-pack/preflight.mjs
+> ```
 
 ```bash
 npm install -g @contentstack/cli
@@ -83,19 +184,36 @@ One command imports the **17 content types** (4 per-template page types + a `glo
 Starting import of content types ...
 Migrating content type: landing_page ... done
 ... (17 content types)
-Starting import of locales ...  4 locales imported
+Starting import of locales ...  3 locales imported  (de-de, ja-jp, zh-cn; en-us is the master set at stack creation)
 Starting import of assets ...   1 asset imported
 Starting import of entries ...  54 entries imported
 Starting import of environments ... development
 The import process has completed successfully.
 ```
 
-Then, in the Contentstack UI, **publish** the seed entries **and the asset** to `development` and create a **delivery token** for that environment (Settings → Tokens → Delivery Tokens, scoped to `development`). That token plus the stack API key are the only Contentstack credentials the storefront needs.
+Then, in the Contentstack UI, **publish** the seed content to `development`:
+
+1. **Entries** — select **all** imported entries (across every content type) and bulk-publish them to `development` in the **`en-us`** locale (also publish `de-de` for the entries that have a German version, to see the language switch relabel menus). Every content type's entries must be published, not just `landing_page` — the home page references banners, carousels, and navigation entries, and an unpublished reference renders as an empty slot.
+2. **Asset** — publish the hero-banner asset to `development` too (an unpublished asset shows as a broken/empty image even when its entry is live).
+3. **Delivery token** — create one for `development` (Settings → Tokens → Delivery Tokens, scoped to `development`) if you don't already have one.
+
+That delivery token plus the stack API key are the only Contentstack credentials the storefront needs.
 
 **Common pitfalls**
 
 - **Wrong master locale.** The pack's entries are authored in `en-us`; a stack whose master locale is anything else will mis-resolve fallbacks. Create the stack with `en-us` as master before importing.
-- **Region mismatch.** `csdx config:set:region` must match the stack's data center, and the same region has to be set on `delivery.region` in Step 4 — otherwise the storefront queries the wrong host and gets empty content.
+- **Region mismatch.** `csdx config:set:region` must match the stack's data center, and the same region has to be set on `delivery.region` in Step 4 — otherwise the storefront queries the wrong host and gets empty content. **The two tools spell the same region differently** — csdx uses `NA`/`EU`/`AZURE-NA`/…, while the connector (`--region` / `Region.*`) uses `US`/`EU`/`AZURE-NA`/…:
+
+  | Data center | csdx (`config:set:region`) | Connector (`--region` / `Region.*`) |
+  |---|---|---|
+  | North America | `NA` | `US` / `Region.US` |
+  | Europe | `EU` | `EU` / `Region.EU` |
+  | Azure NA | `AZURE-NA` | `AZURE-NA` / `Region.AZURE_NA` |
+  | Azure EU | `AZURE-EU` | `AZURE-EU` / `Region.AZURE_EU` |
+  | GCP NA | `GCP-NA` | `GCP-NA` / `Region.GCP_NA` |
+  | GCP EU | `GCP-EU` | `GCP-EU` / `Region.GCP_EU` |
+
+  Only **North America differs** (`NA` vs `US`); the rest match. A stack on NA uses `csdx config:set:region NA` **and** `--region=US`.
 - **Nothing renders after import.** The import stages content as *draft*. Until you **publish** the entries and asset to `development`, the delivery token returns nothing. Publishing is a manual UI step by design.
 - **Partial data-dir.** Point `--data-dir` at the full starter-pack folder, not a subfolder — csdx expects a complete export skeleton (every module folder + a `global_fields` file) and crashes on an incomplete one.
 

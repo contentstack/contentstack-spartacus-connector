@@ -125,19 +125,7 @@ Without this, the field resolves as an unexpanded pointer, `isMediaContainer()` 
 
 **The connector already pairs every slot with its `media_container` path.** Because slot discovery has no type restriction — *any* slot field can hold a banner — the connector can't know in advance which slots contain banners, so its internal `PAGE_REFERENCE_FIELDS` (in [`slot-maps.ts`](../src/cms/model/slot-maps.ts)) expands each slot field into both `<field>` and `<field>.media_container`. The `includeReferences` snippet above is the **app-level** equivalent for any path the connector's default fetch doesn't cover (e.g. a [custom slot](#custom-slots-unlimited)); add one `<slot>.media_container` entry per custom slot you author banners into.
 
-**Banner media resolution order.** [`ContentstackCmsBannerComponentNormalizer`](../src/cms/converters/components/contentstack-cms-banner-component.normalizer.ts) fills `CmsBannerComponent.media` in a strict priority, using the first source that yields any file:
-
-```mermaid
-flowchart TD
-  A["banner entry"] --> B{"resolved<br/>media_container?"}
-  B -- yes --> C["per-breakpoint files<br/>from media_container"]
-  B -- no --> D{"any media_&lt;breakpoint&gt;<br/>file on the banner?"}
-  D -- yes --> E["direct per-breakpoint files<br/>(missing filled from largest)"]
-  D -- no --> F{"single 'media' file?"}
-  F -- yes --> G["one file applied<br/>to every breakpoint"]
-  F -- no --> H["no media"]
-```
-*The banner normalizer prefers a resolved `media_container`, then direct `media_<breakpoint>` files, then a single `media` file — each breakpoint maps to `{ url, code, mime, altText }`.*
+**Banner media resolution order.** [`ContentstackCmsBannerComponentNormalizer`](../src/cms/converters/components/contentstack-cms-banner-component.normalizer.ts) fills `CmsBannerComponent.media` in a strict priority, using the **first** source that yields any file:
 
 1. A **resolved `media_container`** reference — pulls `desktop` / `mobile` / `tablet` / `widescreen` file fields off the referenced entry.
 2. **Direct per-breakpoint file fields on the banner** (`media_desktop`, `media_mobile`, `media_tablet`, `media_widescreen`) — the shape the starter pack uses. Any missing breakpoint is filled from the largest available (`widescreen` → `desktop` → `tablet` → `mobile`), so every breakpoint renders something.
@@ -178,23 +166,14 @@ Tab **headers** are UI chrome derived from an i18n key `product:<container>.tabs
 
 Contentstack field uids must be lowercase `snake_case` (the API enforces `^[a-z][a-z0-9_]*$`); SAP typecodes/positions are `PascalCase`. The connector maps both directions — `toTypeCode` (component uid → SAP typeCode), `toSlotName` / `SLOT_FIELD_TO_SAP_NAME` (slot field uid → SAP position) — so authors use clean names and rendering still hits the right SAP component/slot. A custom content type not in `TYPECODE_MAP`, or a slot field not in `SLOT_FIELD_TO_SAP_NAME`, falls back to its **raw uid** (identity mapping) rather than erroring.
 
-```mermaid
-flowchart LR
-  subgraph CS["Contentstack (snake_case)"]
-    U["content-type uid<br/>simple_responsive_banner_component"]
-    F["slot field uid<br/>section2_a"]
-  end
-  subgraph SAP["SAP (PascalCase)"]
-    T["typeCode<br/>SimpleResponsiveBannerComponent"]
-    P["slot position<br/>Section2A"]
-  end
-  A["Angular component<br/>(CmsConfig.cmsComponents)"]
-  U -->|toTypeCode / TYPECODE_MAP| T
-  F -->|toSlotName / SLOT_FIELD_TO_SAP_NAME| P
-  T --> A
-  P -->|renders in| A
-```
-*A component's snake_case uid resolves to its SAP typeCode and a slot field's uid to its SAP position; Spartacus then selects the Angular component from the typeCode via `cmsComponents`, placed in the mapped slot.*
+Each name crosses from Contentstack's `snake_case` to SAP's `PascalCase` through one mapping function, and Spartacus then renders it:
+
+| Contentstack (`snake_case`) | Mapping function | SAP (`PascalCase`) | Then |
+|---|---|---|---|
+| content-type uid — `simple_responsive_banner_component` | `toTypeCode` / `TYPECODE_MAP` | typeCode — `SimpleResponsiveBannerComponent` | Spartacus selects the Angular component for this typeCode via `CmsConfig.cmsComponents` |
+| slot field uid — `section2_a` | `toSlotName` / `SLOT_FIELD_TO_SAP_NAME` | slot position — `Section2A` | the selected component renders in this slot |
+
+*A component's uid resolves to its SAP typeCode and a slot field's uid to its SAP position; Spartacus selects the Angular component from the typeCode via `cmsComponents`, placed in the mapped slot.*
 
 Why lowercase at all? The content-model translator that generated the starter pack lowercased every SAP typeCode and slot name on import (to satisfy Contentstack's uid rule) and recorded the reverse mapping in `docs/typecode-map.json` / `docs/slot-field-map.json`. `TYPECODE_MAP` and `SLOT_FIELD_TO_SAP_NAME` are those two files, made code — so the normalizer emits the exact PascalCase names Spartacus's rendering engine and `CmsConfig.cmsComponents` expect. The identity fallback is what makes the model extensible: a brand-new component type you invent renders under its own uid, and you register that uid in `cmsComponents` directly.
 

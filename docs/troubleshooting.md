@@ -3,7 +3,7 @@ title: "Troubleshooting"
 product: spartacus-connector
 type: troubleshooting
 tags: [spartacus-connector, troubleshooting]
-last_updated: "2026-09-21"
+last_updated: "2026-09-22"
 ---
 
 # Troubleshooting
@@ -127,7 +127,64 @@ If a page's referenced components arrive as bare uid refs with no content, the f
 
 **Cause:** public npm's `@spartacus/*` packages haven't been updated in years and cap out around `4.3.8`. The current Composable Storefront line is distributed **only** via SAP's private RBSC registry, which requires an SAP Universal ID.
 
-**Fix:** register for RBSC access, or — if you already have a modern Spartacus source vendored locally — consume that directly instead of via public npm.
+**Fix:** configure the RBSC [`.npmrc`](installation.md#the-rbsc-npmrc-required-to-install-spartacus) in your project root, then pin the schematic to the Angular-21 release tag:
+
+```bash
+npx ng add @spartacus/schematics@221121.15.1 \
+  --skip-confirmation --base-url=<YOUR_OCC_BASE_URL> --base-site=<YOUR_BASE_SITE> --feature-level=6.7
+```
+
+See [installation › Step 0](installation.md#step-0-create-the-spartacus-base-app).
+
+---
+
+## `EBADENGINE` warnings, or Spartacus won't run on Node 20
+
+**Symptom:** `npm install` logs `EBADENGINE` warnings; or a Node 20 build behaves unexpectedly.
+
+**Cause:** Spartacus `221121.15.1` declares `node ^22.22.0`. On older 22.x the warnings are non-fatal; Node 20 is not supported.
+
+**Fix:** use **Node `22.22.0`+**. The `EBADENGINE` warnings then disappear.
+
+---
+
+## `npm install` rejects Spartacus peer dependencies (`ERESOLVE`)
+
+**Symptom:** installing `@spartacus/*` fails with `ERESOLVE could not resolve` peer-dependency errors.
+
+**Cause:** Spartacus declares a dense set of exact-version Angular/ngrx peers that npm 7+'s strict resolver rejects.
+
+**Fix:** add `legacy-peer-deps=true` to your project `.npmrc` (it's part of the [RBSC `.npmrc`](installation.md#the-rbsc-npmrc-required-to-install-spartacus)). This is SAP's own documented install requirement.
+
+---
+
+## Wrong Angular line — `2211.43.0` pulled instead of `221121.15.1`
+
+**Symptom:** the app installs but Angular/Spartacus versions don't match the connector's Angular 21 peers.
+
+**Cause:** `2211.43.0` looks newer than `221121.15.1` but is an older **Angular 19** line. The Angular 21 line is `221121.15.1`.
+
+**Fix:** always pin `@spartacus/schematics@221121.15.1`.
+
+---
+
+## `ng add @spartacus/schematics` prompts for features (blocks CI)
+
+**Symptom:** the schematic stops at "Which Spartacus features would you like to set up?"
+
+**Cause:** expected interactive prompt.
+
+**Fix:** press `Enter` to accept the default set. For CI, **omit `--features`** and add `--interactive=false` — the default set is applied with no prompt. `--features` cannot take a custom subset on the command line.
+
+---
+
+## `Data path "/featureLevel" must be string` on `ng add @spartacus/schematics`
+
+**Symptom:** the Spartacus schematic aborts with `Schematic input does not validate against the Schema … Data path "/featureLevel" must be string`.
+
+**Cause:** `--feature-level=6.7` — the Angular CLI parses the numeric-looking value as a **number**, but the schema requires a string.
+
+**Fix:** **omit `--feature-level`** (the schematic applies its default), then set `context.featureLevel` in `spartacus-configuration.module.ts` if you need a specific level. See [installation › Step 0.2](installation.md#02-add-spartacus-from-the-rbsc-registry).
 
 ---
 
