@@ -27,6 +27,8 @@ describe('ContentstackCmsPageNormalizer', () => {
     new ContentstackCmsNavigationComponentNormalizer(),
     new ContentstackCmsProductCarouselComponentNormalizer(),
     new ContentstackFieldMapper(),
+    // Live preview ON: the page path is the preview path that produces `$`.
+    { contentstack: { delivery: { livePreview: true } } } as typeof config,
   );
   const typeRegistry = new ContentstackComponentTypeRegistry();
   const normalizer = new ContentstackCmsPageNormalizer(

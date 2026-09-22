@@ -278,7 +278,10 @@ export class ContentstackClientService {
    * `data-cslp` attributes. Only invoked when `delivery.livePreview` is on, so
    * pure delivery builds are untouched.
    */
-  protected tagForLivePreview(entry: ContentstackCmsPageEntry, contentTypeUid: string): void {
+  protected tagForLivePreview(
+    entry: ContentstackCmsPageEntry | ContentstackEntry,
+    contentTypeUid: string,
+  ): void {
     tagEntryTree(entry, contentTypeUid, entry.locale ?? 'en-us');
   }
 
@@ -312,6 +315,14 @@ export class ContentstackClientService {
             access.permissions,
             access.gateRoot,
           );
+        }
+        // Tag standalone/adapter-loaded entries too (unresolved references,
+        // per-uid reloads on a language switch), mirroring the page path — so a
+        // component reaching an editable renderer through this fetch still
+        // carries its `$` field-tag map and stays inline-editable in Visual
+        // Builder. Only when live preview is on, so delivery builds are untouched.
+        if (result && this.config.contentstack?.delivery?.livePreview) {
+          this.tagForLivePreview(result, contentTypeUid);
         }
         return result;
       });
@@ -353,11 +364,18 @@ export class ContentstackClientService {
             // Filter gated content BEFORE it is persisted to TransferState:
             // each restricted entry is redacted to a tags-only stub so the adapter
             // still counts it as "found" (no OCC refetch) without shipping content.
-            return access
+            const sanitized = access
               ? list.map((entry) =>
                   this.restrictions.sanitizeForTransfer(entry, access.permissions, access.gateRoot),
                 )
               : list;
+            // Tag adapter-loaded entries in preview so multi-uid reloads (e.g. a
+            // language switch) keep their `$` field-tag map and stay editable in
+            // Visual Builder — mirrors getEntryByUid and the page path.
+            if (this.config.contentstack?.delivery?.livePreview) {
+              sanitized.forEach((entry) => this.tagForLivePreview(entry, contentTypeUid));
+            }
+            return sanitized;
           });
       },
       // Failure fallback: an empty array, never `undefined` — the return type is

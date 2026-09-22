@@ -4,14 +4,23 @@ import { ContentstackCmsNavigationComponentNormalizer } from './components/conte
 import { ContentstackCmsProductCarouselComponentNormalizer } from './components/contentstack-cms-product-carousel-component.normalizer';
 import { ContentstackFieldMapper } from './contentstack-field-mapper';
 import { ContentstackEntry } from '../model/contentstack.model';
+import { ContentstackConfig } from '../../config/contentstack-config';
 
-describe('ContentstackCmsComponentNormalizer', () => {
-  const normalizer = new ContentstackCmsComponentNormalizer(
+/** Build a normalizer whose config reports live preview on/off. */
+function makeNormalizer(livePreview: boolean): ContentstackCmsComponentNormalizer {
+  return new ContentstackCmsComponentNormalizer(
     new ContentstackCmsBannerComponentNormalizer(),
     new ContentstackCmsNavigationComponentNormalizer(),
     new ContentstackCmsProductCarouselComponentNormalizer(),
     new ContentstackFieldMapper(),
+    { contentstack: { delivery: { livePreview } } } as ContentstackConfig,
   );
+}
+
+describe('ContentstackCmsComponentNormalizer', () => {
+  // Default instance runs with live preview ON, matching the preview builds
+  // where the `$` field-tag map is produced and consumed.
+  const normalizer = makeNormalizer(true);
 
   it('maps a standalone entry to a CmsComponent with typeCode from content type', () => {
     const entry: ContentstackEntry = {
@@ -70,6 +79,19 @@ describe('ContentstackCmsComponentNormalizer', () => {
       _content_type_uid: 'cms_paragraph_component',
       content: '<p>Hi</p>',
     });
+    expect('$' in (component as any)).toBe(false);
+  });
+
+  it('does NOT propagate $ when live preview is off, even if the entry carries tags', () => {
+    // Defense-in-depth: a stray `$` must never leak into a production delivery
+    // build (would emit `data-cslp` on the live site otherwise).
+    const deliveryNormalizer = makeNormalizer(false);
+    const component = deliveryNormalizer.convert({
+      uid: 'blt1',
+      _content_type_uid: 'cms_paragraph_component',
+      content: '<p>Hi</p>',
+      $: { content: { 'data-cslp': 'cms_paragraph_component.blt1.en-us.content' } },
+    } as any);
     expect('$' in (component as any)).toBe(false);
   });
 

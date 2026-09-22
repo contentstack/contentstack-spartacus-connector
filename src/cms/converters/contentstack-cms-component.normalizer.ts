@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CmsComponent, Converter } from '@spartacus/core';
+import { ContentstackConfig } from '../../config/contentstack-config';
 import { ContentstackEntry } from '../model/contentstack.model';
 import { toTypeCode } from '../model/slot-maps';
 import { ContentstackFieldMapper } from './contentstack-field-mapper';
@@ -45,6 +46,7 @@ export class ContentstackCmsComponentNormalizer implements Converter<
     protected navigationNormalizer: ContentstackCmsNavigationComponentNormalizer,
     protected productCarouselNormalizer: ContentstackCmsProductCarouselComponentNormalizer,
     protected fieldMapper: ContentstackFieldMapper,
+    protected config: ContentstackConfig,
   ) {}
 
   convert(source: ContentstackEntry, target: CmsComponent = {}): CmsComponent {
@@ -73,9 +75,13 @@ export class ContentstackCmsComponentNormalizer implements Converter<
       // Preserve the Live Preview field-tag map (`entry.$`, added by
       // tagEntryTree when livePreview is on) so connector-provided editable
       // components can bind a per-field `data-cslp` via CsEditableDirective.
-      // Only present on preview builds; absent (and omitted) otherwise, so stock
-      // components and production delivery are byte-for-byte unaffected.
-      ...(source['$'] ? { $: source['$'] } : {}),
+      // Gated on the live-preview flag as defense-in-depth: even if a `$` map is
+      // ever attached to an entry outside a preview build, it is NOT propagated
+      // to the component here, so a normal production delivery emits no
+      // `data-cslp` and is byte-for-byte unaffected.
+      ...(this.config.contentstack?.delivery?.livePreview && source['$']
+        ? { $: source['$'] }
+        : {}),
     } as CmsComponent;
 
     if (BANNER_TYPE_CODES.has(typeCode)) {
