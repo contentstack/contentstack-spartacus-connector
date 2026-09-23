@@ -357,11 +357,32 @@ The `cmsComponents` map key **must equal** the SAP typecode the normalizer emits
 
 ---
 
-## Step 6: Run and verify
+## Step 6: Run
 
 ```bash
 ng serve   # or your SSR command
 ```
+
+Open `http://localhost:4200/` (or your dev port). **If the page is blank on first load, that's expected** when the SAP backend uses a self-signed cert — accept it in [Step 7](#step-7-accept-the-sap-backends-tls-cert-one-time-per-browser), then confirm hybrid rendering in [Step 8](#step-8-verify).
+
+---
+
+## Step 7: Accept the SAP backend's TLS cert (one-time per browser)
+
+**The page will be blank on first load — that's expected** if your SAP Commerce backend uses a self-signed certificate (normal for dev/local). The browser rejects it with `ERR_CERT_AUTHORITY_INVALID` and blocks every OCC call (status `0` in the Network tab), so Spartacus can't fetch base-site/product data and nothing renders — Contentstack content included, because the connector's page adapter never runs until the site context bootstraps from OCC.
+
+**Fix (dev only):**
+
+1. In the **same browser**, open your OCC base URL directly — e.g. `<YOUR_OCC_BASE_URL>/occ/v2/basesites`.
+2. Click through the security warning (**Advanced → Proceed**) to add an exception for that origin.
+3. Reload `http://localhost:4200/` (or your dev port) — it now hydrates, and you'll see the hybrid dual traffic described in [Step 8](#step-8-verify).
+
+> [!NOTE]
+> **SSR builds:** there's no browser to click through, so start the SSR server with `NODE_TLS_REJECT_UNAUTHORIZED=0` — **dev only, never in production**. Production SAP Commerce backends have valid, CA-signed certs, so none of this applies there. See [troubleshooting › ERR_CERT_AUTHORITY_INVALID](troubleshooting.md#err_cert_authority_invalid-or-http-failure-response--0-undefined-calling-occ).
+
+---
+
+## Step 8: Verify
 
 Expect:
 1. The full **SAP shell** (header, nav, footer) + functional pages render from OCC — the store works end-to-end.
@@ -374,21 +395,6 @@ Expect:
 - Requests to **`/occ/v2/<site>/...`** for the base page structure and for live commerce data (product price/stock, cart) — this is SAP serving the base and hydrating commerce.
 - Seeing **only** `/occ/v2/...` and no `cdn.contentstack.io` call means the connector isn't intercepting — recheck module import ordering ([Option B](#option-b-manual)) and that `localeMapping` resolves to a locale your stack actually has. See [troubleshooting](troubleshooting.md).
 - Switching the site language should fire a fresh Contentstack query in the mapped locale; the seed's `de-de` menus relabel (e.g. *Cameras → Kameras*) while `ja`/`zh` fall back to English.
-
----
-
-## Step 7: Accept the SAP backend's TLS cert (one-time per browser)
-
-**The page will be blank on first load — that's expected** if your SAP Commerce backend uses a self-signed certificate (normal for dev/local). The browser rejects it with `ERR_CERT_AUTHORITY_INVALID` and blocks every OCC call (status `0` in the Network tab), so Spartacus can't fetch base-site/product data and nothing renders — Contentstack content included, because the connector's page adapter never runs until the site context bootstraps from OCC.
-
-**Fix (dev only):**
-
-1. In the **same browser**, open your OCC base URL directly — e.g. `<YOUR_OCC_BASE_URL>/occ/v2/basesites`.
-2. Click through the security warning (**Advanced → Proceed**) to add an exception for that origin.
-3. Reload `http://localhost:4200/` (or your dev port) — it now hydrates, and you'll see the hybrid dual traffic from [Step 6](#step-6-run-and-verify).
-
-> [!NOTE]
-> **SSR builds:** there's no browser to click through, so start the SSR server with `NODE_TLS_REJECT_UNAUTHORIZED=0` — **dev only, never in production**. Production SAP Commerce backends have valid, CA-signed certs, so none of this applies there. See [troubleshooting › ERR_CERT_AUTHORITY_INVALID](troubleshooting.md#err_cert_authority_invalid-or-http-failure-response--0-undefined-calling-occ).
 
 ---
 
