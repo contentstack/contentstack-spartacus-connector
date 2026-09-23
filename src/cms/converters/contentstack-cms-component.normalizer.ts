@@ -79,9 +79,7 @@ export class ContentstackCmsComponentNormalizer implements Converter<
       // ever attached to an entry outside a preview build, it is NOT propagated
       // to the component here, so a normal production delivery emits no
       // `data-cslp` and is byte-for-byte unaffected.
-      ...(this.config.contentstack?.delivery?.livePreview && source['$']
-        ? { $: source['$'] }
-        : {}),
+      ...(this.config.contentstack?.delivery?.livePreview && source['$'] ? { $: source['$'] } : {}),
     } as CmsComponent;
 
     if (BANNER_TYPE_CODES.has(typeCode)) {

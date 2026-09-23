@@ -54,7 +54,11 @@ export interface ContentstackEditableProductCarouselData extends CmsProductCarou
   imports: [CommonModule, CarouselModule, ProductCarouselModule, CsEditableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div *ngIf="data$ | async as data" class="cs-editable-carousel" [csEditable]="data.$?.['title']">
+    <div
+      *ngIf="data$ | async as data"
+      class="cs-editable-carousel"
+      [csEditable]="data.$?.['title']"
+    >
       <h3 *ngIf="data.title" class="cs-editable-carousel-title">
         {{ data.title }}
       </h3>
