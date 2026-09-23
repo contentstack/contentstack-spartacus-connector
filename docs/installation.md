@@ -191,13 +191,33 @@ Starting import of environments ... development
 The import process has completed successfully.
 ```
 
-Then, in the Contentstack UI, **publish** the seed content to `development`:
+The import stages everything as **draft** (`Entries Publish 0/0` above), so nothing is delivered yet — you must **publish** the seed content to `development`. Do it with the CLI (fastest, reuses the `csdx auth:login` session from above) or in the UI.
 
-1. **Entries** — select **all** imported entries (across every content type) and bulk-publish them to `development` in the **`en-us`** locale (also publish `de-de` for the entries that have a German version, to see the language switch relabel menus). Every content type's entries must be published, not just `landing_page` — the home page references banners, carousels, and navigation entries, and an unpublished reference renders as an empty slot.
-2. **Asset** — publish the hero-banner asset to `development` too (an unpublished asset shows as a broken/empty image even when its entry is live).
-3. **Delivery token** — create one for `development` (Settings → Tokens → Delivery Tokens, scoped to `development`) if you don't already have one.
+**Publish with the CLI (recommended).** Every content type's entries must be published, not just `landing_page` — the home page references banners, carousels, and navigation entries, and an unpublished reference renders as an empty slot.
 
-That delivery token plus the stack API key are the only Contentstack credentials the storefront needs.
+```bash
+# 1) Entries — --filter draft selects exactly what the import created;
+#    --publish-mode single avoids the 10-entry bulk-API cap.
+csdx cm:stacks:bulk-entries --operation publish --filter draft \
+  --environments development --locales en-us de-de \
+  --publish-mode single \
+  --stack-api-key <STACK_API_KEY> --yes
+
+# 2) Asset — the hero-banner image (an unpublished asset shows as a broken
+#    image even when its entry is live).
+csdx cm:stacks:bulk-assets --operation publish \
+  --environments development --locales en-us \
+  --stack-api-key <STACK_API_KEY> --yes
+```
+
+Expect `54 success, 0 failed` for entries (~11s) and `1 success, 0 failed` for the asset. (Entries with no `de-de` localization publish in `en-us` only — that's fine; they fall back to master.)
+
+**Or publish in the UI.** Select **all** imported entries (across every content type) and bulk-publish them to `development` in `en-us` (plus `de-de` where a German version exists), then publish the hero-banner asset to `development`.
+
+**Delivery token.** Create one for `development` (Settings → Tokens → Delivery Tokens, scoped to `development`) if you don't already have one. That delivery token plus the stack API key are the only Contentstack credentials the storefront needs.
+
+> [!TIP]
+> **Verify in the UI before wiring the app.** In the Contentstack UI, open the `landing_page` **Home** entry and confirm it shows **Published** on `development`; a quick way to check delivery works is the entry's *Published* badge plus the referenced banner/carousel/nav entries also showing published. If the entries are green in the UI, the delivery token will return them.
 
 **Common pitfalls**
 
@@ -214,7 +234,7 @@ That delivery token plus the stack API key are the only Contentstack credentials
   | GCP EU | `GCP-EU` | `GCP-EU` / `Region.GCP_EU` |
 
   Only **North America differs** (`NA` vs `US`); the rest match. A stack on NA uses `csdx config:set:region NA` **and** `--region=US`.
-- **Nothing renders after import.** The import stages content as *draft*. Until you **publish** the entries and asset to `development`, the delivery token returns nothing. Publishing is a manual UI step by design.
+- **Nothing renders after import.** The import stages content as *draft*. Until you **publish** the entries and asset to `development` (CLI or UI, above), the delivery token returns nothing.
 - **Partial data-dir.** Point `--data-dir` at the full starter-pack folder, not a subfolder — csdx expects a complete export skeleton (every module folder + a `global_fields` file) and crashes on an incomplete one.
 
 > [!INFO]
