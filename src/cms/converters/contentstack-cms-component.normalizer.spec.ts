@@ -95,6 +95,35 @@ describe('ContentstackCmsComponentNormalizer', () => {
     expect('$' in (component as any)).toBe(false);
   });
 
+  it('does NOT leak $ through the passthrough mapper for a custom/unmapped type (preview off)', () => {
+    // The default field mapper returns ALL remaining fields, so `$` must be
+    // stripped BEFORE mapping — otherwise it would ride through for custom types
+    // even when live preview is off (the gate on the explicit spread alone would
+    // not catch it).
+    const deliveryNormalizer = makeNormalizer(false);
+    const component = deliveryNormalizer.convert({
+      uid: 'blt_widget',
+      _content_type_uid: 'my_custom_widget',
+      headline: 'Hi',
+      $: { headline: { 'data-cslp': 'my_custom_widget.blt_widget.en-us.headline' } },
+    } as any);
+    expect(component.typeCode).toBe('my_custom_widget');
+    expect((component as any).headline).toBe('Hi');
+    expect('$' in (component as any)).toBe(false);
+  });
+
+  it('keeps $ for a custom/unmapped type when live preview is on (mapper does not clobber it)', () => {
+    const component = normalizer.convert({
+      uid: 'blt_widget',
+      _content_type_uid: 'my_custom_widget',
+      headline: 'Hi',
+      $: { headline: { 'data-cslp': 'my_custom_widget.blt_widget.en-us.headline' } },
+    } as any);
+    expect((component as any).$?.headline?.['data-cslp']).toBe(
+      'my_custom_widget.blt_widget.en-us.headline',
+    );
+  });
+
   it('merges onto a provided target rather than replacing it', () => {
     const target = { container: true } as any;
     const component = normalizer.convert(
