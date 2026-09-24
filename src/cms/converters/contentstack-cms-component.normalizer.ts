@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CmsComponent, Converter } from '@spartacus/core';
+import { ContentstackConfig } from '../../config/contentstack-config';
 import { ContentstackEntry } from '../model/contentstack.model';
 import { toTypeCode } from '../model/slot-maps';
 import { ContentstackFieldMapper } from './contentstack-field-mapper';
@@ -45,6 +46,7 @@ export class ContentstackCmsComponentNormalizer implements Converter<
     protected navigationNormalizer: ContentstackCmsNavigationComponentNormalizer,
     protected productCarouselNormalizer: ContentstackCmsProductCarouselComponentNormalizer,
     protected fieldMapper: ContentstackFieldMapper,
+    protected config: ContentstackConfig,
   ) {}
 
   convert(source: ContentstackEntry, target: CmsComponent = {}): CmsComponent {
@@ -56,8 +58,14 @@ export class ContentstackCmsComponentNormalizer implements Converter<
       updated_at,
       publish_details,
       locale,
+      // Pull the Live Preview field-tag map OUT of `fields` so it can never ride
+      // through the field mapper. The default (passthrough) mapper returns all
+      // remaining fields, so leaving `$` in `fields` would leak it into custom /
+      // unmapped components even in a non-preview build — bypassing the gate
+      // below. We add it back explicitly (and only when live preview is on).
+      $: previewTags,
       ...fields
-    } = source;
+    } = source as ContentstackEntry & { $?: Record<string, unknown> };
 
     const typeCode = toTypeCode(_content_type_uid);
     const component = {
@@ -70,6 +78,13 @@ export class ContentstackCmsComponentNormalizer implements Converter<
       // Contentstack field uids must be lowercase, so this mapping is required
       // — a raw passthrough leaves e.g. links without a visible label.
       ...this.fieldMapper.map(typeCode, fields),
+      // Re-add the Live Preview field-tag map (`entry.$`, from tagEntryTree) so
+      // connector-provided editable components can bind a per-field `data-cslp`
+      // via CsEditableDirective. Gated on the live-preview flag as
+      // defense-in-depth: even if a `$` map is attached outside a preview build,
+      // it is NOT propagated here, so a normal production delivery emits no
+      // `data-cslp` and is byte-for-byte unaffected.
+      ...(this.config.contentstack?.delivery?.livePreview && previewTags ? { $: previewTags } : {}),
     } as CmsComponent;
 
     if (BANNER_TYPE_CODES.has(typeCode)) {

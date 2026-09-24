@@ -4,14 +4,23 @@ import { ContentstackCmsNavigationComponentNormalizer } from './components/conte
 import { ContentstackCmsProductCarouselComponentNormalizer } from './components/contentstack-cms-product-carousel-component.normalizer';
 import { ContentstackFieldMapper } from './contentstack-field-mapper';
 import { ContentstackEntry } from '../model/contentstack.model';
+import { ContentstackConfig } from '../../config/contentstack-config';
 
-describe('ContentstackCmsComponentNormalizer', () => {
-  const normalizer = new ContentstackCmsComponentNormalizer(
+/** Build a normalizer whose config reports live preview on/off. */
+function makeNormalizer(livePreview: boolean): ContentstackCmsComponentNormalizer {
+  return new ContentstackCmsComponentNormalizer(
     new ContentstackCmsBannerComponentNormalizer(),
     new ContentstackCmsNavigationComponentNormalizer(),
     new ContentstackCmsProductCarouselComponentNormalizer(),
     new ContentstackFieldMapper(),
+    { contentstack: { delivery: { livePreview } } } as ContentstackConfig,
   );
+}
+
+describe('ContentstackCmsComponentNormalizer', () => {
+  // Default instance runs with live preview ON, matching the preview builds
+  // where the `$` field-tag map is produced and consumed.
+  const normalizer = makeNormalizer(true);
 
   it('maps a standalone entry to a CmsComponent with typeCode from content type', () => {
     const entry: ContentstackEntry = {
@@ -50,6 +59,69 @@ describe('ContentstackCmsComponentNormalizer', () => {
       _content_type_uid: 'cms_paragraph_component',
     });
     expect(component.modifiedTime).toBeUndefined();
+  });
+
+  it('preserves the Live Preview field-tag map ($) so editable components can bind data-cslp', () => {
+    const component = normalizer.convert({
+      uid: 'blt1',
+      _content_type_uid: 'cms_paragraph_component',
+      content: '<p>Hi</p>',
+      $: { content: { 'data-cslp': 'cms_paragraph_component.blt1.en-us.content' } },
+    } as any);
+    expect((component as any).$?.content?.['data-cslp']).toBe(
+      'cms_paragraph_component.blt1.en-us.content',
+    );
+  });
+
+  it('omits $ entirely when the entry was not tagged (non-preview builds unchanged)', () => {
+    const component = normalizer.convert({
+      uid: 'blt1',
+      _content_type_uid: 'cms_paragraph_component',
+      content: '<p>Hi</p>',
+    });
+    expect('$' in (component as any)).toBe(false);
+  });
+
+  it('does NOT propagate $ when live preview is off, even if the entry carries tags', () => {
+    // Defense-in-depth: a stray `$` must never leak into a production delivery
+    // build (would emit `data-cslp` on the live site otherwise).
+    const deliveryNormalizer = makeNormalizer(false);
+    const component = deliveryNormalizer.convert({
+      uid: 'blt1',
+      _content_type_uid: 'cms_paragraph_component',
+      content: '<p>Hi</p>',
+      $: { content: { 'data-cslp': 'cms_paragraph_component.blt1.en-us.content' } },
+    } as any);
+    expect('$' in (component as any)).toBe(false);
+  });
+
+  it('does NOT leak $ through the passthrough mapper for a custom/unmapped type (preview off)', () => {
+    // The default field mapper returns ALL remaining fields, so `$` must be
+    // stripped BEFORE mapping — otherwise it would ride through for custom types
+    // even when live preview is off (the gate on the explicit spread alone would
+    // not catch it).
+    const deliveryNormalizer = makeNormalizer(false);
+    const component = deliveryNormalizer.convert({
+      uid: 'blt_widget',
+      _content_type_uid: 'my_custom_widget',
+      headline: 'Hi',
+      $: { headline: { 'data-cslp': 'my_custom_widget.blt_widget.en-us.headline' } },
+    } as any);
+    expect(component.typeCode).toBe('my_custom_widget');
+    expect((component as any).headline).toBe('Hi');
+    expect('$' in (component as any)).toBe(false);
+  });
+
+  it('keeps $ for a custom/unmapped type when live preview is on (mapper does not clobber it)', () => {
+    const component = normalizer.convert({
+      uid: 'blt_widget',
+      _content_type_uid: 'my_custom_widget',
+      headline: 'Hi',
+      $: { headline: { 'data-cslp': 'my_custom_widget.blt_widget.en-us.headline' } },
+    } as any);
+    expect((component as any).$?.headline?.['data-cslp']).toBe(
+      'my_custom_widget.blt_widget.en-us.headline',
+    );
   });
 
   it('merges onto a provided target rather than replacing it', () => {

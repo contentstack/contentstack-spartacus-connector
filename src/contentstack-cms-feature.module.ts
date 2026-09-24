@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContentstackCmsModule } from './cms/contentstack-cms.module';
 import { ContentstackLivePreviewModule } from './live-preview/contentstack-live-preview.module';
+import { ContentstackEditableComponentsModule } from './cms/components/contentstack-editable-components.module';
 import { ContentstackConfig } from './config/contentstack-config';
 import { defaultContentstackConfig } from './config/default-contentstack-config';
 import {
@@ -29,8 +30,14 @@ import {
  *     it stays inert on normal delivery builds and activates on preview builds.
  *  3. Registers {@link defaultContentstackConfig} as default config, so the app
  *     only needs to supply credentials via its own `provideConfig(...)`.
+ *  4. Imports {@link ContentstackEditableComponentsModule} — registers
+ *     connector-owned editable renderers for seeded starter-pack component types
+ *     (currently `CMSParagraphComponent`) that emit a **field-level** `data-cslp`
+ *     tag so Contentstack Visual Builder can inline-edit them. They render
+ *     identically to the stock Spartacus components and the edit tags are inert
+ *     outside preview builds, so this is transparent on normal delivery builds.
  *
- * (Both submodules were previously behind a lazy `CmsConfig.featureModules`
+ * (Both CMS/Live-Preview submodules were previously behind a lazy `CmsConfig.featureModules`
  * entry — the standard Spartacus code-splitting convention — but that gate only
  * fires when a `cmsComponents` component tagged with the feature renders, which
  * this connector never registers. So the entry never loaded and neither the CMS
@@ -40,8 +47,10 @@ import {
  *  - It does not import Spartacus's `SmartEditRootModule`. That omission is the
  *    primary SmartEdit bypass (no handshake APP_INITIALIZER, no CmsTicket
  *    interceptor) — see `guards/contentstack-smartedit-bypass.ts`.
- *  - It does not register any `cmsComponents` mappings. Mapping Contentstack
- *    block/content types to Angular components is app-specific; follow the
+ *  - It registers `cmsComponents` mappings only for the connector-owned editable
+ *    renderers of seeded starter-pack types (via
+ *    {@link ContentstackEditableComponentsModule}). Mapping your OWN
+ *    block/content types to Angular components stays app-specific; follow the
  *    pattern in the `examples/hero-banner` module.
  *
  * IMPORTANT — import ordering: import `ContentstackCmsFeatureModule` *after* the
@@ -50,7 +59,11 @@ import {
  * `SpartacusFeaturesModule` (or after `StorefrontModule`) satisfies this.
  */
 @NgModule({
-  imports: [ContentstackCmsModule, ContentstackLivePreviewModule],
+  imports: [
+    ContentstackCmsModule,
+    ContentstackLivePreviewModule,
+    ContentstackEditableComponentsModule,
+  ],
   providers: [
     provideDefaultConfig(defaultContentstackConfig),
     // Bind the typed config accessor to Spartacus's merged global Config, so

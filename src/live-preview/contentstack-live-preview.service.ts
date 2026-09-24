@@ -53,6 +53,15 @@ export class ContentstackLivePreviewService {
     if (!this.config.contentstack?.delivery?.livePreview) {
       return;
     }
+    // Contentstack's Live Preview SDK injects one global inspector tooltip
+    // (`#cslp-tooltip`) and does NOT reset it on Angular's client-side route
+    // changes. After visiting a page with editable content, that tooltip can
+    // linger on the next page — still pointing at the now-unmounted entry — even
+    // on an OCC-only page with no Contentstack islands (e.g. a category/PLP
+    // page), showing a stray "Edit" button that opens the wrong entry. Hide it
+    // on every navigation so it only reappears when the shopper actually hovers
+    // a tagged element on the current page.
+    this.routingService.getPageContext().subscribe(() => this.resetInspectorTooltip());
     // Track the active language for the whole session. The Visual Builder SDK
     // is initialized ONCE (it does not re-init cleanly, so the VB *session* is
     // single-locale), but the storefront's on-page edit tags must still follow
@@ -129,6 +138,24 @@ export class ContentstackLivePreviewService {
         el.setAttribute('data-cslp', next);
       }
     });
+  }
+
+  /**
+   * Hide Contentstack's global Live Preview inspector tooltip (`#cslp-tooltip`)
+   * by parking it offscreen. The SDK repositions it via inline `top`/`left` when
+   * the shopper hovers a genuinely tagged element on the current page, so this
+   * only clears a stale target carried over from a previous route — it does not
+   * disable editing. Browser-only; no-op under SSR.
+   */
+  protected resetInspectorTooltip(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    const tooltip = document.getElementById('cslp-tooltip');
+    if (tooltip) {
+      tooltip.style.top = '-9999px';
+      tooltip.style.left = '-9999px';
+    }
   }
 
   /**
