@@ -20,10 +20,16 @@ export function classifyParagraphHref(href: string | null | undefined): Paragrap
     return null;
   }
   if (value.startsWith('#')) {
-    const id = decodeURIComponent(value.slice(1));
+    const raw = value.slice(1);
+    let id = raw;
+    try {
+      id = decodeURIComponent(raw);
+    } catch {
+      // A malformed escape (`#100%`) is kept as authored rather than thrown from a click handler.
+    }
     return id ? { kind: 'hash', id } : null;
   }
-  if (value.startsWith('/') && !value.startsWith('//')) {
+  if (value.startsWith('/') && value[1] !== '/' && value[1] !== '\\') {
     return { kind: 'internal', url: value };
   }
   return null;

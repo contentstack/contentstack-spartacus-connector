@@ -108,7 +108,11 @@ export class ContentstackEditableParagraphComponent implements AfterViewChecked 
       return;
     }
     const anchor = (event.target as Element | null)?.closest?.('a');
-    if (!anchor || (anchor.target && anchor.target !== '_self')) {
+    if (
+      !anchor ||
+      anchor.hasAttribute('download') ||
+      (anchor.target && anchor.target !== '_self')
+    ) {
       return;
     }
     const action = classifyParagraphHref(anchor.getAttribute('href'));
@@ -119,7 +123,11 @@ export class ContentstackEditableParagraphComponent implements AfterViewChecked 
     if (action.kind === 'internal') {
       void this.router.navigateByUrl(action.url);
     } else {
-      anchor.ownerDocument.getElementById(action.id)?.scrollIntoView?.();
+      const target =
+        Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('[id]')).find(
+          (el) => el.id === action.id,
+        ) ?? anchor.ownerDocument.getElementById(action.id);
+      target?.scrollIntoView?.();
     }
   }
 }

@@ -14,10 +14,16 @@ describe('classifyParagraphHref', () => {
     expect(classifyParagraphHref('#caf%C3%A9')).toEqual({ kind: 'hash', id: 'café' });
   });
 
+  it('does not throw on a malformed percent escape', () => {
+    expect(classifyParagraphHref('#100%')).toEqual({ kind: 'hash', id: '100%' });
+    expect(classifyParagraphHref('#%E0%A4%A')).toEqual({ kind: 'hash', id: '%E0%A4%A' });
+  });
+
   it('leaves everything else to the browser', () => {
     for (const href of [
       'https://example.com/x',
       '//example.com/x',
+      '/\\evil.example',
       'mailto:a@b.c',
       'tel:123',
       'unsafe:javascript:alert(1)',

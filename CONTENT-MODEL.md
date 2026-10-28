@@ -94,7 +94,8 @@ stored HTML.
 Links in that HTML behave like the stock Spartacus paragraph: a root-relative link (`/cart`) routes
 in-app, and a `#hash` link scrolls on the same page. Angular's sanitizer strips `id`, so the
 renderer gives each heading an anchor id from its text (`Details` → `#details`, repeats get `-2`,
-`-3`); link to a heading with that slug.
+`-3`); link to a heading with that slug. The heading text decides the id, so renaming a heading
+breaks existing `#` links to it.
 
 Editor formatting that does **not** render, so do not rely on it:
 
