@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { CmsComponentData } from '@spartacus/storefront';
 import {
@@ -15,19 +16,27 @@ import {
 describe('ContentstackEditableParagraphComponent', () => {
   const TAG = 'cms_paragraph_component.blt1.en-us.content';
 
+  const router = { navigateByUrl: jest.fn().mockResolvedValue(true) };
+
   async function render(
     data: ContentstackEditableParagraphData,
   ): Promise<ComponentFixture<ContentstackEditableParagraphComponent>> {
     await TestBed.configureTestingModule({
       imports: [ContentstackEditableParagraphComponent],
-      providers: [{ provide: CmsComponentData, useValue: { uid: 'blt1', data$: of(data) } }],
+      providers: [
+        { provide: CmsComponentData, useValue: { uid: 'blt1', data$: of(data) } },
+        { provide: Router, useValue: router },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ContentstackEditableParagraphComponent);
     fixture.detectChanges();
     return fixture;
   }
 
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    router.navigateByUrl.mockClear();
+  });
 
   it('emits the 4-part field-level data-cslp and renders the content when tagged (preview)', async () => {
     const fixture = await render({
@@ -125,6 +134,55 @@ describe('ContentstackEditableParagraphComponent', () => {
       const el = fixture.nativeElement.querySelector('.cx-paragraph') as HTMLElement;
       expect(el).toBeTruthy();
       expect(el.innerHTML.trim()).toBe('');
+    });
+  });
+
+  describe('links and anchors (DX-31581, TC-22)', () => {
+    const click = (el: Element, init: MouseEventInit = {}): MouseEvent => {
+      const event = new MouseEvent('click', { bubbles: true, cancelable: true, ...init });
+      el.dispatchEvent(event);
+      return event;
+    };
+
+    it('routes a root-relative link in-app instead of reloading the page', async () => {
+      const fixture = await render({ content: '<p><a href="/cart">Cart</a></p>' });
+      const event = click(fixture.nativeElement.querySelector('a'));
+      expect(event.defaultPrevented).toBe(true);
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/cart');
+    });
+
+    it('leaves external links, new-tab links and modified clicks to the browser', async () => {
+      const fixture = await render({
+        content:
+          '<a href="https://example.com">Ext</a>' +
+          '<a href="/cart" target="_blank">Tab</a>' +
+          '<a href="/cart" id="plain">Cart</a>',
+      });
+      const [ext, tab, plain] = Array.from(
+        fixture.nativeElement.querySelectorAll('a'),
+      ) as Element[];
+      expect(click(ext).defaultPrevented).toBe(false);
+      expect(click(tab).defaultPrevented).toBe(false);
+      expect(click(plain, { ctrlKey: true }).defaultPrevented).toBe(false);
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    });
+
+    it('gives headings anchor ids and keeps #hash links on the page', async () => {
+      const fixture = await render({
+        content: '<p><a href="#details">Go</a></p><h3>Details</h3><h3>Details</h3>',
+      });
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const headings = Array.from(el.querySelectorAll('h3'));
+      expect(headings.map((h) => h.id)).toEqual(['details', 'details-2']);
+      const scroll = jest.fn();
+      headings[0].scrollIntoView = scroll;
+      document.body.appendChild(el);
+      const event = click(el.querySelector('a') as Element);
+      document.body.removeChild(el);
+      expect(event.defaultPrevented).toBe(true);
+      expect(scroll).toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
     });
   });
 });

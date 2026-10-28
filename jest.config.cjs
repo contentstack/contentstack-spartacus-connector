@@ -48,6 +48,8 @@ module.exports = {
     '**/contentstack-component-type.registry.spec.ts',
     // DX-31556: starter-pack content-type generator output vs shipped JSON.
     '**/starter-pack/content-types.spec.ts',
+    // DX-31581: framework-free link and anchor helpers of the editable paragraph.
+    '**/paragraph-links.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [
