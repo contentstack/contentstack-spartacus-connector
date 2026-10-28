@@ -86,8 +86,10 @@ carries an optional **`access_tags`** field for content gating — see §4.5.
 
 **`content` on the two paragraph types is an HTML rich-text field**, not a plain multiline box.
 It is a Rich Text field (`allow_rich_text`, `rich_text_type: custom`, HTML output) on both
-`cms_paragraph_component` and `cms_tab_paragraph_component`. Authors get bold, italic, lists and
-links from the editor, and the storefront renders the resulting HTML.
+`cms_paragraph_component` and `cms_tab_paragraph_component`. The editor toolbar offers headings
+(H2–H6), bold, italic, underline, strikethrough, lists and links, and the storefront renders the
+resulting HTML. Tables are not in the toolbar; the sanitizer keeps tables already present in
+stored HTML.
 
 Editor formatting that does **not** render, so do not rely on it:
 
