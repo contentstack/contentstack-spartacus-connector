@@ -30,16 +30,18 @@ const text = (uid, name, { instruction = '', multiline = false, multiple = false
   display_name: name, uid, data_type: 'text', mandatory, unique: false, multiple,
   non_localizable: nonLocalizable, field_metadata: { ...(multiline ? { multiline: true } : {}), instruction },
 });
-// HTML rich-text field (Contentstack's Rich Text editor, HTML output). Shape copied
-// from the "Rich Text" field of a real stack export (kickstart-stack-seed page.json):
-// data_type text + allow_rich_text + rich_text_type "custom" + the editor option set.
-// No `multiline` (that is the plain-text box) and no `markdown`.
+// HTML rich-text field (Contentstack's Rich Text editor, HTML output). Shape is the
+// `rich_text` and `copy` fields in kickstart-stack-seed stack/content_types/page.json
+// (https://github.com/contentstack/kickstart-stack-seed) combined: data_type text +
+// allow_rich_text + rich_text_type "custom", with the list/link options from `rich_text`
+// and the heading (h2-h6) options from `copy`. No `multiline` (that is the plain-text box)
+// and no `markdown`.
 const richText = (uid, name, { instruction = '', mandatory = false, nonLocalizable = false } = {}) => ({
   display_name: name, uid, data_type: 'text', mandatory, unique: false, multiple: false,
   non_localizable: nonLocalizable,
   field_metadata: {
     allow_rich_text: true, rich_text_type: 'custom',
-    options: ['html', 'bold', 'underline', 'italic', 'deleted', 'lists', 'link'], instruction,
+    options: ['html', 'bold', 'underline', 'italic', 'deleted', 'lists', 'link', 'h2', 'h3', 'h4', 'h5', 'h6'], instruction,
   },
 });
 const number = (uid, name, { instruction = '', nonLocalizable = false } = {}) => ({
@@ -141,10 +143,10 @@ const contentTypes = [
     [titleField('Heading shown above the carousel.'), text('products', 'Products', { multiple: true, instruction: 'SAP product codes (SKUs), one per value. Only the code is stored; OCC provides live price/stock/image.' }), accessTags()]),
   ct('CMS Paragraph Component', 'cms_paragraph_component',
     'Rich-text / HTML content block. SAP typeCode CMSParagraphComponent.',
-    [titleField('Internal name for this paragraph block.'), richText('content', 'Content', { instruction: 'The HTML body shown in the slot. Bold, italic, lists and links render; inline styles, embeds, iframes and scripts do not.' }), accessTags()]),
+    [titleField('Internal name for this paragraph block.'), richText('content', 'Content', { instruction: 'The HTML body shown in the slot. Toolbar: headings (H2-H6), bold, italic, underline, strikethrough, lists, links. Inline styles, embeds, iframes and scripts are removed on the storefront.' }), accessTags()]),
   ct('CMS Tab Paragraph Component', 'cms_tab_paragraph_component',
     'Rich-text / HTML content block, rendered the same way as CMS Paragraph Component (SAP registers both to its stock paragraph renderer). SAP typeCode CMSTabParagraphComponent.',
-    [titleField('Internal name for this tab content block.'), richText('content', 'Content', { instruction: 'The HTML body shown in the slot. Bold, italic, lists and links render; inline styles, embeds, iframes and scripts do not.' }), accessTags()]),
+    [titleField('Internal name for this tab content block.'), richText('content', 'Content', { instruction: 'The HTML body shown in the slot. Toolbar: headings (H2-H6), bold, italic, underline, strikethrough, lists, links. Inline styles, embeds, iframes and scripts are removed on the storefront.' }), accessTags()]),
   ct('Media Container', 'media_container',
     'A reusable per-breakpoint image set, referenced from the Media Container field on banner components so one asset set can back multiple banners. SAP typeCode MediaContainer.',
     [titleField('Internal name for this media set.'),
