@@ -91,6 +91,12 @@ It is a Rich Text field (`allow_rich_text`, `rich_text_type: custom`, HTML outpu
 resulting HTML. Tables are not in the toolbar; the sanitizer keeps tables already present in
 stored HTML.
 
+Links in that HTML behave like the stock Spartacus paragraph: a root-relative link (`/cart`) routes
+in-app, and a `#hash` link scrolls on the same page. Angular's sanitizer strips `id`, so the
+renderer gives each heading an anchor id from its text (`Details` → `#details`, repeats get `-2`,
+`-3`); link to a heading with that slug. The heading text decides the id, so renaming a heading
+breaks existing `#` links to it.
+
 Editor formatting that does **not** render, so do not rely on it:
 
 - inline styles (`style="…"` attributes, colours, font sizes set from the editor's paste)
