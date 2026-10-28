@@ -29,7 +29,7 @@ try {
 module.exports = {
   rootDir: __dirname,
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/src', '<rootDir>/import-export/starter-pack'],
   // Pure-logic specs only (no TestBed). The `*.livepreview.spec.ts` glob covers
   // framework-free Live Preview helper tests (e.g. entry tagging); `type-guards
   // .spec.ts`, `merge-structures.spec.ts`, and `slot-maps.spec.ts` are the other
@@ -46,6 +46,8 @@ module.exports = {
     '**/contentstack-restrictions.service.spec.ts',
     '**/slot-maps.spec.ts',
     '**/contentstack-component-type.registry.spec.ts',
+    // DX-31556: starter-pack content-type generator output vs shipped JSON.
+    '**/starter-pack/content-types.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [

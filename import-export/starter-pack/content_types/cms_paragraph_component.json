@@ -25,8 +25,18 @@
       "multiple": false,
       "non_localizable": false,
       "field_metadata": {
-        "multiline": true,
-        "instruction": "The HTML/rich-text body shown in the slot."
+        "allow_rich_text": true,
+        "rich_text_type": "custom",
+        "options": [
+          "html",
+          "bold",
+          "underline",
+          "italic",
+          "deleted",
+          "lists",
+          "link"
+        ],
+        "instruction": "The HTML body shown in the slot. Bold, italic, lists and links render; inline styles, embeds, iframes and scripts do not."
       }
     },
     {
