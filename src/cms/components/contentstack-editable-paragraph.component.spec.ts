@@ -102,7 +102,12 @@ describe('ContentstackEditableParagraphComponent', () => {
       expect(el.querySelector('img')?.hasAttribute('onerror')).toBeFalsy();
       expect(el.querySelector('p[onclick]')).toBeNull();
       expect(el.querySelector('[style]')).toBeNull();
-      expect(el.innerHTML).not.toContain('javascript:');
+      // Angular's sanitizer neutralises the javascript: URL by prefixing it with `unsafe:`.
+      const badLink = Array.from(el.querySelectorAll('a')).find(
+        (a) => a.textContent === 'Bad link',
+      );
+      expect(badLink?.getAttribute('href')).toMatch(/^unsafe:/);
+      expect(el.querySelector('a[href^="javascript:"]')).toBeNull();
       expect((window as unknown as { pwned?: boolean }).pwned).toBeUndefined();
     });
   });

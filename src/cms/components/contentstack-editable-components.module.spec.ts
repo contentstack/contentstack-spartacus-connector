@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Config } from '@spartacus/core';
+import { Config, ConfigModule } from '@spartacus/core';
 import { ContentstackEditableComponentsModule } from './contentstack-editable-components.module';
 import { ContentstackEditableParagraphComponent } from './contentstack-editable-paragraph.component';
 import { ContentstackEditableBannerComponent } from './contentstack-editable-banner.component';
@@ -12,7 +12,9 @@ import { ContentstackEditableProductCarouselComponent } from './contentstack-edi
  */
 describe('ContentstackEditableComponentsModule (cmsComponents registrations)', () => {
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [ContentstackEditableComponentsModule] });
+    TestBed.configureTestingModule({
+      imports: [ConfigModule.forRoot(), ContentstackEditableComponentsModule],
+    });
   });
 
   afterEach(() => TestBed.resetTestingModule());
