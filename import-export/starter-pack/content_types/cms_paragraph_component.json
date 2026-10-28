@@ -34,9 +34,14 @@
           "italic",
           "deleted",
           "lists",
-          "link"
+          "link",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6"
         ],
-        "instruction": "The HTML body shown in the slot. Bold, italic, lists and links render; inline styles, embeds, iframes and scripts do not."
+        "instruction": "The HTML body shown in the slot. Toolbar: headings (H2-H6), bold, italic, underline, strikethrough, lists, links. Inline styles, embeds, iframes and scripts are removed on the storefront."
       }
     },
     {

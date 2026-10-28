@@ -41,6 +41,7 @@ describe('starter pack content types (DX-31556)', () => {
     expect(field.field_metadata.allow_rich_text).toBe(true);
     expect(field.field_metadata.rich_text_type).toBe('custom');
     expect(field.field_metadata.options).toContain('html');
+    expect(field.field_metadata.options).toEqual(expect.arrayContaining(['lists', 'h2', 'h3', 'h4', 'h5', 'h6']));
     expect(field.field_metadata).not.toHaveProperty('markdown');
     expect(field.field_metadata).not.toHaveProperty('multiline');
   });
