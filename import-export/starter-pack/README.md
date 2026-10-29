@@ -59,6 +59,12 @@ and the `development` environment import — and re-export — cleanly **with au
 API). Fixed to a multiline `text` field, which the normalizer's `parseJsonArray` already
 `JSON.parse`s.
 
+> **Paragraph `content` is HTML rich text.** `cms_paragraph_component` and
+> `cms_tab_paragraph_component` ship `content` as a Rich Text field (HTML output), not a multiline
+> text box. Stacks that **already imported this pack** keep their existing field type: importing
+> again does not update them, so change the field in those stacks by hand (or recreate it) if you
+> want the rich-text editor. See `../../CONTENT-MODEL.md` §3.2 for what formatting renders.
+
 > **Navigation is flat-only.** The legacy nested nav types (`nav_node`,
 > `category_navigation_component`, `footer_navigation_component`) have been **removed** from the
 > pack — navigation is the flat `nav_node_flat` model throughout, and `global_slots` references

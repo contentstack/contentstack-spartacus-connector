@@ -69,21 +69,21 @@ describe('ContentstackFieldMapper', () => {
     });
   });
 
-  describe('CMSParagraphComponent', () => {
-    it('passes content through, defaulting to an empty string', () => {
-      expect(mapper.map('CMSParagraphComponent', { content: '<p>Hi</p>' })).toEqual({
-        content: '<p>Hi</p>',
-      });
-      expect(mapper.map('CMSParagraphComponent', {})).toEqual({ content: '' });
-    });
-  });
+  describe.each(['CMSParagraphComponent', 'CMSTabParagraphComponent'])('%s', (typeCode) => {
+    const editorHtml =
+      '<h2 class="intro-title">Heading</h2>' +
+      '<p><strong>Bold</strong> and <em>italic</em></p>' +
+      '<ul><li>One</li><li>Two</li></ul>' +
+      '<table><tbody><tr><td>Cell</td></tr></tbody></table>' +
+      '<p><a href="/help">Help</a></p>';
 
-  describe('CMSTabParagraphComponent', () => {
-    it('maps identically to CMSParagraphComponent (both render via the stock paragraph component)', () => {
-      expect(mapper.map('CMSTabParagraphComponent', { content: '<p>Tab body</p>' })).toEqual({
-        content: '<p>Tab body</p>',
-      });
-      expect(mapper.map('CMSTabParagraphComponent', {})).toEqual({ content: '' });
+    it('passes editor HTML through unchanged', () => {
+      expect(mapper.map(typeCode, { content: editorHtml })).toEqual({ content: editorHtml });
+    });
+
+    it('defaults empty or missing Content to an empty string', () => {
+      expect(mapper.map(typeCode, { content: '' })).toEqual({ content: '' });
+      expect(mapper.map(typeCode, {})).toEqual({ content: '' });
     });
   });
 

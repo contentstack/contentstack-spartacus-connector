@@ -25,8 +25,23 @@
       "multiple": false,
       "non_localizable": false,
       "field_metadata": {
-        "multiline": true,
-        "instruction": "The HTML/rich-text body shown in the slot."
+        "allow_rich_text": true,
+        "rich_text_type": "custom",
+        "options": [
+          "html",
+          "bold",
+          "underline",
+          "italic",
+          "deleted",
+          "lists",
+          "link",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6"
+        ],
+        "instruction": "The HTML body shown in the slot. Toolbar: headings (H2-H6), bold, italic, underline, strikethrough, lists, links. Inline styles, embeds, iframes and scripts are removed on the storefront."
       }
     },
     {

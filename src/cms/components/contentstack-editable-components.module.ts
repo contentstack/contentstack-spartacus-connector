@@ -17,7 +17,8 @@ import { ContentstackEditableProductCarouselComponent } from './contentstack-edi
  * the edit tags are inert outside preview builds (no `entry.$` ⇒ the directive
  * removes the attribute), so normal delivery/production rendering is unchanged.
  *
- * Covers `CMSParagraphComponent`, the banner typeCodes (`SimpleBannerComponent`,
+ * Covers `CMSParagraphComponent` and `CMSTabParagraphComponent` (the tab paragraph
+ * renders through the same paragraph renderer), the banner typeCodes (`SimpleBannerComponent`,
  * `SimpleResponsiveBannerComponent`), and `ProductCarouselComponent` (whose
  * editable renderer keeps the live SAP product hydration and only adds an
  * editable tag on the carousel title).
@@ -27,6 +28,9 @@ import { ContentstackEditableProductCarouselComponent } from './contentstack-edi
     provideConfig({
       cmsComponents: {
         CMSParagraphComponent: {
+          component: ContentstackEditableParagraphComponent,
+        },
+        CMSTabParagraphComponent: {
           component: ContentstackEditableParagraphComponent,
         },
         SimpleBannerComponent: {

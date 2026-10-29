@@ -32,7 +32,7 @@ import {
  *     only needs to supply credentials via its own `provideConfig(...)`.
  *  4. Imports {@link ContentstackEditableComponentsModule} — registers
  *     connector-owned editable renderers for seeded starter-pack component types
- *     (currently `CMSParagraphComponent`) that emit a **field-level** `data-cslp`
+ *     (currently `CMSParagraphComponent` and `CMSTabParagraphComponent`) that emit a **field-level** `data-cslp`
  *     tag so Contentstack Visual Builder can inline-edit them. They render
  *     identically to the stock Spartacus components and the edit tags are inert
  *     outside preview builds, so this is transparent on normal delivery builds.
