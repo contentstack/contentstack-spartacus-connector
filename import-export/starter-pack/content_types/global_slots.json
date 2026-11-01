@@ -172,7 +172,9 @@
       "reference_to": [
         "category_navigation_flat",
         "footer_navigation_flat",
-        "cms_link_component"
+        "cms_link_component",
+        "cms_paragraph_component",
+        "cms_flex_component"
       ],
       "mandatory": false,
       "multiple": true,

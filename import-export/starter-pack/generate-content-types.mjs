@@ -87,6 +87,9 @@ const EDITORIAL = [
 ];
 // Shell nav/footer slots: the flat nav components, plus a standalone link.
 const NAV = ['category_navigation_flat', 'footer_navigation_flat', 'cms_link_component'];
+// SAP's footer also carries a copyright paragraph and flex blocks (consent, scroll-to-top);
+// authoring the footer in Contentstack replaces the whole slot, so it must be able to hold them.
+const FOOTER = [...NAV, 'cms_paragraph_component', 'cms_flex_component'];
 
 // Page common fields (title + routing metadata).
 const pageMeta = (template) => [
@@ -191,6 +194,8 @@ const contentTypes = [
   ct('Landing Page', 'landing_page',
     'CMS page on SAP LandingPage2Template (home / marketing landing).',
     [...pageMeta('LandingPage2Template'),
+     slot('bottom_header_slot', 'Bottom Header', 'BottomHeaderSlot', EDITORIAL, 'Under the header, e.g. the page title (a Flex block with flex type PageTitleComponent). '),
+     slot('homepage_nav_link', 'Homepage Nav Link', 'HomepageNavLink', ['cms_link_component'], 'The link back to the homepage. '),
      slot('section1', 'Section 1', 'Section1', EDITORIAL, 'Top hero band. '),
      // NB: LandingPage2Template has no bare `Section2` render position (that
      // belongs to CategoryPageTemplate), so this page type intentionally omits a
@@ -205,6 +210,7 @@ const contentTypes = [
   ct('Content Page', 'content_page',
     'CMS page on SAP ContentPage1Template (FAQ, terms, campaign pages).',
     [...pageMeta('ContentPage1Template'),
+     slot('bottom_header_slot', 'Bottom Header', 'BottomHeaderSlot', EDITORIAL, 'Under the header, e.g. the page title (a Flex block with flex type PageTitleComponent). '),
      slot('section1', 'Section 1', 'Section1'),
      slot('section2_a', 'Section 2A', 'Section2A'),
      slot('section2_b', 'Section 2B', 'Section2B'),
@@ -238,7 +244,7 @@ const contentTypes = [
      slot('site_context', 'Site Context', 'SiteContext', EDITORIAL),
      slot('site_links', 'Site Links', 'SiteLinks', NAV),
      slot('header_links', 'Header Links', 'HeaderLinks', NAV),
-     slot('footer', 'Footer', 'Footer', NAV)]),
+     slot('footer', 'Footer', 'Footer', FOOTER)]),
 ];
 
 mkdirSync(OUT, { recursive: true });

@@ -23,8 +23,8 @@ storefront's `LayoutConfig`. A slot only renders if its template declares it. Yo
 | SAP template (page type) | SAP slot positions | Contentstack field uid |
 |---|---|---|
 | **Shell** (header/footer, every page) | `SiteLogo`, `SearchBox`, `MiniCart`, `NavigationBar`, `SiteContext`, `SiteLinks`, `HeaderLinks`, `Footer` | `site_logo`, `search_box`, `mini_cart`, `navigation_bar`, `site_context`, `site_links`, `header_links`, `footer` |
-| **LandingPage2Template** (home/landing) | `Section1`, `Section2A`, `Section2B`, `Section2C`, `Section3`, `Section4`, `Section5` | `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` |
-| **ContentPage1Template** (FAQ, terms, …) | `Section1`, `Section2A/B/C`, `Section3`, `BodyContent`, `SideContent` | `section1`, `section2_a/b/c`, `section3`, `body_content`, `side_content` |
+| **LandingPage2Template** (home/landing) | `BottomHeaderSlot`, `HomepageNavLink`, `Section1`, `Section2A`, `Section2B`, `Section2C`, `Section3`, `Section4`, `Section5` | `bottom_header_slot`, `homepage_nav_link`, `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` |
+| **ContentPage1Template** (FAQ, terms, …) | `BottomHeaderSlot`, `Section1`, `Section2A/B/C`, `Section3`, `BodyContent`, `SideContent` | `bottom_header_slot`, `section1`, `section2_a/b/c`, `section3`, `body_content`, `side_content` |
 | **ProductDetailsPageTemplate** (PDP) | `Summary`, `UpSelling`, `CrossSelling`, `Tabs`, `PlaceholderContentSlot` | `summary`, `up_selling`, `cross_selling`, `tabs`, `placeholder_content_slot` |
 | **ProductListPageTemplate** (PLP/category/search) | `ProductLeftRefinements`, `ProductGridSlot`, `ProductListSlot`, `SearchResultsGridSlot` | `product_left_refinements`, `product_grid_slot`, `product_list_slot`, `search_results_grid_slot` |
 | **CartPageTemplate** | `TopContent`, `CenterLeftContentSlot`, `CenterRightContentSlot`, `EmptyCartMiddleContent` | `top_content`, `center_left_content_slot`, `center_right_content_slot`, `empty_cart_middle_content` |
@@ -49,11 +49,11 @@ Each **slot field is a multi-reference** to the component content types below.
 
 | Content type (uid) | Template | Slot fields (reference) |
 |---|---|---|
-| `landing_page` | LandingPage2Template | `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` |
-| `content_page` | ContentPage1Template | `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `body_content`, `side_content` |
+| `landing_page` | LandingPage2Template | `bottom_header_slot`, `homepage_nav_link`, `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` |
+| `content_page` | ContentPage1Template | `bottom_header_slot`, `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `body_content`, `side_content` |
 | `product_page` | ProductDetailsPageTemplate | `summary`, `up_selling`, `cross_selling`, `tabs`, `placeholder_content_slot` |
 | `category_page` | ProductListPageTemplate | `product_left_refinements`, `product_grid_slot`, `product_list_slot`, `search_results_grid_slot` |
-| `global_slots` | shell (merged into every page) | `site_logo`, `search_box`, `mini_cart`, `navigation_bar`, `site_context`, `site_links`, `header_links`, `footer` |
+| `global_slots` | shell (merged into every page) | `site_logo`, `search_box`, `mini_cart`, `navigation_bar`, `site_context`, `site_links`, `header_links`, `footer` (nav, links, paragraphs and flex blocks, so SAP's copyright and consent blocks can move too) |
 
 Help-text pattern per slot field, e.g. on `landing_page.section1`:
 > *"Top hero band (SAP slot `Section1`). Add a banner/carousel to override just this section; leave empty to keep SAP's."*

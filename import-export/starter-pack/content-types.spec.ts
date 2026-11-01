@@ -46,6 +46,22 @@ describe('starter pack content types (DX-31556)', () => {
     expect(field.field_metadata).not.toHaveProperty('multiline');
   });
 
+  // DX-31800: slots SAP's electronics homepage fills that the model could not hold.
+  it.each([
+    ['landing_page', 'bottom_header_slot'],
+    ['landing_page', 'homepage_nav_link'],
+    ['content_page', 'bottom_header_slot'],
+  ])('%s has the %s slot field', (uid, field) => {
+    expect(readShipped(uid).schema.map((f: any) => f.uid)).toContain(field);
+  });
+
+  it('global_slots.footer accepts the paragraph and flex blocks SAP puts in the footer', () => {
+    const footer = readShipped('global_slots').schema.find((f: any) => f.uid === 'footer');
+    expect(footer.reference_to).toEqual(
+      expect.arrayContaining(['footer_navigation_flat', 'cms_paragraph_component', 'cms_flex_component']),
+    );
+  });
+
   it('shipped content_types/*.json equal the generator output', () => {
     const shippedFiles = readdirSync(SHIPPED_DIR).filter((f) => f.endsWith('.json')).sort();
     const generatedFiles = readdirSync(generatedDir).filter((f) => f.endsWith('.json')).sort();
