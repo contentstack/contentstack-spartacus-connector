@@ -9,12 +9,16 @@
  */
 import { Tree } from '@angular-devkit/schematics';
 import { SchematicTestRunner } from '@angular-devkit/schematics/testing';
+import { randomBytes } from 'crypto';
 import * as ts from 'typescript';
 import { buildContentstackEnvironment, buildFeatureModule } from './configure';
 
 describe('ng-add schematic', () => {
   const collectionPath = require.resolve('../collection.json');
   const runner = new SchematicTestRunner('contentstack-spartacus-connector', collectionPath);
+  // Generated per run so no credential-shaped literal is committed.
+  const TEST_API_KEY = `blt${randomBytes(8).toString('hex')}`;
+  const TEST_DELIVERY_TOKEN = `cs${randomBytes(8).toString('hex')}`;
 
   const FEATURES_MODULE = 'src/app/spartacus/spartacus-features.module.ts';
   const FEATURE_MODULE = 'src/app/spartacus/features/contentstack/contentstack-feature.module.ts';
@@ -43,8 +47,8 @@ describe('ng-add schematic', () => {
       'ng-add',
       {
         project: 'app',
-        apiKey: 'blt0123456789abcdef',
-        deliveryToken: 'cs0123456789abcdef',
+        apiKey: TEST_API_KEY,
+        deliveryToken: TEST_DELIVERY_TOKEN,
         environment: 'development',
         region: 'EU',
         cmsPageContentType: 'landing_page',
@@ -77,8 +81,8 @@ describe('ng-add schematic', () => {
     expect(tree.exists(ENV_FILE)).toBe(true);
     const env = tree.readText(ENV_FILE);
     expect(env).toContain('export const contentstackDelivery = {');
-    expect(env).toContain('apiKey: "blt0123456789abcdef"');
-    expect(env).toContain('deliveryToken: "cs0123456789abcdef"');
+    expect(env).toContain(`apiKey: "${TEST_API_KEY}"`);
+    expect(env).toContain(`deliveryToken: "${TEST_DELIVERY_TOKEN}"`);
     expect(env).toContain('region: Region.EU'); // 'EU' -> Region.EU
     expect(env).toContain('livePreview: false');
     // previewToken is omitted entirely unless Live Preview is requested.
@@ -169,7 +173,7 @@ describe('ng-add schematic', () => {
     await expect(
       runner.runSchematic(
         'ng-add',
-        { project: 'app', apiKey: "blt0123456789abcdef', evil: (() => {})(), x: '" },
+        { project: 'app', apiKey: `${TEST_API_KEY}', evil: (() => {})(), x: '` },
         baseAppTree(),
       ),
     ).rejects.toThrow();
@@ -179,7 +183,7 @@ describe('ng-add schematic', () => {
     // The builders are the last line of defense: even if a hostile value reaches
     // them (schema bypassed, programmatic call), each must emit a safely escaped
     // literal that parses as a single string — no injected statements.
-    const payload = `x', evilProp: (() => { throw new Error('pwned'); })(), y: "a\\b\nc`;
+    const payload = `${TEST_API_KEY}', evilProp: (() => { throw new Error('pwned'); })(), y: "a\\b\nc`;
     const opts = {
       project: 'app',
       apiKey: payload,
