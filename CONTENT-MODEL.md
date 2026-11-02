@@ -38,19 +38,22 @@ storefront's `LayoutConfig`. A slot only renders if its template declares it. Yo
 
 ## 3. Content types — self-documenting, per-template
 
-Principle: instead of one giant `cms_page` with every slot field, ship **one page content type
-per template**, exposing **only that template's slot fields**, each with a friendly display name
-and help text. Editors then see only relevant, labelled fields.
+Principle: one page content type per **page lookup**, exposing only the slot fields that page can
+render, each with a friendly display name and help text. Per-route content pages (home, FAQ, terms,
+help, campaigns) all resolve against the single `cmsPageContentType`, because Spartacus gives the
+homepage and content pages the same page type; so they share one type, `landing_page`, which
+carries the slots of both content-page templates. Product and category pages are shared layouts,
+each with its own type via `pageTypeMapping`.
 
 ### 3.1 Page content types
 
-Common fields on every page type: `title` (required), `url` (slug), `page_type`, `template`.
+Common fields on every page type: `title` (required), `url` (slug), `page_type`, `template`
+(the SAP template; only that template's slots render).
 Each **slot field is a multi-reference** to the component content types below.
 
 | Content type (uid) | Template | Slot fields (reference) |
 |---|---|---|
-| `landing_page` | LandingPage2Template | `bottom_header_slot`, `homepage_nav_link`, `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` |
-| `content_page` | ContentPage1Template | `bottom_header_slot`, `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `body_content`, `side_content` |
+| `landing_page` | LandingPage2Template (home), ContentPage1Template (FAQ, terms, help) | `bottom_header_slot`, `homepage_nav_link`, `section1`, `section2_a`, `section2_b`, `section2_c`, `section3`, `section4`, `section5` (LandingPage2Template); `body_content`, `side_content` (ContentPage1Template) |
 | `product_page` | ProductDetailsPageTemplate | `summary`, `up_selling`, `cross_selling`, `tabs`, `placeholder_content_slot` |
 | `category_page` | ProductListPageTemplate | `product_left_refinements`, `product_grid_slot`, `product_list_slot`, `search_results_grid_slot` |
 | `global_slots` | shell (merged into every page) | `site_logo`, `search_box`, `mini_cart`, `navigation_bar`, `site_context`, `site_links`, `header_links`, `footer` (nav, links, paragraphs and flex blocks, so SAP's copyright and consent blocks can move too) |
@@ -58,9 +61,13 @@ Each **slot field is a multi-reference** to the component content types below.
 Help-text pattern per slot field, e.g. on `landing_page.section1`:
 > *"Top hero band (SAP slot `Section1`). Add a banner/carousel to override just this section; leave empty to keep SAP's."*
 
-> **Per-template content types.** One page content type per template, each exposing only its
-> template's slot fields (with display names + help text) — so editors see only the relevant,
-> labelled fields rather than one large superset `cms_page`.
+> **Why content pages share `landing_page`.** The page adapter queries one content type
+> (`cmsPageContentType`) for every per-route page; a separate `content_page` type would never be
+> read. Each slot field's help text names its SAP position and template.
+>
+> **SAP source fields.** Every content type also carries `sap_uid` and `sap_catalog_version`
+> (not localized). The SAP SmartEdit migration fills them so a re-run updates the entry it created
+> instead of importing a duplicate; they stay empty on content authored in Contentstack.
 
 ### 3.2 Component content types (the reusable blocks)
 
@@ -81,7 +88,7 @@ Functional components (search box, mini-cart, breadcrumb, add-to-cart, refinemen
 editorial data** — they hydrate from OCC. In hybrid mode you usually don't author these at all;
 OCC serves them. Include only the ones you intend to place via Contentstack.
 
-Every editorial component type above (and the `landing_page` / `content_page` page types) also
+Every editorial component type above (and the `landing_page` page type) also
 carries an optional **`access_tags`** field for content gating — see §4.5.
 
 **`content` on the two paragraph types is an HTML rich-text field**, not a plain multiline box.
@@ -226,7 +233,7 @@ To add a slot beyond the standard set, three small additions (no connector cap):
 
 ## 4.5 Content gating (presentation-level, opt-in)
 
-Editorial component types and the per-route page types (`landing_page`, `content_page`) carry an
+Editorial component types and the per-route page type (`landing_page`) carry an
 optional multi-value text field **`access_tags`**. It gates who *sees* an entry — hidden from users
 who don't hold the required tokens. Off unless the storefront turns it on.
 
@@ -279,7 +286,7 @@ Defaults are configurable (`accessField`, `anonymousToken`, `loginToken`, `roleP
 Just enough to demonstrate the islands model over the OCC base:
 - 1 `global_slots` entry (optional — only if you want a Contentstack-managed shell; else OCC shell shows).
 - 1 `landing_page` for `/` (home) with a hero (`section1`) + a promo carousel (`section3`).
-- 1 `content_page` (e.g. a campaign/FAQ page).
+- 1 more `landing_page` on ContentPage1Template (e.g. a campaign/FAQ page).
 - 1–2 single-slot overrides to show "9 sections from SAP, 1 from Contentstack".
 
 Everything else (login, cart, checkout, account, order, track) is **left to OCC** — no seed needed.

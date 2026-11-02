@@ -92,11 +92,19 @@ const NAV = ['category_navigation_flat', 'footer_navigation_flat', 'cms_link_com
 const FOOTER = [...NAV, 'cms_paragraph_component', 'cms_flex_component'];
 
 // Page common fields (title + routing metadata).
-const pageMeta = (template) => [
+const pageMeta = (template, templateInstruction = `SAP page template. Keep "${template}".`) => [
   titleField('Page title.'),
   text('url', 'URL', { instruction: 'Route this page resolves at. Use "/" for the homepage.' }),
   text('page_type', 'Page Type', { instruction: 'SAP page type discriminator (e.g. ContentPage / ProductPage / CategoryPage).' }),
-  text('template', 'Template', { instruction: `SAP page template. Keep "${template}".` }),
+  text('template', 'Template', { instruction: templateInstruction }),
+];
+
+// Where a migrated entry came from in SAP. A re-run of the SAP migration finds the entry it
+// created by `sap_uid` and updates it instead of importing a duplicate; reconciliation matches
+// entries to SAP items the same way. Empty on content authored in Contentstack.
+const sapSource = () => [
+  text('sap_uid', 'SAP Id', { nonLocalizable: true, instruction: 'Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here.' }),
+  text('sap_catalog_version', 'SAP Catalog Version', { nonLocalizable: true, instruction: 'Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is.' }),
 ];
 // A slot reference field: "SAP slot <Position>. Leave empty to keep SAP's."
 const slot = (uid, name, position, refs = EDITORIAL, extra = '') =>
@@ -190,10 +198,15 @@ const contentTypes = [
      number('wrap_after', 'Wrap After', { instruction: 'Optional: wrap the columns after N items.' }),
      ref('all_nodes', 'All Nodes', ['nav_node_flat'], "The flat pool of every node in this footer menu (all levels). The connector builds the tree from each node's parent_id.")]),
 
-  // --- page types (per SAP template; only relevant slot fields) ---
+  // --- page types ---
+  // Every per-route content page lives in landing_page: the connector resolves all of them
+  // against the single `cmsPageContentType`, because Spartacus gives the homepage and content
+  // pages the same page type (only shared product/category layouts go through pageTypeMapping).
+  // So this type carries the slots of every content-page template: LandingPage2Template
+  // (home, Section1–5) and ContentPage1Template (FAQ, terms, help: BodyContent, SideContent).
   ct('Landing Page', 'landing_page',
-    'CMS page on SAP LandingPage2Template (home / marketing landing).',
-    [...pageMeta('LandingPage2Template'),
+    'Any CMS content page: SAP LandingPage2Template (home / marketing landing) and ContentPage1Template (FAQ, terms, help, campaign pages). Fill only the slots the page\'s template has.',
+    [...pageMeta('LandingPage2Template', 'SAP page template, e.g. "LandingPage2Template" (home) or "ContentPage1Template" (FAQ, terms). Only that template\'s slots render.'),
      slot('bottom_header_slot', 'Bottom Header', 'BottomHeaderSlot', EDITORIAL, 'Under the header, e.g. the page title (a Flex block with flex type PageTitleComponent). '),
      slot('homepage_nav_link', 'Homepage Nav Link', 'HomepageNavLink', ['cms_link_component'], 'The link back to the homepage. '),
      slot('section1', 'Section 1', 'Section1', EDITORIAL, 'Top hero band. '),
@@ -206,18 +219,8 @@ const contentTypes = [
      slot('section3', 'Section 3', 'Section3', EDITORIAL, 'Often a product carousel. '),
      slot('section4', 'Section 4', 'Section4'),
      slot('section5', 'Section 5', 'Section5'),
-     accessTags()], ['url']),
-  ct('Content Page', 'content_page',
-    'CMS page on SAP ContentPage1Template (FAQ, terms, campaign pages).',
-    [...pageMeta('ContentPage1Template'),
-     slot('bottom_header_slot', 'Bottom Header', 'BottomHeaderSlot', EDITORIAL, 'Under the header, e.g. the page title (a Flex block with flex type PageTitleComponent). '),
-     slot('section1', 'Section 1', 'Section1'),
-     slot('section2_a', 'Section 2A', 'Section2A'),
-     slot('section2_b', 'Section 2B', 'Section2B'),
-     slot('section2_c', 'Section 2C', 'Section2C'),
-     slot('section3', 'Section 3', 'Section3'),
-     slot('body_content', 'Body Content', 'BodyContent', EDITORIAL, 'Main content column. '),
-     slot('side_content', 'Side Content', 'SideContent', EDITORIAL, 'Sidebar column. '),
+     slot('body_content', 'Body Content', 'BodyContent', EDITORIAL, 'Main content column (ContentPage1Template). '),
+     slot('side_content', 'Side Content', 'SideContent', EDITORIAL, 'Sidebar column (ContentPage1Template). '),
      accessTags()], ['url']),
   ct('Product Page', 'product_page',
     'CMS overrides for SAP ProductDetailsPageTemplate. One shared entry serves every PDP (product data hydrates from OCC).',
@@ -247,10 +250,14 @@ const contentTypes = [
      slot('footer', 'Footer', 'Footer', FOOTER)]),
 ];
 
+for (const t of contentTypes) t.schema.push(...sapSource());
+
 mkdirSync(OUT, { recursive: true });
 for (const t of contentTypes) {
   writeFileSync(join(OUT, `${t.uid}.json`), JSON.stringify(t, null, 2) + '\n');
 }
+// csdx's v2 entries importer reads every content type from one array in schema.json.
+writeFileSync(join(OUT, 'schema.json'), JSON.stringify(contentTypes, null, 2) + '\n');
 console.log(`wrote ${contentTypes.length} content types to ${OUT}`);
 console.log(contentTypes.map((t) => '  ' + t.uid).join('\n'));
 
@@ -268,6 +275,9 @@ const writeJson = (rel, data) => {
 };
 // No global fields in this pack, but the file must exist (the audit reads it).
 writeJson('global_fields/globalfields.json', []);
+// Without this, csdx (1.63+) reads the folder as the old v1 layout and imports 0 entries;
+// the pack's entries are in the v2 layout (entries/<ct>/<locale>/<locale>-entries.json).
+writeJson('export-info.json', { contentVersion: 2 });
 // A ready-to-use `development` environment, auto-created on import. Deliberately
 // carries NO secrets (no source api_key / user uids / timestamps) — unlike a raw
 // export. Publish entries here, then mint a delivery token for this environment.
