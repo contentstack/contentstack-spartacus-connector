@@ -1,7 +1,0 @@
-# Snyk policy file
-version: v1.25.0
-# contentstack.environment.example.ts is a copy-and-fill template whose values are
-# <PLACEHOLDER> markers, not credentials.
-exclude:
-  code:
-    - contentstack.environment.example.ts
