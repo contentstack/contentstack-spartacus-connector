@@ -96,7 +96,7 @@ npm install @contentstack/contentstack-spartacus-connector @contentstack/deliver
              environment: 'production',
              region: Region.EU,
            },
-           cmsPageContentType: 'cms_page',
+           cmsPageContentType: 'landing_page',
            slugField: 'url',
            // includeReferences defaults to all cms_page slot + header/footer
            // fields (so components resolve inline) — override only to narrow it.

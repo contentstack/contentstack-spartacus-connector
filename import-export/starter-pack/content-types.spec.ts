@@ -46,6 +46,48 @@ describe('starter pack content types (DX-31556)', () => {
     expect(field.field_metadata).not.toHaveProperty('multiline');
   });
 
+  // DX-31800: slots SAP's electronics homepage fills that the model could not hold, and
+  // ContentPage1Template's columns, which live on landing_page because the connector
+  // resolves every content page against the single cmsPageContentType.
+  it.each([
+    ['landing_page', 'bottom_header_slot'],
+    ['landing_page', 'homepage_nav_link'],
+    ['landing_page', 'body_content'],
+    ['landing_page', 'side_content'],
+  ])('%s has the %s slot field', (uid, field) => {
+    expect(readShipped(uid).schema.map((f: any) => f.uid)).toContain(field);
+  });
+
+  it('ships no content_page type (the connector never queries it)', () => {
+    expect(readdirSync(SHIPPED_DIR)).not.toContain('content_page.json');
+  });
+
+  // DX-31800: a re-run of the SAP migration matches entries by their SAP id.
+  it('every content type carries sap_uid and sap_catalog_version, not localized', () => {
+    for (const file of readdirSync(SHIPPED_DIR).filter((f) => f.endsWith('.json') && f !== 'schema.json')) {
+      const fields = JSON.parse(readFileSync(join(SHIPPED_DIR, file), 'utf8')).schema;
+      for (const uid of ['sap_uid', 'sap_catalog_version']) {
+        const field = fields.find((f: any) => f.uid === uid);
+        expect({ file, uid, nonLocalizable: field?.non_localizable }).toEqual({ file, uid, nonLocalizable: true });
+      }
+    }
+  });
+
+  // DX-31800: without these, csdx 1.63+ reads the pack as the v1 layout and imports 0 entries.
+  it('ships export-info.json (contentVersion 2) and schema.json with every content type', () => {
+    expect(JSON.parse(readFileSync(join(__dirname, 'export-info.json'), 'utf8'))).toEqual({ contentVersion: 2 });
+    const schema = JSON.parse(readFileSync(join(SHIPPED_DIR, 'schema.json'), 'utf8'));
+    const files = readdirSync(SHIPPED_DIR).filter((f) => f.endsWith('.json') && f !== 'schema.json');
+    expect(schema.map((t: any) => `${t.uid}.json`).sort()).toEqual(files.sort());
+  });
+
+  it('global_slots.footer accepts the paragraph and flex blocks SAP puts in the footer', () => {
+    const footer = readShipped('global_slots').schema.find((f: any) => f.uid === 'footer');
+    expect(footer.reference_to).toEqual(
+      expect.arrayContaining(['footer_navigation_flat', 'cms_paragraph_component', 'cms_flex_component']),
+    );
+  });
+
   it('shipped content_types/*.json equal the generator output', () => {
     const shippedFiles = readdirSync(SHIPPED_DIR).filter((f) => f.endsWith('.json')).sort();
     const generatedFiles = readdirSync(generatedDir).filter((f) => f.endsWith('.json')).sort();
