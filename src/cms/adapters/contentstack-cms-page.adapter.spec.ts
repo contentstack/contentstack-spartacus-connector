@@ -39,6 +39,8 @@ interface Overrides {
   locale?: string;
   /** Current user for gating tests; omit for anonymous. */
   user?: ContentstackCurrentUser;
+  /** Personalize variant aliases for the current shopper; omit for none. */
+  variantAliases?: string[];
 }
 
 function create(over: Overrides = {}) {
@@ -71,6 +73,7 @@ function create(over: Overrides = {}) {
     languageService as never,
     occPageAdapter as never,
     restrictions,
+    { getVariantAliases: () => over.variantAliases ?? [] } as never,
     currentUser$,
   );
   return { adapter, client, normalizer, config, languageService, occPageAdapter };
@@ -195,6 +198,28 @@ describe('ContentstackCmsPageAdapter', () => {
           'en',
         );
       });
+    });
+  });
+
+  describe('personalization (variant aliases)', () => {
+    it('threads the current shopper variant aliases into the page query', () => {
+      const { adapter, client } = create({ variantAliases: ['cs_personalize_0_0'] });
+      firstValue(adapter.load(ctx('home')));
+      expect(client.getPageBySlug).toHaveBeenCalledWith(
+        'content_page',
+        'url',
+        'home',
+        [],
+        'en',
+        undefined,
+        ['cs_personalize_0_0'],
+      );
+    });
+
+    it('does not pass any variant arg when there are no aliases (unchanged call shape)', () => {
+      const { adapter, client } = create();
+      firstValue(adapter.load(ctx('home')));
+      expect(client.getPageBySlug).toHaveBeenCalledWith('content_page', 'url', 'home', [], 'en');
     });
   });
 

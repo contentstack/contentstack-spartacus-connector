@@ -20,6 +20,7 @@ import {
   CONTENTSTACK_CURRENT_USER,
   ContentstackCurrentUser,
 } from '../access/contentstack-current-user';
+import { ContentstackPersonalizeService } from '../../personalize/contentstack-personalize.service';
 
 /**
  * Replaces Spartacus's OCC page loader (`OccCmsPageAdapter`, which calls SAP's
@@ -57,6 +58,7 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     protected languageService: LanguageService,
     protected occPageAdapter: OccCmsPageAdapter,
     protected restrictions: ContentstackRestrictionsService,
+    protected personalize: ContentstackPersonalizeService,
     // Optional: the feature module supplies a core-only default; when no source
     // is provided (e.g. this module used standalone) gating treats everyone as
     // anonymous rather than hard-failing DI.
@@ -119,16 +121,39 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
     // never replays another locale's content.
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
       switchMap(([locale, permissions]) => {
+        // Personalize: the variant alias(es) for the current shopper, threaded
+        // into every Delivery API fetch so the composite (personalized) entry is
+        // returned. Empty ⇒ base entry, unchanged behaviour/caching.
+        const variantAliases = this.personalize.getVariantAliases();
         // When gating is on, thread the user's permissions (and whether the whole
         // page should be gated) into the fetch so restricted content is filtered
         // BEFORE it is written to SSR TransferState. Off ⇒ no arg,
         // identical caching/behavior to before.
+        // Only append the personalize arg(s) when there is something to apply,
+        // so a non-personalized storefront's Delivery API calls are byte-for-byte
+        // as before (base entry, same caching).
+        const hasVariants = variantAliases.length > 0;
         const page$ = permissions
-          ? this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale, {
-              permissions,
-              gateRoot: gatePage,
-            })
-          : this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
+          ? this.client.getPageBySlug(
+              contentType,
+              slugField,
+              slug,
+              includeRefs,
+              locale,
+              { permissions, gateRoot: gatePage },
+              variantAliases,
+            )
+          : hasVariants
+            ? this.client.getPageBySlug(
+                contentType,
+                slugField,
+                slug,
+                includeRefs,
+                locale,
+                undefined,
+                variantAliases,
+              )
+            : this.client.getPageBySlug(contentType, slugField, slug, includeRefs, locale);
         const global$ = global
           ? permissions
             ? this.client.getGlobalSlots(
@@ -142,13 +167,23 @@ export class ContentstackCmsPageAdapter implements CmsPageAdapter {
                   // components (e.g. a login-only header link) are filtered out.
                   gateRoot: false,
                 },
+                variantAliases,
               )
-            : this.client.getGlobalSlots(
-                global.contentType,
-                global.title,
-                globalIncludeRefs,
-                locale,
-              )
+            : hasVariants
+              ? this.client.getGlobalSlots(
+                  global.contentType,
+                  global.title,
+                  globalIncludeRefs,
+                  locale,
+                  undefined,
+                  variantAliases,
+                )
+              : this.client.getGlobalSlots(
+                  global.contentType,
+                  global.title,
+                  globalIncludeRefs,
+                  locale,
+                )
           : of(undefined);
         // Hybrid base: the SAP page for this route. A CMS failure must never
         // break navigation, so degrade to no-base on error.

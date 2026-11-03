@@ -162,6 +162,18 @@ export class ContentstackClientService {
   }
 
   /**
+   * Cache-key fragment for the active Personalize variant aliases. Folded into
+   * every TransferState key so a shopper segment's composite (personalized)
+   * entry is never replayed on hydration — or cached by the CDN — for a
+   * DIFFERENT segment (mirrors how locale and permissions already key the cache).
+   * Sorted for stability; empty aliases ⇒ '' (base entry, identical key to
+   * pre-personalization behaviour).
+   */
+  protected variantKeySuffix(variantAliases?: string[]): string {
+    return variantAliases?.length ? `:var=${[...variantAliases].sort().join(',')}` : '';
+  }
+
+  /**
    * Fetch a single CMS page entry by its URL slug.
    *
    * @param contentTypeUid the CMS page content type uid
@@ -177,12 +189,13 @@ export class ContentstackClientService {
     includeRefs: string[] = [],
     locale?: string,
     access?: EntryAccessOptions,
+    variantAliases?: string[],
   ): Observable<ContentstackCmsPageEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackCmsPageEntry | undefined>(
       `cs-page:${contentTypeUid}:${slugField}:${slug}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
-      )}`,
+      )}${this.variantKeySuffix(variantAliases)}`,
     );
     return this.withTransferState(key, () => {
       // `includeReference` lives on the Entries object (from `.entry()`), not on
@@ -190,6 +203,13 @@ export class ContentstackClientService {
       let entries = this.stack.contentType(contentTypeUid).entry();
       if (includeRefs.length) {
         entries = entries.includeReference(includeRefs);
+      }
+      // Personalize: apply variant alias(es) so the Delivery API returns the
+      // composite entry (base + variant overrides). Also applies the variant to
+      // included component references (e.g. the carousel), so a component-level
+      // variant resolves within the single page query.
+      if (variantAliases?.length) {
+        entries = entries.variants(variantAliases);
       }
       if (csLocale) {
         entries = entries.locale(csLocale);
@@ -230,12 +250,13 @@ export class ContentstackClientService {
     includeRefs: string[] = [],
     locale?: string,
     access?: EntryAccessOptions,
+    variantAliases?: string[],
   ): Observable<ContentstackCmsPageEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackCmsPageEntry | undefined>(
       `cs-global:${contentTypeUid}:${title ?? '*'}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
-      )}`,
+      )}${this.variantKeySuffix(variantAliases)}`,
     );
     return this.withTransferState(key, () => {
       // Resolve the shell's component references inline (same as the page path),
@@ -243,6 +264,10 @@ export class ContentstackClientService {
       let entries = this.stack.contentType(contentTypeUid).entry();
       if (includeRefs.length) {
         entries = entries.includeReference(includeRefs);
+      }
+      // Personalize: apply variant alias(es) so shell components can be varied too.
+      if (variantAliases?.length) {
+        entries = entries.variants(variantAliases);
       }
       if (csLocale) {
         entries = entries.locale(csLocale);
@@ -288,15 +313,21 @@ export class ContentstackClientService {
     uid: string,
     locale?: string,
     access?: EntryAccessOptions,
+    variantAliases?: string[],
   ): Observable<ContentstackEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry | undefined>(
       `cs-entry:${contentTypeUid}:${uid}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
-      )}`,
+      )}${this.variantKeySuffix(variantAliases)}`,
     );
     return this.withTransferState(key, () => {
       let entry = this.stack.contentType(contentTypeUid).entry(uid);
+      // Personalize: variant alias(es) for a standalone component fetch (the
+      // component-adapter path — e.g. a carousel reloaded on a language switch).
+      if (variantAliases?.length) {
+        entry = entry.variants(variantAliases);
+      }
       if (csLocale) {
         entry = entry.locale(csLocale);
         if (this.includeFallback) {
@@ -324,6 +355,7 @@ export class ContentstackClientService {
     uids: string[],
     locale?: string,
     access?: EntryAccessOptions,
+    variantAliases?: string[],
   ): Observable<ContentstackEntry[]> {
     if (!uids.length) {
       return of([]);
@@ -332,12 +364,16 @@ export class ContentstackClientService {
     const key = makeStateKey<ContentstackEntry[]>(
       `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
-      )}`,
+      )}${this.variantKeySuffix(variantAliases)}`,
     );
     return this.withTransferState(
       key,
       () => {
         let entries = this.stack.contentType(contentTypeUid).entry();
+        // Personalize: variant alias(es) for a standalone component batch.
+        if (variantAliases?.length) {
+          entries = entries.variants(variantAliases);
+        }
         if (csLocale) {
           entries = entries.locale(csLocale);
           if (this.includeFallback) {

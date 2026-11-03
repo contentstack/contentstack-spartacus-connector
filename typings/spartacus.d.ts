@@ -114,6 +114,7 @@ declare module '@spartacus/core' {
     navigationNode?: CmsNavigationNode;
   }
   export interface CmsProductCarouselComponent extends CmsComponent {
+    title?: string;
     productCodes?: string;
   }
 

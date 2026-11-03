@@ -20,6 +20,30 @@ describe('ContentstackCmsProductCarouselComponentNormalizer', () => {
     expect(component.productCodes).toBe('1934793 300938');
   });
 
+  it('maps the Contentstack title into the carousel heading (renders authored/personalized heading)', () => {
+    const component = normalizer.convert({
+      uid: 'blt_carousel_title',
+      _content_type_uid: 'product_carousel_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      title: 'Welcome back — pick up where you left off.',
+      products: ['1934793'],
+    });
+
+    expect(component.title).toBe('Welcome back — pick up where you left off.');
+    expect(component.productCodes).toBe('1934793');
+  });
+
+  it('leaves title undefined when the entry has no title', () => {
+    const component = normalizer.convert({
+      uid: 'blt_carousel_notitle',
+      _content_type_uid: 'product_carousel_component',
+      created_at: '2026-01-01T00:00:00.000Z',
+      products: ['1934793'],
+    });
+
+    expect(component.title).toBeUndefined();
+  });
+
   it('leaves productCodes undefined when products is missing or empty', () => {
     const entry: ContentstackEntry = {
       uid: 'blt_carousel_2',

@@ -74,6 +74,7 @@ function create(over: Overrides = {}) {
     occComponentAdapter as never,
     restrictions,
     typeRegistry,
+    { getVariantAliases: () => [] } as never,
     currentUser$,
   );
   return {
