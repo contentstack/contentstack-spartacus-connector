@@ -237,6 +237,23 @@ export abstract class ContentstackConfig {
      * client service).
      */
     timeoutMs?: number;
+
+    /**
+     * Contentstack Personalize (variant delivery). Optional; omit entirely and
+     * the storefront serves only base entries, exactly as before.
+     *
+     * `variantAliases` is a STATIC list of Personalize variant aliases
+     * (`cs_personalize_{experienceShortUid}_{variantShortUid}`, e.g.
+     * `cs_personalize_0_0`) applied to every Delivery API query. It exists so a
+     * first personalization demo/test works with a single config line and no
+     * SDK. For real per-shopper decisions, leave this unset and instead provide
+     * a `ContentstackPersonalizeService` override backed by the Personalize Edge
+     * SDK — see that service's JSDoc.
+     */
+    personalize?: {
+      /** Static variant aliases applied to every query (demo/test only). */
+      variantAliases?: string[];
+    };
   };
 }
 

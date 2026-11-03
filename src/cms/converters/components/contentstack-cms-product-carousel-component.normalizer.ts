@@ -19,6 +19,13 @@ export class ContentstackCmsProductCarouselComponentNormalizer implements Conver
     source: ContentstackEntry,
     target: CmsProductCarouselComponent = {},
   ): CmsProductCarouselComponent {
+    // Heading above the carousel (Contentstack `title`). Spartacus's
+    // `CmsProductCarouselComponent` renders `title`, but this normalizer
+    // previously dropped it — so an authored heading (or a Personalize variant
+    // that overrides only the heading) never showed. Map it through when present.
+    if (isString(source['title'])) {
+      target.title = source['title'];
+    }
     const products = source['products'];
     if (Array.isArray(products)) {
       const codes = products

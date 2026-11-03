@@ -128,3 +128,60 @@ pageTypeMapping: {
 
 Serving multiple *distinct per-route* content types isn't supported yet; unmapped page types
 fall back to OCC.
+
+## Personalization (Contentstack Personalize) — included
+
+This pack now also ships a **Personalize configuration** so a fresh import comes with a working
+personalization demo, not just base content:
+
+- `personalize/` — the project config: attribute **`has_visited`**, audience **`returning_user`**
+  (`has_visited IS TRUE`), and a Segmented experience (short UID `0`) whose variant group is
+  linked to `product_carousel_component`.
+- `entries/product_carousel_component/en-us/variants/seed_carousel/` — the carousel's **entry
+  variant** (overrides only the heading → *"Welcome back — pick up where you left off."*; the
+  base reads *"New here? Enjoy 10% off your first order."*). Variant alias: **`cs_personalize_0_0`**.
+
+**On import**, because the content is associated with a Personalize project, `csdx cm:stacks:import`
+**auto-creates a new Personalize project, links it to your stack**, and recreates the attribute,
+audience, experience, and the carousel variant — the same one command as before. (Personalize
+imports after entries, so the variant exists before the experience references it.)
+
+**After import — one extra step for personalization:** open **Personalize → your new project** and
+copy the **Project UID** from the URL (`.../personalize/projects/<UID>/...`). It is **newly
+generated** on import (won't match the source). Put that UID in your app's personalization config.
+
+**App side:** the connector ships the generic seam (`ContentstackPersonalizeService`); your app
+provides the SDK-backed implementation (resolve manifest → cache variant aliases → stamp
+`has_visited` on product view) and registers it via `provideAppInitializer`. Install
+`@contentstack/personalize-edge-sdk`. See the demo storefront's `src/app/personalize/` for the
+reference implementation.
+
+> Note: the `personalize/` folder and the entry variant are **static** additions (not produced by
+> `generate-seed.mjs`). Re-running the seed generator regenerates the base entries only and leaves
+> these in place.
+
+### Personalize import — two operational notes (validated on a real import)
+
+1. **Free a project slot first.** Each org has a cap on Personalize projects. If it's full, the
+   personalize import fails with `personalize.PROJECTS.MAX_PROJECTS_COUNT_EXCEEDED` (content still
+   imports fine). Delete an unused project or raise the org limit before importing.
+2. **Project name must be unique.** If a project with the seed's name already exists, the import
+   prompts for a new name (blocks non-interactive runs). The seed ships a generic name
+   (`spartacus-connector-personalize-seed`) — change it per environment if needed.
+
+Verify the recreated project at the edge (no delivery token needed — use the **new** project UID
+from the import mapper `mapper/personalize/projects/projects.json`):
+
+```bash
+# NEW shopper → {"activeVariants":{"0":null}}
+curl -s https://personalize-edge.contentstack.com/manifest -H "X-Project-Uid: <NEW_PROJECT_UID>"
+# RETURNING → {"activeVariants":{"0":"0"}}
+curl -s https://personalize-edge.contentstack.com/manifest -H "X-Project-Uid: <NEW_PROJECT_UID>" \
+  -H 'X-Live-Attributes: {"has_visited":true}'
+```
+
+> Import in **one full run** (`csdx cm:stacks:import --data-dir …/starter-pack`) with a project
+> slot free — the CLI then imports entries, creates the Personalize variant group, and attaches the
+> carousel **variant entry** (remapping its variant uid) in the correct order. Splitting it into
+> separate `--module` runs can leave the variant *content* unattached (the config/decisioning still
+> import correctly).

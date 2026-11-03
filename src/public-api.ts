@@ -35,6 +35,9 @@ export * from './cms/model/slot-maps';
 export * from './cms/access/contentstack-current-user';
 export * from './cms/access/contentstack-restrictions.service';
 
+// Personalize (variant delivery)
+export * from './personalize/contentstack-personalize.service';
+
 // SmartEdit bypass
 export * from './guards/contentstack-smartedit-bypass';
 

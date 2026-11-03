@@ -19,6 +19,7 @@ import {
   CONTENTSTACK_CURRENT_USER,
   ContentstackCurrentUser,
 } from '../access/contentstack-current-user';
+import { ContentstackPersonalizeService } from '../../personalize/contentstack-personalize.service';
 
 /**
  * Replaces Spartacus's OCC component loader (`OccCmsComponentAdapter`).
@@ -47,6 +48,7 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     protected occComponentAdapter: OccCmsComponentAdapter,
     protected restrictions: ContentstackRestrictionsService,
     protected typeRegistry: ContentstackComponentTypeRegistry,
+    protected personalize: ContentstackPersonalizeService,
     // Optional — see the page adapter: absent source ⇒ anonymous, not a DI error.
     @Optional()
     @Inject(CONTENTSTACK_CURRENT_USER)
@@ -97,10 +99,21 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       return of({ uid: id } as T);
     }
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
-      switchMap(([locale, permissions]) =>
-        (permissions
-          ? this.client.getEntryByUid(contentType, id, locale, { permissions, gateRoot: true })
-          : this.client.getEntryByUid(contentType, id, locale)
+      switchMap(([locale, permissions]) => {
+        const variantAliases = this.personalize.getVariantAliases();
+        const hasVariants = variantAliases.length > 0;
+        return (
+          permissions
+            ? this.client.getEntryByUid(
+                contentType,
+                id,
+                locale,
+                { permissions, gateRoot: true },
+                variantAliases,
+              )
+            : hasVariants
+              ? this.client.getEntryByUid(contentType, id, locale, undefined, variantAliases)
+              : this.client.getEntryByUid(contentType, id, locale)
         ).pipe(
           switchMap((entry: ContentstackEntry | undefined) => {
             if (entry) {
@@ -123,8 +136,8 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
               ? this.occComponentAdapter.load<T>(id, pageContext)
               : of({ uid: id } as T);
           }),
-        ),
-      ),
+        );
+      }),
     );
   }
 
@@ -165,12 +178,22 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       return of([]);
     }
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
-      switchMap(([locale, permissions]) =>
-        forkJoin(
+      switchMap(([locale, permissions]) => {
+        const variantAliases = this.personalize.getVariantAliases();
+        const hasVariants = variantAliases.length > 0;
+        return forkJoin(
           [...byType.entries()].map(([type, uids]) =>
             (permissions
-              ? this.client.getEntriesByUids(type, uids, locale, { permissions, gateRoot: true })
-              : this.client.getEntriesByUids(type, uids, locale)
+              ? this.client.getEntriesByUids(
+                  type,
+                  uids,
+                  locale,
+                  { permissions, gateRoot: true },
+                  variantAliases,
+                )
+              : hasVariants
+                ? this.client.getEntriesByUids(type, uids, locale, undefined, variantAliases)
+                : this.client.getEntriesByUids(type, uids, locale)
             ).pipe(
               // Defense in depth: one content-type group failing must not fail the
               // whole batch (forkJoin errors if any source errors) — degrade that
@@ -217,8 +240,8 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
               .findComponentsByIds(occRemaining, pageContext)
               .pipe(map((occComponents) => [...csComponents, ...shells, ...occComponents]));
           }),
-        ),
-      ),
+        );
+      }),
     );
   }
 

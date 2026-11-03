@@ -53,12 +53,16 @@ declare module '@contentstack/delivery-sdk' {
     // Fall back to master-locale content when an entry is not localized in the
     // requested locale (Delivery API `include_fallback`).
     includeFallback(): Entries;
+    // Apply Personalize variant alias(es) so the Delivery API returns the
+    // composite (personalized) entry (Delivery API `variant` param).
+    variants(variants: string | string[]): Entries;
     query(): Query;
   }
 
   export interface EntryInstance {
     locale(locale: string): EntryInstance;
     includeFallback(): EntryInstance;
+    variants(variants: string | string[]): EntryInstance;
     fetch<T>(): Promise<T>;
   }
 
