@@ -102,11 +102,18 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       switchMap(([locale, permissions]) => {
         const variantAliases = this.personalize.getVariantAliases();
         const hasVariants = variantAliases.length > 0;
-        return (permissions
-          ? this.client.getEntryByUid(contentType, id, locale, { permissions, gateRoot: true }, variantAliases)
-          : hasVariants
-            ? this.client.getEntryByUid(contentType, id, locale, undefined, variantAliases)
-            : this.client.getEntryByUid(contentType, id, locale)
+        return (
+          permissions
+            ? this.client.getEntryByUid(
+                contentType,
+                id,
+                locale,
+                { permissions, gateRoot: true },
+                variantAliases,
+              )
+            : hasVariants
+              ? this.client.getEntryByUid(contentType, id, locale, undefined, variantAliases)
+              : this.client.getEntryByUid(contentType, id, locale)
         ).pipe(
           switchMap((entry: ContentstackEntry | undefined) => {
             if (entry) {
@@ -177,7 +184,13 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
         return forkJoin(
           [...byType.entries()].map(([type, uids]) =>
             (permissions
-              ? this.client.getEntriesByUids(type, uids, locale, { permissions, gateRoot: true }, variantAliases)
+              ? this.client.getEntriesByUids(
+                  type,
+                  uids,
+                  locale,
+                  { permissions, gateRoot: true },
+                  variantAliases,
+                )
               : hasVariants
                 ? this.client.getEntriesByUids(type, uids, locale, undefined, variantAliases)
                 : this.client.getEntriesByUids(type, uids, locale)

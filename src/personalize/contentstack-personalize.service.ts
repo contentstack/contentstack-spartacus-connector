@@ -33,9 +33,7 @@ import { ContentstackConfig } from '../config/contentstack-config';
  */
 @Injectable({ providedIn: 'root' })
 export class ContentstackPersonalizeService {
-  constructor(
-    @Optional() @Inject(ContentstackConfig) protected config?: ContentstackConfig,
-  ) {}
+  constructor(@Optional() @Inject(ContentstackConfig) protected config?: ContentstackConfig) {}
 
   /**
    * Variant aliases for the current shopper, passed to the Delivery API so it
