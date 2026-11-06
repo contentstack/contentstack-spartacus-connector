@@ -244,6 +244,9 @@ declare module '@spartacus/core' {
     abstract getActive(): Observable<string>;
     abstract setActive(isocode: string): void;
   }
+  export abstract class CmsService {
+    abstract refreshLatestPage(): void;
+  }
   export abstract class RoutingService {
     abstract getPageContext(): Observable<PageContext>;
   }

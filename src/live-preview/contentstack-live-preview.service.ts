@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   CmsActions,
   CmsComponent,
+  CmsService,
   ContentSlotComponentData,
   LanguageService,
   PageContext,
@@ -52,6 +53,7 @@ export class ContentstackLivePreviewService {
    */
   protected currentCsLocale: string | undefined;
   protected navigationNormalizer = inject(ContentstackCmsNavigationComponentNormalizer);
+  protected cmsService = inject(CmsService);
 
   constructor(
     protected contentstackAngularService: ContentstackAngularService,
@@ -265,29 +267,16 @@ export class ContentstackLivePreviewService {
    */
   protected refetchCurrentPage(): void {
     // Point the delivery stack at the entry being edited (draft) before the
-    // adapter re-fetches — the hash is set by Visual Builder for this edit.
+    // page re-loads; the hash is set by Visual Builder for this edit.
     this.client.applyLivePreviewContext(this.contentstackAngularService.hash);
-    this.routingService
-      .getPageContext()
-      .pipe(take(1))
-      .subscribe((pageContext: PageContext) => {
-        this.pageAdapter
-          .load(pageContext)
-          .pipe(take(1))
-          .subscribe((structure) => {
-            for (const component of structure.components ?? []) {
-              this.dispatchComponentUpdate(component, pageContext);
-            }
-            // Update the page structure so slot additions / removals /
-            // reordering render live (component-data updates alone leave the
-            // old slot layout in place).
-            if (structure.page) {
-              this.store.dispatch(
-                new CmsActions.LoadCmsPageDataSuccess(pageContext, structure.page),
-              );
-            }
-          });
-      });
+    // Re-load the current page through Spartacus's own CMS pipeline (page
+    // connector -> our adapter -> normalizers), not by dispatching the adapter's
+    // structure directly. The pipeline also merges Spartacus's static CMS
+    // structure (e.g. PreHeader's hamburger menu and SiteLogin's sign-in link);
+    // bypassing it dropped those slots for the whole Visual Builder session.
+    // It dispatches both the page structure (slot additions, removals and
+    // reordering) and every component's data, so edits render live.
+    this.cmsService.refreshLatestPage();
   }
 
   /** Mutates `entry` in place, populating `entry.$` with per-field `data-cslp` tags. */
