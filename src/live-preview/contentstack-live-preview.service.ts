@@ -192,7 +192,7 @@ export class ContentstackLivePreviewService {
   protected refetchCurrentPage(): void {
     // Point the delivery stack at the entry being edited (draft) before the
     // adapter re-fetches — the hash is set by Visual Builder for this edit.
-    this.client.applyLivePreviewHash(this.contentstackAngularService.hash);
+    this.client.applyLivePreviewContext(this.contentstackAngularService.hash);
     this.routingService
       .getPageContext()
       .pipe(take(1))

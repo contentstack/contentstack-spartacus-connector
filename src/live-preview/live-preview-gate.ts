@@ -81,3 +81,38 @@ export function regionHost(region: string | undefined, service: 'preview' | 'app
     return fallback;
   }
 }
+
+/**
+ * Live Preview / Timeline context Visual Builder puts in the storefront URL when
+ * it loads it. Only keys that are present are returned, because the Delivery SDK's
+ * `livePreviewQuery` treats a missing `release_id` / `preview_timestamp` as
+ * "clear the Timeline headers".
+ */
+export interface LivePreviewContext {
+  live_preview?: string;
+  content_type_uid?: string;
+  entry_uid?: string;
+  preview_timestamp?: string;
+  release_id?: string;
+}
+
+const CONTEXT_KEYS: (keyof LivePreviewContext)[] = [
+  'live_preview',
+  'content_type_uid',
+  'entry_uid',
+  'preview_timestamp',
+  'release_id',
+];
+
+/** Read the Live Preview / Timeline context from a URL query string. */
+export function readLivePreviewContext(search: string): LivePreviewContext {
+  const params = new URLSearchParams(search);
+  const ctx: LivePreviewContext = {};
+  for (const key of CONTEXT_KEYS) {
+    const value = params.get(key);
+    if (value) {
+      ctx[key] = value;
+    }
+  }
+  return ctx;
+}

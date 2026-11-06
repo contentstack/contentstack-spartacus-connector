@@ -15,7 +15,12 @@ import { LoggerService } from '@spartacus/core';
 import { ContentstackConfig } from '../config/contentstack-config';
 import { ContentstackRestrictionsService } from '../cms/access/contentstack-restrictions.service';
 import { tagEntryTree } from '../live-preview/tag-entry-tree';
-import { isLivePreviewActive, regionHost } from '../live-preview/live-preview-gate';
+import {
+  LivePreviewContext,
+  isLivePreviewActive,
+  readLivePreviewContext,
+  regionHost,
+} from '../live-preview/live-preview-gate';
 
 /**
  * Access context threaded from the adapters so gated content is filtered BEFORE
@@ -140,22 +145,62 @@ export class ContentstackClientService {
     return this.stack;
   }
 
+  private _bootContext?: LivePreviewContext;
+
   /**
-   * Apply the current Live Preview hash to the delivery stack so the next
-   * query resolves the draft of the entry being edited in Visual Builder
-   * (delivery-sdk v4 `livePreviewQuery`). No-op without a hash, so normal
-   * browsing keeps hitting the published CDN.
+   * The Live Preview / Timeline context from the URL Visual Builder loaded the
+   * storefront with. Captured once, at first use: Spartacus navigation rewrites
+   * the URL, but a Timeline preview (`release_id`, `preview_timestamp`) must stay
+   * in force for the whole session.
    */
-  applyLivePreviewHash(hash: string | undefined): void {
-    if (!hash) {
+  get livePreviewBootContext(): LivePreviewContext {
+    if (!this._bootContext) {
+      this._bootContext =
+        typeof window !== 'undefined' ? readLivePreviewContext(window.location.search) : {};
+    }
+    return this._bootContext;
+  }
+
+  /**
+   * Point the delivery stack at the draft being edited before a re-fetch
+   * (delivery-sdk v4 `livePreviewQuery`): the current Live Preview hash plus the
+   * Timeline context. Passing the Timeline keys matters: `livePreviewQuery`
+   * DELETES the `release_id` / `preview_timestamp` headers when they're absent,
+   * so forwarding only the hash would drop a Timeline preview on the first edit.
+   * No-op when Live Preview isn't active or there is no hash.
+   */
+  applyLivePreviewContext(hash: string | undefined): void {
+    if (!this.livePreviewActive) {
+      return;
+    }
+    const boot = this.livePreviewBootContext;
+    const live = hash || boot.live_preview;
+    if (!live) {
       return;
     }
     // `livePreviewQuery` exists on the delivery-sdk v4 Stack at runtime; access
     // it defensively so the type stays resilient across SDK minor versions.
     const stack = this.stack as unknown as {
-      livePreviewQuery?: (query: { live_preview: string }) => void;
+      livePreviewQuery?: (query: LivePreviewContext & { live_preview: string }) => void;
+      config?: { live_preview?: { contentTypeUid?: string; entryUid?: string } };
     };
-    stack.livePreviewQuery?.({ live_preview: hash });
+    // The Live Preview SDK (given `stackSdk`) keeps the entry being edited on the
+    // stack config; prefer it over the boot URL, which only names the first entry.
+    const current = stack.config?.live_preview;
+    const query: LivePreviewContext & { live_preview: string } = { live_preview: live };
+    const contentType = current?.contentTypeUid || boot.content_type_uid;
+    const entry = current?.entryUid || boot.entry_uid;
+    if (contentType) query.content_type_uid = contentType;
+    if (entry) query.entry_uid = entry;
+    // Timeline: only set when present, so a normal edit session never sends them.
+    if (boot.preview_timestamp) query.preview_timestamp = boot.preview_timestamp;
+    if (boot.release_id) query.release_id = boot.release_id;
+    stack.livePreviewQuery?.(query);
+  }
+
+  /** @deprecated Use {@link applyLivePreviewContext}, which also keeps the Timeline context. */
+  applyLivePreviewHash(hash: string | undefined): void {
+    this.applyLivePreviewContext(hash);
   }
 
   protected get timeoutMs(): number {
