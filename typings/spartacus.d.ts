@@ -242,6 +242,7 @@ declare module '@spartacus/core' {
   // --- i18n / routing ---
   export abstract class LanguageService {
     abstract getActive(): Observable<string>;
+    abstract setActive(isocode: string): void;
   }
   export abstract class RoutingService {
     abstract getPageContext(): Observable<PageContext>;

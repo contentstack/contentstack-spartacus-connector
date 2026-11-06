@@ -17,6 +17,7 @@ import { ContentstackClientService } from '../client/contentstack-client.service
 import { ContentstackAngularService } from './contentstack-angular.service';
 import { retargetTagLocale } from './tag-entry-tree';
 import { regionHost } from './live-preview-gate';
+import { toSiteLanguage, vbLocaleFromMessage, vbLocaleFromUrl } from './vb-locale';
 
 /**
  * Decorator-facing wrapper around {@link ContentstackAngularService} — the
@@ -70,7 +71,21 @@ export class ContentstackLivePreviewService {
     // the shopper's language — so on every subsequent language change we rewrite
     // the tags in place (see `retagEditTagsForLocale`) rather than freezing them
     // at the init-time locale.
+    // Visual Builder's locale drives the storefront language (DX-27690): the
+    // `locale` param it loads the iframe with, then every `get-locale` message
+    // it sends when the editor switches locale.
+    this.listenForVisualBuilderLocale();
+    let bootLocaleChecked = false;
     this.languageService.getActive().subscribe((language) => {
+      // First emission = the language Spartacus restored. If Visual Builder
+      // opened the page in another locale, switch first and initialize the SDK
+      // on the next emission, in the editor's locale.
+      if (!bootLocaleChecked) {
+        bootLocaleChecked = true;
+        if (this.followVisualBuilderLocale(this.bootVisualBuilderLocale(), language)) {
+          return;
+        }
+      }
       const csLocale = this.resolveLocale(language);
       this.currentCsLocale = csLocale;
       if (!this.initialized) {
@@ -107,6 +122,52 @@ export class ContentstackLivePreviewService {
         this.retagEditTagsForLocale(csLocale);
       }
     });
+  }
+
+  /** The `locale` param Visual Builder loaded the storefront with (browser only). */
+  protected bootVisualBuilderLocale(): string | undefined {
+    return typeof window !== 'undefined' ? vbLocaleFromUrl(window.location.search) : undefined;
+  }
+
+  /** Follow Visual Builder's `get-locale` messages for the rest of the session. */
+  protected listenForVisualBuilderLocale(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.addEventListener('message', (event: MessageEvent) => {
+      const csLocale = vbLocaleFromMessage(event.data);
+      if (csLocale) {
+        this.languageService
+          .getActive()
+          .pipe(take(1))
+          .subscribe((active) => this.followVisualBuilderLocale(csLocale, active));
+      }
+    });
+  }
+
+  /**
+   * Switch the storefront to the site language that matches Visual Builder's
+   * Contentstack locale. Returns true when a switch was requested. The rest
+   * follows from the normal language flow: content re-fetches in the new
+   * locale and edit tags are retargeted.
+   */
+  protected followVisualBuilderLocale(csLocale: string | undefined, active: string): boolean {
+    if (!csLocale) {
+      return false;
+    }
+    // Only switch to languages the app maps explicitly: they are the site's
+    // languages. An unknown isocode would be ignored by Spartacus, and on boot the
+    // SDK would then wait for a language change that never comes.
+    const mapping = this.config.contentstack?.localeMapping;
+    if (!mapping) {
+      return false;
+    }
+    const iso = toSiteLanguage(csLocale, mapping, Object.keys(mapping));
+    if (!iso || iso === active) {
+      return false;
+    }
+    this.languageService.setActive(iso);
+    return true;
   }
 
   /**
