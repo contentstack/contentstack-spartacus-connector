@@ -90,29 +90,27 @@ export class ContentstackLivePreviewService {
     // `locale` param it loads the iframe with, then every `get-locale` message
     // it sends when the editor switches locale.
     this.listenForVisualBuilderLocale();
-    let bootLocaleChecked = false;
     this.languageService.getActive().subscribe((language) => {
-      // First emission = the language Spartacus restored. If Visual Builder
-      // opened the page in another locale, switch first and initialize the SDK
-      // on the next emission, in the editor's locale.
-      if (!bootLocaleChecked) {
-        bootLocaleChecked = true;
-        if (this.followVisualBuilderLocale(this.bootVisualBuilderLocale(), language)) {
-          return;
-        }
-      }
       const csLocale = this.resolveLocale(language);
       this.currentCsLocale = csLocale;
       if (!this.initialized) {
         this.initialized = true;
+        // Start the SDK right away: Visual Builder waits for its handshake, so it
+        // must never depend on anything else completing first. If Visual Builder
+        // opened the page in another locale (`?locale=de-de`), the SDK starts in
+        // that locale and the storefront follows (the switch re-fetches content
+        // and retargets the edit tags through the normal language flow).
+        const bootCsLocale = this.bootVisualBuilderLocale();
+        const bootLanguage = this.siteLanguageFor(bootCsLocale);
+        const initLocale = bootLanguage ? this.resolveLocale(bootLanguage) : csLocale;
         const delivery = this.config.contentstack?.delivery;
         this.contentstackAngularService.init({
           apiKey: delivery?.apiKey ?? '',
           environment: delivery?.environment ?? '',
           branch: delivery?.branch ?? 'main',
-          // The Contentstack locale, mapped from the Spartacus isocode — NOT the
-          // raw `en`/`de` code, which wouldn't match the stack's `en-us` locale.
-          locale: csLocale,
+          // The Contentstack locale (`en-us`), mapped from the Spartacus isocode
+          // or taken from Visual Builder — NOT the raw `en`/`de` isocode.
+          locale: initLocale,
           ssr: false,
           mode: 'builder',
           // Hand the SDK the delivery stack's config so it keeps the Live
@@ -129,6 +127,11 @@ export class ContentstackLivePreviewService {
         this.contentstackAngularService.onEntryChange(() =>
           this.customRefetch ? this.customRefetch() : this.refetchCurrentPage(),
         );
+        // Only now switch the storefront to Visual Builder's locale; the SDK is
+        // already up, so a slow or ignored switch can't block the handshake.
+        if (bootLanguage && bootLanguage !== language) {
+          this.languageService.setActive(bootLanguage);
+        }
       } else {
         // Language switched mid-session: retarget every already-rendered edit
         // tag at the new locale. Component wrappers are decorated once at
@@ -167,22 +170,25 @@ export class ContentstackLivePreviewService {
    * locale and edit tags are retargeted.
    */
   protected followVisualBuilderLocale(csLocale: string | undefined, active: string): boolean {
-    if (!csLocale) {
-      return false;
-    }
-    // Only switch to languages the app maps explicitly: they are the site's
-    // languages. An unknown isocode would be ignored by Spartacus, and on boot the
-    // SDK would then wait for a language change that never comes.
-    const mapping = this.config.contentstack?.localeMapping;
-    if (!mapping) {
-      return false;
-    }
-    const iso = toSiteLanguage(csLocale, mapping, Object.keys(mapping));
+    const iso = this.siteLanguageFor(csLocale);
     if (!iso || iso === active) {
       return false;
     }
     this.languageService.setActive(iso);
     return true;
+  }
+
+  /**
+   * The site language for a Visual Builder (Contentstack) locale. Only languages
+   * the app maps explicitly in `localeMapping` count: they are the site's
+   * languages, and Spartacus ignores an unknown isocode.
+   */
+  protected siteLanguageFor(csLocale: string | undefined): string | undefined {
+    const mapping = this.config.contentstack?.localeMapping;
+    if (!csLocale || !mapping) {
+      return undefined;
+    }
+    return toSiteLanguage(csLocale, mapping, Object.keys(mapping));
   }
 
   /**
