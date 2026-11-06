@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   CmsActions,
   CmsComponent,
@@ -18,6 +18,18 @@ import { ContentstackAngularService } from './contentstack-angular.service';
 import { retargetTagLocale } from './tag-entry-tree';
 import { regionHost } from './live-preview-gate';
 import { toSiteLanguage, vbLocaleFromMessage, vbLocaleFromUrl } from './vb-locale';
+import { tagNavigationDom } from './tag-navigation-dom';
+import {
+  CmsNavigationNodeWithTags,
+  ContentstackCmsNavigationComponentNormalizer,
+} from '../cms/converters/components/contentstack-cms-navigation-component.normalizer';
+
+/** Navigation typecodes whose menu items get per-item edit tags (DX-27704). */
+const NAVIGATION_TYPE_CODES = new Set([
+  'CategoryNavigationComponent',
+  'FooterNavigationComponent',
+  'NavigationComponent',
+]);
 
 /**
  * Decorator-facing wrapper around {@link ContentstackAngularService} — the
@@ -39,6 +51,7 @@ export class ContentstackLivePreviewService {
    * the entry in the language the shopper is viewing, not the init-time locale.
    */
   protected currentCsLocale: string | undefined;
+  protected navigationNormalizer = inject(ContentstackCmsNavigationComponentNormalizer);
 
   constructor(
     protected contentstackAngularService: ContentstackAngularService,
@@ -310,6 +323,39 @@ export class ContentstackLivePreviewService {
     if (tag) {
       renderer.setAttribute(element, 'data-cslp', this.forCurrentLocale(tag));
     }
+    if (component.typeCode && NAVIGATION_TYPE_CODES.has(component.typeCode)) {
+      this.tagNavigationItems(element, component);
+    }
+  }
+
+  /**
+   * Tag each menu item of a navigation component with its `nav_node_flat` title
+   * (or link name) edit tag, so Visual Builder can select it (DX-27704). The
+   * stock navigation renders asynchronously and re-renders on language switches
+   * and edits, so the tags are (re)applied whenever its DOM changes.
+   */
+  protected tagNavigationItems(element: Element, component: ContentSlotComponentData): void {
+    const raw = component.properties?.data as Record<string, unknown> | undefined;
+    if (!raw || typeof MutationObserver === 'undefined' || !this.navigationNormalizer) {
+      return;
+    }
+    const tree = this.navigationNormalizer.convert(raw as never).navigationNode as
+      CmsNavigationNodeWithTags | undefined;
+    if (!tree) {
+      return;
+    }
+    let scheduled = false;
+    const apply = () => {
+      scheduled = false;
+      tagNavigationDom(element, tree, (t) => this.forCurrentLocale(t));
+    };
+    apply();
+    new MutationObserver(() => {
+      if (!scheduled) {
+        scheduled = true;
+        queueMicrotask(apply);
+      }
+    }).observe(element, { childList: true, subtree: true, characterData: true });
   }
 
   /**

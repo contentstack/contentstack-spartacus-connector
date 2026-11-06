@@ -25,6 +25,16 @@ import { isResolvedEntry } from '../../model/type-guards';
  * Each node's `links` resolve into leaf `CmsNavigationEntry` items (the linked
  * `cms_link_component` references).
  */
+/** Edit tags for a navigation node's visible label (Live Preview only). */
+export interface NavigationLabelTags {
+  title?: { text: string; cslp: string };
+  link?: { text: string; cslp: string };
+}
+export type CmsNavigationNodeWithTags = CmsNavigationNode & { csTags?: NavigationLabelTags };
+
+const tagOf = (entry: ContentstackEntry, field: string): string | undefined =>
+  (entry as { $?: Record<string, { 'data-cslp'?: string } | undefined> }).$?.[field]?.['data-cslp'];
+
 @Injectable({ providedIn: 'root' })
 export class ContentstackCmsNavigationComponentNormalizer implements Converter<
   ContentstackEntry,
@@ -89,6 +99,18 @@ export class ContentstackCmsNavigationComponentNormalizer implements Converter<
         const links = this.resolvedList(n['links']);
         if (links.length) {
           node.entries = links.map((linkEntry) => this.toNavigationEntry(linkEntry));
+        }
+        // Live Preview (DX-27704): keep the edit tags for the node's visible
+        // label, so Visual Builder can select a menu item. Spartacus shows the
+        // node title, or the first link's name when the node has no title.
+        // Only present when the entries are tagged (preview builds).
+        const titleTag = tagOf(n, 'title');
+        const linkTag = links.length ? tagOf(links[0], 'link_name') : undefined;
+        if (titleTag || linkTag) {
+          (node as CmsNavigationNodeWithTags).csTags = {
+            title: titleTag ? { text: n['title'] as string, cslp: titleTag } : undefined,
+            link: linkTag ? { text: links[0]['link_name'] as string, cslp: linkTag } : undefined,
+          };
         }
         const children = build(nodeId);
         if (children.length) {
