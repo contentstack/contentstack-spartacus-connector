@@ -41,6 +41,9 @@ export class ContentstackAngularService {
     // Host of the Contentstack app running Visual Builder (defaults handled by
     // the SDK); set for non-default regions/hosts.
     clientUrlHost?: string;
+    // Floating "Edit" button behavior (kickstart parity: hidden outside the
+    // Live Preview portal so a framed-but-not-editing view stays clean).
+    editButton?: { enable: boolean; exclude?: string[] };
   }): void {
     if (this.initialized) {
       return;
@@ -58,6 +61,7 @@ export class ContentstackAngularService {
       },
       ...(config.stackSdk ? { stackSdk: config.stackSdk } : {}),
       ...(config.clientUrlHost ? { clientUrlParams: { host: config.clientUrlHost } } : {}),
+      ...(config.editButton ? { editButton: config.editButton } : {}),
     } as InitConfig);
   }
 

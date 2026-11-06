@@ -15,6 +15,7 @@ import { LoggerService } from '@spartacus/core';
 import { ContentstackConfig } from '../config/contentstack-config';
 import { ContentstackRestrictionsService } from '../cms/access/contentstack-restrictions.service';
 import { tagEntryTree } from '../live-preview/tag-entry-tree';
+import { isLivePreviewActive, regionHost } from '../live-preview/live-preview-gate';
 
 /**
  * Access context threaded from the adapters so gated content is filtered BEFORE
@@ -61,6 +62,20 @@ export class ContentstackClientService {
     @Inject(PLATFORM_ID) protected platformId: object,
   ) {}
 
+  private _livePreviewActive?: boolean;
+
+  /**
+   * Whether Live Preview / Visual Builder is active for this app instance
+   * (see {@link isLivePreviewActive}). Computed once: the conditions it reads
+   * (config, build mode, iframe, bootstrap URL) don't change during a session.
+   */
+  get livePreviewActive(): boolean {
+    if (this._livePreviewActive === undefined) {
+      this._livePreviewActive = isLivePreviewActive(this.config.contentstack?.delivery);
+    }
+    return this._livePreviewActive;
+  }
+
   /** Lazily build (and memoize) the Delivery SDK stack from config. */
   protected get stack(): Stack {
     if (this._stack) {
@@ -73,19 +88,27 @@ export class ContentstackClientService {
           'Provide contentstack.delivery.{apiKey,deliveryToken,environment} via provideConfig().',
       );
     }
-    // Live Preview exposes UNPUBLISHED draft content, so it must never be active
-    // in a production build. Refuse to enable it outside dev mode (and warn), even
-    // if a previewToken is configured — a preview build shipped to prod would
-    // otherwise leak drafts to end users.
-    const inProduction = !isDevMode();
-    if (delivery.livePreview && inProduction) {
-      this.logger.warn(
-        '[ContentstackClientService] Live Preview is enabled in config but the app is running ' +
-          'in production mode — refusing to activate it so unpublished draft content is not ' +
-          'exposed to end users. Use a dedicated non-production build for Live Preview.',
-      );
+    // Live Preview exposes UNPUBLISHED draft content, so it only activates under
+    // the shared rule in `isLivePreviewActive` (dev mode or an explicit preview
+    // deployment flag, AND opened inside Visual Builder / Live Preview). Warn when
+    // the config asks for it but the rule says no, so a misconfigured build is
+    // visible instead of silently showing published content.
+    const enableLivePreview = this.livePreviewActive;
+    if (delivery.livePreview && !enableLivePreview) {
+      if (!delivery.previewToken) {
+        this.logger.warn(
+          '[ContentstackClientService] Live Preview is enabled in config but no previewToken is set; ' +
+            'serving published content.',
+        );
+      } else if (!isDevMode() && !delivery.livePreviewAllowInProduction) {
+        this.logger.warn(
+          '[ContentstackClientService] Live Preview is enabled in config but the app is running ' +
+            'in production mode — refusing to activate it so unpublished draft content is not ' +
+            'exposed to end users. For a dedicated preview deployment set ' +
+            '`delivery.livePreviewAllowInProduction: true`.',
+        );
+      }
     }
-    const enableLivePreview = !!delivery.livePreview && !!delivery.previewToken && !inProduction;
 
     this._stack = contentstack.stack({
       apiKey: delivery.apiKey,
@@ -102,7 +125,7 @@ export class ContentstackClientService {
             live_preview: {
               enable: true,
               preview_token: delivery.previewToken,
-              host: delivery.previewHost ?? 'rest-preview.contentstack.com',
+              host: delivery.previewHost ?? regionHost(delivery.region, 'preview'),
             },
           }
         : {}),
@@ -211,7 +234,7 @@ export class ContentstackClientService {
               access.gateRoot,
             );
           }
-          if (entry && this.config.contentstack?.delivery?.livePreview) {
+          if (entry && this.livePreviewActive) {
             this.tagForLivePreview(entry, contentTypeUid);
           }
           return entry;
@@ -263,7 +286,7 @@ export class ContentstackClientService {
         if (entry && access) {
           entry = this.restrictions.sanitizeForTransfer(entry, access.permissions, false);
         }
-        if (entry && this.config.contentstack?.delivery?.livePreview) {
+        if (entry && this.livePreviewActive) {
           this.tagForLivePreview(entry, contentTypeUid);
         }
         return entry;
@@ -275,7 +298,7 @@ export class ContentstackClientService {
    * resolved component entries (delegated to the pure {@link tagEntryTree}
    * helper), so Visual Builder can map on-page elements back to their entries
    * (component-to-entry navigation) and `csEditable` can bind per-field
-   * `data-cslp` attributes. Only invoked when `delivery.livePreview` is on, so
+   * `data-cslp` attributes. Only invoked when Live Preview is active, so
    * pure delivery builds are untouched.
    */
   protected tagForLivePreview(
@@ -321,7 +344,7 @@ export class ContentstackClientService {
         // component reaching an editable renderer through this fetch still
         // carries its `$` field-tag map and stays inline-editable in Visual
         // Builder. Only when live preview is on, so delivery builds are untouched.
-        if (result && this.config.contentstack?.delivery?.livePreview) {
+        if (result && this.livePreviewActive) {
           this.tagForLivePreview(result, contentTypeUid);
         }
         return result;
@@ -372,7 +395,7 @@ export class ContentstackClientService {
             // Tag adapter-loaded entries in preview so multi-uid reloads (e.g. a
             // language switch) keep their `$` field-tag map and stay editable in
             // Visual Builder — mirrors getEntryByUid and the page path.
-            if (this.config.contentstack?.delivery?.livePreview) {
+            if (this.livePreviewActive) {
               sanitized.forEach((entry) => this.tagForLivePreview(entry, contentTypeUid));
             }
             return sanitized;

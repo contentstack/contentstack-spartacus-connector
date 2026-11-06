@@ -103,10 +103,24 @@ export abstract class ContentstackConfig {
        */
       previewToken?: string;
       /**
-       * Live Preview host. Defaults to `rest-preview.contentstack.com` (US);
-       * set the region-matching preview host for EU/Azure/GCP stacks.
+       * Live Preview host. Defaults to the preview host of `region`
+       * (e.g. `eu-rest-preview.contentstack.com`); set only to override it.
        */
       previewHost?: string;
+      /**
+       * Host of the Contentstack app that runs Visual Builder, used by the Live
+       * Preview SDK to talk to the editor. Defaults to the app host of `region`
+       * (e.g. `eu-app.contentstack.com`).
+       */
+      applicationHost?: string;
+      /**
+       * Allow Live Preview in a production build. Off by default: Live Preview
+       * only runs in dev mode. Turn it on for a **dedicated preview deployment**
+       * (never the shopper site). Even then it only activates when the page is
+       * opened inside Visual Builder / Live Preview (an iframe or a Live Preview
+       * URL param), so a visitor who opens the URL directly gets published content.
+       */
+      livePreviewAllowInProduction?: boolean;
     };
 
     /**

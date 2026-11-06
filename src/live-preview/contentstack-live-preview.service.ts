@@ -16,6 +16,7 @@ import { ContentstackCmsPageAdapter } from '../cms/adapters/contentstack-cms-pag
 import { ContentstackClientService } from '../client/contentstack-client.service';
 import { ContentstackAngularService } from './contentstack-angular.service';
 import { retargetTagLocale } from './tag-entry-tree';
+import { regionHost } from './live-preview-gate';
 
 /**
  * Decorator-facing wrapper around {@link ContentstackAngularService} — the
@@ -47,10 +48,11 @@ export class ContentstackLivePreviewService {
     protected pageAdapter: ContentstackCmsPageAdapter,
     protected client: ContentstackClientService,
   ) {
-    // Only initialize the Live Preview SDK when live preview is actually
-    // enabled (a preview build). Otherwise this service stays inert, so the
-    // eagerly-loaded module adds no preview behavior to normal delivery builds.
-    if (!this.config.contentstack?.delivery?.livePreview) {
+    // Only initialize the Live Preview SDK when Live Preview is active (the
+    // shared rule in `isLivePreviewActive`, which the delivery client also uses).
+    // Otherwise this service stays inert, so the eagerly-loaded module adds no
+    // preview behavior to normal delivery builds.
+    if (!this.client.livePreviewActive) {
       return;
     }
     // Contentstack's Live Preview SDK injects one global inspector tooltip
@@ -83,6 +85,12 @@ export class ContentstackLivePreviewService {
           locale: csLocale,
           ssr: false,
           mode: 'builder',
+          // Hand the SDK the delivery stack's config so it keeps the Live
+          // Preview hash (and Timeline context) in sync on the stack itself, as
+          // the kickstarts do.
+          stackSdk: (this.client.sdkStack as unknown as { config: unknown }).config,
+          clientUrlHost: delivery?.applicationHost ?? regionHost(delivery?.region, 'application'),
+          editButton: { enable: true, exclude: ['outsideLivePreviewPortal'] },
         });
         // On any edit in the Visual Builder, re-fetch + re-dispatch (or defer to
         // an app-provided override). Contentstack's `onEntryChange` is a single
