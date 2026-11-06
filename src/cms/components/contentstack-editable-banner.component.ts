@@ -13,22 +13,23 @@ import { CsEditableDirective } from '../../live-preview/cs-editable.directive';
  */
 export interface ContentstackEditableBannerData extends CmsBannerComponent {
   urlLink?: string;
+  /** Edit tag of the image's source field (set by the banner normalizer in preview builds). */
+  mediaCslp?: string;
   $?: Record<string, { 'data-cslp'?: string } | undefined>;
 }
 
 /**
- * Connector-provided replacement for Spartacus's stock banner renderer that adds
- * a **field-level** `data-cslp` tag, so Contentstack's Visual Builder selects the
- * banner as an editable field — instead of the component only carrying the coarse
- * entry-level tag it flags as an invalid / incorrectly-generated CSLP tag.
+ * Connector-provided replacement for Spartacus's stock banner renderer that tags
+ * the **image** with the field it comes from (`mediaCslp`, set by the banner
+ * normalizer: the `media_container` entry's file, a `media_<breakpoint>` file or
+ * the single `media` file). Clicking the picture in Visual Builder then edits that
+ * image. The banner as a whole is selected through the slot-position tag the
+ * component decorator puts on the host element.
  *
- * The tag is placed on the banner's **`url_link`** (a text field), NOT on the
- * `media` image. Visual Builder's inline `data-cslp` editing only supports
- * text-type fields; a tag pointing at a file/asset field (`media`) is rejected as
- * "invalid or incorrectly generated" (unlike the paragraph `content` and carousel
- * `title` text fields, which tag cleanly). The banner **image** is still fully
- * editable in Visual Builder — via the entry's form panel, which is the Contentstack
- * pattern for asset fields — just not by clicking the rendered image inline.
+ * An earlier version tagged `url_link` on a wrapper covering the whole banner,
+ * assuming Visual Builder rejects file-field tags. The "invalid CSLP tag" error
+ * seen then came from the bare 3-part tag on the host (fixed with the slot
+ * position tags), not from the file field.
  *
  * Renders the same building blocks as the stock banner — Spartacus's `cx-media`
  * (responsive image) inside `cx-generic-link` (SPA-aware link) — so the visual
@@ -43,12 +44,20 @@ export interface ContentstackEditableBannerData extends CmsBannerComponent {
   imports: [CommonModule, MediaModule, GenericLinkModule, CsEditableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div *ngIf="data$ | async as data" [csEditable]="data.$?.['url_link']">
+    <div *ngIf="data$ | async as data">
       <cx-generic-link *ngIf="data.urlLink; else plain" [url]="data.urlLink">
-        <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
+        <cx-media
+          [csEditable]="data.mediaCslp"
+          [container]="$any(data.media)"
+          [elementType]="'picture'"
+        ></cx-media>
       </cx-generic-link>
       <ng-template #plain>
-        <cx-media [container]="$any(data.media)" [elementType]="'picture'"></cx-media>
+        <cx-media
+          [csEditable]="data.mediaCslp"
+          [container]="$any(data.media)"
+          [elementType]="'picture'"
+        ></cx-media>
       </ng-template>
     </div>
   `,
