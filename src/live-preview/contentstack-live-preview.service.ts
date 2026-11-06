@@ -238,24 +238,26 @@ export class ContentstackLivePreviewService {
     renderer: { setAttribute(el: Element, name: string, value: string): void },
     component: ContentSlotComponentData,
   ): void {
-    // The raw tagged entry rides along in `properties.data` (set by the page
-    // normalizer when live preview is on). Build the v1 entry-level CSLP tag
-    // `{content_type_uid}.{entry_uid}.{locale}` directly from it — reliable and
-    // independent of `addEditableTags`' internal `$` key layout (that `$` is
-    // used for per-FIELD binding via `CsEditableDirective`, not here).
-    const entry = component.properties?.data as
-      { uid?: string; _content_type_uid?: string; locale?: string } | undefined;
-    if (entry?.uid && entry._content_type_uid) {
-      // Prefer the active site locale so a wrapper tagged at creation already
-      // matches the current language; fall back to the entry's own locale, then
-      // master. A later language switch is handled by `retagEditTagsForLocale`.
-      const locale = this.currentCsLocale ?? entry.locale ?? 'en-us';
-      renderer.setAttribute(
-        element,
-        'data-cslp',
-        `${entry._content_type_uid}.${entry.uid}.${locale}`,
-      );
+    // The page normalizer puts the component's slot-position tag in
+    // `properties.cslp`: `{page_ct}.{page_uid}.{locale}.{slot_field}.{index}`.
+    // On the component element it makes Visual Builder treat the component as
+    // item N of the slot's reference field: select it, open its entry, move,
+    // duplicate or delete it. Components without one (OCC-rendered, or loaded
+    // outside a page slot) get no tag: a bare `ct.uid.locale` entry tag is
+    // rejected by Visual Builder as an invalid CSLP tag.
+    const tag = component.properties?.cslp as string | undefined;
+    if (tag) {
+      renderer.setAttribute(element, 'data-cslp', this.forCurrentLocale(tag));
     }
+  }
+
+  /**
+   * Point an edit tag at the active site locale (a wrapper decorated after a
+   * language switch should already match it); later switches are handled by
+   * {@link retagEditTagsForLocale}.
+   */
+  forCurrentLocale(tag: string): string {
+    return this.currentCsLocale ? retargetTagLocale(tag, this.currentCsLocale) : tag;
   }
 
   /**

@@ -221,6 +221,9 @@ declare module '@spartacus/core' {
       component: ContentSlotComponentData
     ): void;
   }
+  export abstract class SlotDecorator {
+    abstract decorate(element: Element, renderer: unknown, slot: ContentSlotData): void;
+  }
 
   // --- auth (login state; source of the core-only default gating user) ---
   export abstract class AuthService {

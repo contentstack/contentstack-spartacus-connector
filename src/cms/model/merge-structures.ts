@@ -31,10 +31,18 @@ export function mergeStructures(
     return {};
   }
 
-  // Slots — later layer wins per slot name.
+  // Slots — later layer wins per slot name. Exception: an authored-but-empty
+  // Contentstack slot (`csEmpty`, emitted only in Live Preview so Visual Builder
+  // can offer "add" on it) never replaces a lower layer's non-empty slot. That
+  // slot stays exactly as OCC rendered it, untagged: functional slots such as
+  // the language switcher or sign-in links must not invite an editor to
+  // override them from Visual Builder.
   const slots: Record<string, ContentSlotData> = {};
   for (const layer of layers) {
     for (const [name, data] of Object.entries(layer.page?.slots ?? {})) {
+      if (data?.properties?.csEmpty && slots[name]?.components?.length) {
+        continue;
+      }
       slots[name] = data;
     }
   }
