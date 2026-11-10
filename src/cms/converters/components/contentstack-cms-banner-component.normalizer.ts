@@ -8,6 +8,12 @@ import {
 import { isContentstackFile, isMediaContainer } from '../../model/type-guards';
 
 const BREAKPOINTS = ['desktop', 'mobile', 'tablet', 'widescreen'] as const;
+/** Order in which a breakpoint image is picked as "the" image to edit inline. */
+const EDIT_ORDER = ['desktop', 'widescreen', 'tablet', 'mobile'] as const;
+
+type TagMap = Record<string, { 'data-cslp'?: string } | undefined>;
+const tagOf = (entry: unknown, field: string): string | undefined =>
+  (entry as { $?: TagMap } | undefined)?.$?.[field]?.['data-cslp'];
 
 /**
  * Resolves `simple_responsive_banner_component`'s media into
@@ -26,6 +32,41 @@ export class ContentstackCmsBannerComponentNormalizer implements Converter<
   CmsBannerComponent
 > {
   convert(source: ContentstackEntry, target: CmsBannerComponent = {}): CmsBannerComponent {
+    const result = this.resolveMedia(source, target);
+    // Live Preview: tag the image with the field it actually came from, so
+    // clicking it in Visual Builder edits that image (container file, per-
+    // breakpoint file or the single `media` file). Only when the component
+    // carries Live Preview tags (`$`), which the component normalizer adds in
+    // preview builds only.
+    if ((target as { $?: unknown }).$) {
+      const tag = this.mediaTag(source);
+      if (tag) {
+        (result as { mediaCslp?: string }).mediaCslp = tag;
+      }
+    }
+    return result;
+  }
+
+  /** Edit tag of the field the banner image is resolved from (same priority as {@link resolveMedia}). */
+  protected mediaTag(source: ContentstackEntry): string | undefined {
+    const rawContainer = source['media_container'];
+    const container = (Array.isArray(rawContainer) ? rawContainer[0] : rawContainer) as
+      ContentstackReference | undefined;
+    if (isMediaContainer(container)) {
+      const bp = EDIT_ORDER.find((b) => isContentstackFile(container[b]));
+      return bp ? tagOf(container, bp) : undefined;
+    }
+    const bp = EDIT_ORDER.find((b) => isContentstackFile(source[`media_${b}`]));
+    if (bp) {
+      return tagOf(source, `media_${bp}`);
+    }
+    return isContentstackFile(source['media']) ? tagOf(source, 'media') : undefined;
+  }
+
+  protected resolveMedia(
+    source: ContentstackEntry,
+    target: CmsBannerComponent,
+  ): CmsBannerComponent {
     // Contentstack delivers reference fields as arrays even for a single
     // reference, so unwrap `[mediaContainer]` before checking its shape --
     // same pattern as ContentstackCmsNavigationComponentNormalizer.

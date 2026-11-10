@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   CmsActions,
   CmsComponent,
+  CmsService,
   ContentSlotComponentData,
   LanguageService,
   PageContext,
@@ -16,6 +17,25 @@ import { ContentstackCmsPageAdapter } from '../cms/adapters/contentstack-cms-pag
 import { ContentstackClientService } from '../client/contentstack-client.service';
 import { ContentstackAngularService } from './contentstack-angular.service';
 import { retargetTagLocale } from './tag-entry-tree';
+import { regionHost } from './live-preview-gate';
+import {
+  isVisualBuilderOrigin,
+  toSiteLanguage,
+  vbLocaleFromMessage,
+  vbLocaleFromUrl,
+} from './vb-locale';
+import { tagNavigationDom } from './tag-navigation-dom';
+import {
+  CmsNavigationNodeWithTags,
+  ContentstackCmsNavigationComponentNormalizer,
+} from '../cms/converters/components/contentstack-cms-navigation-component.normalizer';
+
+/** Navigation typecodes whose menu items get per-item edit tags (DX-27704). */
+const NAVIGATION_TYPE_CODES = new Set([
+  'CategoryNavigationComponent',
+  'FooterNavigationComponent',
+  'NavigationComponent',
+]);
 
 /**
  * Decorator-facing wrapper around {@link ContentstackAngularService} — the
@@ -37,6 +57,8 @@ export class ContentstackLivePreviewService {
    * the entry in the language the shopper is viewing, not the init-time locale.
    */
   protected currentCsLocale: string | undefined;
+  protected navigationNormalizer = inject(ContentstackCmsNavigationComponentNormalizer);
+  protected cmsService = inject(CmsService);
 
   constructor(
     protected contentstackAngularService: ContentstackAngularService,
@@ -47,10 +69,11 @@ export class ContentstackLivePreviewService {
     protected pageAdapter: ContentstackCmsPageAdapter,
     protected client: ContentstackClientService,
   ) {
-    // Only initialize the Live Preview SDK when live preview is actually
-    // enabled (a preview build). Otherwise this service stays inert, so the
-    // eagerly-loaded module adds no preview behavior to normal delivery builds.
-    if (!this.config.contentstack?.delivery?.livePreview) {
+    // Only initialize the Live Preview SDK when Live Preview is active (the
+    // shared rule in `isLivePreviewActive`, which the delivery client also uses).
+    // Otherwise this service stays inert, so the eagerly-loaded module adds no
+    // preview behavior to normal delivery builds.
+    if (!this.client.livePreviewActive) {
       return;
     }
     // Contentstack's Live Preview SDK injects one global inspector tooltip
@@ -68,21 +91,39 @@ export class ContentstackLivePreviewService {
     // the shopper's language — so on every subsequent language change we rewrite
     // the tags in place (see `retagEditTagsForLocale`) rather than freezing them
     // at the init-time locale.
+    // Visual Builder's locale drives the storefront language (DX-27690): the
+    // `locale` param it loads the iframe with, then every `get-locale` message
+    // it sends when the editor switches locale.
+    this.listenForVisualBuilderLocale();
     this.languageService.getActive().subscribe((language) => {
       const csLocale = this.resolveLocale(language);
       this.currentCsLocale = csLocale;
       if (!this.initialized) {
         this.initialized = true;
+        // Start the SDK right away: Visual Builder waits for its handshake, so it
+        // must never depend on anything else completing first. If Visual Builder
+        // opened the page in another locale (`?locale=de-de`), the SDK starts in
+        // that locale and the storefront follows (the switch re-fetches content
+        // and retargets the edit tags through the normal language flow).
+        const bootCsLocale = this.bootVisualBuilderLocale();
+        const bootLanguage = this.siteLanguageFor(bootCsLocale);
+        const initLocale = bootLanguage ? this.resolveLocale(bootLanguage) : csLocale;
         const delivery = this.config.contentstack?.delivery;
         this.contentstackAngularService.init({
           apiKey: delivery?.apiKey ?? '',
           environment: delivery?.environment ?? '',
           branch: delivery?.branch ?? 'main',
-          // The Contentstack locale, mapped from the Spartacus isocode — NOT the
-          // raw `en`/`de` code, which wouldn't match the stack's `en-us` locale.
-          locale: csLocale,
+          // The Contentstack locale (`en-us`), mapped from the Spartacus isocode
+          // or taken from Visual Builder — NOT the raw `en`/`de` isocode.
+          locale: initLocale,
           ssr: false,
           mode: 'builder',
+          // Hand the SDK the delivery stack's config so it keeps the Live
+          // Preview hash (and Timeline context) in sync on the stack itself, as
+          // the kickstarts do.
+          stackSdk: (this.client.sdkStack as unknown as { config: unknown }).config,
+          clientUrlHost: this.visualBuilderHost(),
+          editButton: { enable: true, exclude: ['outsideLivePreviewPortal'] },
         });
         // On any edit in the Visual Builder, re-fetch + re-dispatch (or defer to
         // an app-provided override). Contentstack's `onEntryChange` is a single
@@ -91,6 +132,11 @@ export class ContentstackLivePreviewService {
         this.contentstackAngularService.onEntryChange(() =>
           this.customRefetch ? this.customRefetch() : this.refetchCurrentPage(),
         );
+        // Only now switch the storefront to Visual Builder's locale; the SDK is
+        // already up, so a slow or ignored switch can't block the handshake.
+        if (bootLanguage && bootLanguage !== language) {
+          this.languageService.setActive(bootLanguage);
+        }
       } else {
         // Language switched mid-session: retarget every already-rendered edit
         // tag at the new locale. Component wrappers are decorated once at
@@ -99,6 +145,65 @@ export class ContentstackLivePreviewService {
         this.retagEditTagsForLocale(csLocale);
       }
     });
+  }
+
+  /** The `locale` param Visual Builder loaded the storefront with (browser only). */
+  protected bootVisualBuilderLocale(): string | undefined {
+    return typeof window !== 'undefined' ? vbLocaleFromUrl(window.location.search) : undefined;
+  }
+
+  /** Host of the Contentstack app that runs Visual Builder for this stack's region. */
+  protected visualBuilderHost(): string {
+    const delivery = this.config.contentstack?.delivery;
+    return delivery?.applicationHost ?? regionHost(delivery?.region, 'application');
+  }
+
+  /** Follow Visual Builder's `get-locale` messages for the rest of the session. */
+  protected listenForVisualBuilderLocale(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const appHost = this.visualBuilderHost();
+    window.addEventListener('message', (event: MessageEvent) => {
+      if (!isVisualBuilderOrigin(event.origin, appHost)) {
+        return;
+      }
+      const csLocale = vbLocaleFromMessage(event.data);
+      if (csLocale) {
+        this.languageService
+          .getActive()
+          .pipe(take(1))
+          .subscribe((active) => this.followVisualBuilderLocale(csLocale, active));
+      }
+    });
+  }
+
+  /**
+   * Switch the storefront to the site language that matches Visual Builder's
+   * Contentstack locale. Returns true when a switch was requested. The rest
+   * follows from the normal language flow: content re-fetches in the new
+   * locale and edit tags are retargeted.
+   */
+  protected followVisualBuilderLocale(csLocale: string | undefined, active: string): boolean {
+    const iso = this.siteLanguageFor(csLocale);
+    if (!iso || iso === active) {
+      return false;
+    }
+    this.languageService.setActive(iso);
+    return true;
+  }
+
+  /**
+   * The site language for a Visual Builder (Contentstack) locale. Only languages
+   * the app maps explicitly in `localeMapping` count: they are the site's
+   * languages, and Spartacus ignores an unknown isocode.
+   */
+  protected siteLanguageFor(csLocale: string | undefined): string | undefined {
+    const mapping = this.config.contentstack?.localeMapping;
+    if (!csLocale || !mapping) {
+      return undefined;
+    }
+    return toSiteLanguage(csLocale, mapping, Object.keys(mapping));
   }
 
   /**
@@ -183,29 +288,16 @@ export class ContentstackLivePreviewService {
    */
   protected refetchCurrentPage(): void {
     // Point the delivery stack at the entry being edited (draft) before the
-    // adapter re-fetches — the hash is set by Visual Builder for this edit.
-    this.client.applyLivePreviewHash(this.contentstackAngularService.hash);
-    this.routingService
-      .getPageContext()
-      .pipe(take(1))
-      .subscribe((pageContext: PageContext) => {
-        this.pageAdapter
-          .load(pageContext)
-          .pipe(take(1))
-          .subscribe((structure) => {
-            for (const component of structure.components ?? []) {
-              this.dispatchComponentUpdate(component, pageContext);
-            }
-            // Update the page structure so slot additions / removals /
-            // reordering render live (component-data updates alone leave the
-            // old slot layout in place).
-            if (structure.page) {
-              this.store.dispatch(
-                new CmsActions.LoadCmsPageDataSuccess(pageContext, structure.page),
-              );
-            }
-          });
-      });
+    // page re-loads; the hash is set by Visual Builder for this edit.
+    this.client.applyLivePreviewContext(this.contentstackAngularService.hash);
+    // Re-load the current page through Spartacus's own CMS pipeline (page
+    // connector -> our adapter -> normalizers), not by dispatching the adapter's
+    // structure directly. The pipeline also merges Spartacus's static CMS
+    // structure (e.g. PreHeader's hamburger menu and SiteLogin's sign-in link);
+    // bypassing it dropped those slots for the whole Visual Builder session.
+    // It dispatches both the page structure (slot additions, removals and
+    // reordering) and every component's data, so edits render live.
+    this.cmsService.refreshLatestPage();
   }
 
   /** Mutates `entry` in place, populating `entry.$` with per-field `data-cslp` tags. */
@@ -230,24 +322,71 @@ export class ContentstackLivePreviewService {
     renderer: { setAttribute(el: Element, name: string, value: string): void },
     component: ContentSlotComponentData,
   ): void {
-    // The raw tagged entry rides along in `properties.data` (set by the page
-    // normalizer when live preview is on). Build the v1 entry-level CSLP tag
-    // `{content_type_uid}.{entry_uid}.{locale}` directly from it — reliable and
-    // independent of `addEditableTags`' internal `$` key layout (that `$` is
-    // used for per-FIELD binding via `CsEditableDirective`, not here).
-    const entry = component.properties?.data as
-      { uid?: string; _content_type_uid?: string; locale?: string } | undefined;
-    if (entry?.uid && entry._content_type_uid) {
-      // Prefer the active site locale so a wrapper tagged at creation already
-      // matches the current language; fall back to the entry's own locale, then
-      // master. A later language switch is handled by `retagEditTagsForLocale`.
-      const locale = this.currentCsLocale ?? entry.locale ?? 'en-us';
-      renderer.setAttribute(
-        element,
-        'data-cslp',
-        `${entry._content_type_uid}.${entry.uid}.${locale}`,
-      );
+    // The page normalizer puts the component's slot-position tag in
+    // `properties.cslp`: `{page_ct}.{page_uid}.{locale}.{slot_field}.{index}`.
+    // On the component element it makes Visual Builder treat the component as
+    // item N of the slot's reference field: select it, open its entry, move,
+    // duplicate or delete it. Components without one (OCC-rendered, or loaded
+    // outside a page slot) get no tag: a bare `ct.uid.locale` entry tag is
+    // rejected by Visual Builder as an invalid CSLP tag.
+    const tag = component.properties?.cslp as string | undefined;
+    if (tag) {
+      renderer.setAttribute(element, 'data-cslp', this.forCurrentLocale(tag));
     }
+    if (component.typeCode && NAVIGATION_TYPE_CODES.has(component.typeCode)) {
+      this.tagNavigationItems(element, component);
+    }
+  }
+
+  /**
+   * Tag each menu item of a navigation component with its `nav_node_flat` title
+   * (or link name) edit tag, so Visual Builder can select it (DX-27704). The
+   * stock navigation renders asynchronously and re-renders on language switches
+   * and edits, so the tags are (re)applied whenever its DOM changes.
+   */
+  protected tagNavigationItems(element: Element, component: ContentSlotComponentData): void {
+    const raw = component.properties?.data as Record<string, unknown> | undefined;
+    if (!raw || typeof MutationObserver === 'undefined' || !this.navigationNormalizer) {
+      return;
+    }
+    let tree = this.navigationNormalizer.convert(raw as never).navigationNode as
+      CmsNavigationNodeWithTags | undefined;
+    let scheduled = false;
+    const apply = () => {
+      scheduled = false;
+      tagNavigationDom(element, tree, (t) => this.forCurrentLocale(t));
+    };
+    apply();
+    // Spartacus keeps this component across a language switch and reloads its
+    // data in the new locale. Follow that data, or the labels would be matched
+    // against the init-time locale's texts and most items would lose their tag.
+    if (component.uid) {
+      this.cmsService
+        .getComponentData<CmsComponent & { navigationNode?: CmsNavigationNodeWithTags }>(
+          component.uid,
+        )
+        .subscribe((data) => {
+          if (data?.navigationNode) {
+            tree = data.navigationNode;
+            apply();
+          }
+        });
+    }
+    new MutationObserver(() => {
+      if (!scheduled) {
+        scheduled = true;
+        queueMicrotask(apply);
+      }
+    }).observe(element, { childList: true, subtree: true, characterData: true });
+  }
+
+  /**
+   * Point an edit tag at the active site locale (a wrapper decorated after a
+   * language switch should already match it); later switches are handled by
+   * {@link retagEditTagsForLocale}.
+   */
+  forCurrentLocale(tag: string): string {
+    return this.currentCsLocale ? retargetTagLocale(tag, this.currentCsLocale) : tag;
   }
 
   /**

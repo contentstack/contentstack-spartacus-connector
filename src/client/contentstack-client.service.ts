@@ -15,6 +15,12 @@ import { LoggerService } from '@spartacus/core';
 import { ContentstackConfig } from '../config/contentstack-config';
 import { ContentstackRestrictionsService } from '../cms/access/contentstack-restrictions.service';
 import { tagEntryTree } from '../live-preview/tag-entry-tree';
+import {
+  LivePreviewContext,
+  isLivePreviewActive,
+  readLivePreviewContext,
+  regionHost,
+} from '../live-preview/live-preview-gate';
 
 /**
  * Access context threaded from the adapters so gated content is filtered BEFORE
@@ -32,6 +38,23 @@ export interface EntryAccessOptions {
   gateRoot: boolean;
 }
 import { ContentstackCmsPageEntry, ContentstackEntry } from '../cms/model/contentstack.model';
+
+/**
+ * Stamp the queried content type on an entry fetched by uid. Contentstack only
+ * adds `_content_type_uid` to *referenced* entries, so a direct query result
+ * lacks it, and the component normalizer would resolve an empty typeCode and
+ * skip the banner/carousel/navigation mapping (e.g. after a language switch,
+ * when Spartacus reloads every mounted component by uid).
+ */
+function withContentType<T extends ContentstackEntry | undefined>(
+  entry: T,
+  contentTypeUid: string,
+): T {
+  if (entry && !entry._content_type_uid) {
+    entry._content_type_uid = contentTypeUid;
+  }
+  return entry;
+}
 
 /**
  * The single seam between this library and Contentstack. Every network call to
@@ -61,6 +84,20 @@ export class ContentstackClientService {
     @Inject(PLATFORM_ID) protected platformId: object,
   ) {}
 
+  private _livePreviewActive?: boolean;
+
+  /**
+   * Whether Live Preview / Visual Builder is active for this app instance
+   * (see {@link isLivePreviewActive}). Computed once: the conditions it reads
+   * (config, build mode, iframe, bootstrap URL) don't change during a session.
+   */
+  get livePreviewActive(): boolean {
+    if (this._livePreviewActive === undefined) {
+      this._livePreviewActive = isLivePreviewActive(this.config.contentstack?.delivery);
+    }
+    return this._livePreviewActive;
+  }
+
   /** Lazily build (and memoize) the Delivery SDK stack from config. */
   protected get stack(): Stack {
     if (this._stack) {
@@ -73,19 +110,27 @@ export class ContentstackClientService {
           'Provide contentstack.delivery.{apiKey,deliveryToken,environment} via provideConfig().',
       );
     }
-    // Live Preview exposes UNPUBLISHED draft content, so it must never be active
-    // in a production build. Refuse to enable it outside dev mode (and warn), even
-    // if a previewToken is configured — a preview build shipped to prod would
-    // otherwise leak drafts to end users.
-    const inProduction = !isDevMode();
-    if (delivery.livePreview && inProduction) {
-      this.logger.warn(
-        '[ContentstackClientService] Live Preview is enabled in config but the app is running ' +
-          'in production mode — refusing to activate it so unpublished draft content is not ' +
-          'exposed to end users. Use a dedicated non-production build for Live Preview.',
-      );
+    // Live Preview exposes UNPUBLISHED draft content, so it only activates under
+    // the shared rule in `isLivePreviewActive` (dev mode or an explicit preview
+    // deployment flag, AND opened inside Visual Builder / Live Preview). Warn when
+    // the config asks for it but the rule says no, so a misconfigured build is
+    // visible instead of silently showing published content.
+    const enableLivePreview = this.livePreviewActive;
+    if (delivery.livePreview && !enableLivePreview) {
+      if (!delivery.previewToken) {
+        this.logger.warn(
+          '[ContentstackClientService] Live Preview is enabled in config but no previewToken is set; ' +
+            'serving published content.',
+        );
+      } else if (!isDevMode() && !delivery.livePreviewAllowInProduction) {
+        this.logger.warn(
+          '[ContentstackClientService] Live Preview is enabled in config but the app is running ' +
+            'in production mode — refusing to activate it so unpublished draft content is not ' +
+            'exposed to end users. For a dedicated preview deployment set ' +
+            '`delivery.livePreviewAllowInProduction: true`.',
+        );
+      }
     }
-    const enableLivePreview = !!delivery.livePreview && !!delivery.previewToken && !inProduction;
 
     this._stack = contentstack.stack({
       apiKey: delivery.apiKey,
@@ -102,7 +147,7 @@ export class ContentstackClientService {
             live_preview: {
               enable: true,
               preview_token: delivery.previewToken,
-              host: delivery.previewHost ?? 'rest-preview.contentstack.com',
+              host: delivery.previewHost ?? regionHost(delivery.region, 'preview'),
             },
           }
         : {}),
@@ -117,22 +162,62 @@ export class ContentstackClientService {
     return this.stack;
   }
 
+  private _bootContext?: LivePreviewContext;
+
   /**
-   * Apply the current Live Preview hash to the delivery stack so the next
-   * query resolves the draft of the entry being edited in Visual Builder
-   * (delivery-sdk v4 `livePreviewQuery`). No-op without a hash, so normal
-   * browsing keeps hitting the published CDN.
+   * The Live Preview / Timeline context from the URL Visual Builder loaded the
+   * storefront with. Captured once, at first use: Spartacus navigation rewrites
+   * the URL, but a Timeline preview (`release_id`, `preview_timestamp`) must stay
+   * in force for the whole session.
    */
-  applyLivePreviewHash(hash: string | undefined): void {
-    if (!hash) {
+  get livePreviewBootContext(): LivePreviewContext {
+    if (!this._bootContext) {
+      this._bootContext =
+        typeof window !== 'undefined' ? readLivePreviewContext(window.location.search) : {};
+    }
+    return this._bootContext;
+  }
+
+  /**
+   * Point the delivery stack at the draft being edited before a re-fetch
+   * (delivery-sdk v4 `livePreviewQuery`): the current Live Preview hash plus the
+   * Timeline context. Passing the Timeline keys matters: `livePreviewQuery`
+   * DELETES the `release_id` / `preview_timestamp` headers when they're absent,
+   * so forwarding only the hash would drop a Timeline preview on the first edit.
+   * No-op when Live Preview isn't active or there is no hash.
+   */
+  applyLivePreviewContext(hash: string | undefined): void {
+    if (!this.livePreviewActive) {
+      return;
+    }
+    const boot = this.livePreviewBootContext;
+    const live = hash || boot.live_preview;
+    if (!live) {
       return;
     }
     // `livePreviewQuery` exists on the delivery-sdk v4 Stack at runtime; access
     // it defensively so the type stays resilient across SDK minor versions.
     const stack = this.stack as unknown as {
-      livePreviewQuery?: (query: { live_preview: string }) => void;
+      livePreviewQuery?: (query: LivePreviewContext & { live_preview: string }) => void;
+      config?: { live_preview?: { contentTypeUid?: string; entryUid?: string } };
     };
-    stack.livePreviewQuery?.({ live_preview: hash });
+    // The Live Preview SDK (given `stackSdk`) keeps the entry being edited on the
+    // stack config; prefer it over the boot URL, which only names the first entry.
+    const current = stack.config?.live_preview;
+    const query: LivePreviewContext & { live_preview: string } = { live_preview: live };
+    const contentType = current?.contentTypeUid || boot.content_type_uid;
+    const entry = current?.entryUid || boot.entry_uid;
+    if (contentType) query.content_type_uid = contentType;
+    if (entry) query.entry_uid = entry;
+    // Timeline: only set when present, so a normal edit session never sends them.
+    if (boot.preview_timestamp) query.preview_timestamp = boot.preview_timestamp;
+    if (boot.release_id) query.release_id = boot.release_id;
+    stack.livePreviewQuery?.(query);
+  }
+
+  /** @deprecated Use {@link applyLivePreviewContext}, which also keeps the Timeline context. */
+  applyLivePreviewHash(hash: string | undefined): void {
+    this.applyLivePreviewContext(hash);
   }
 
   protected get timeoutMs(): number {
@@ -211,7 +296,7 @@ export class ContentstackClientService {
               access.gateRoot,
             );
           }
-          if (entry && this.config.contentstack?.delivery?.livePreview) {
+          if (entry && this.livePreviewActive) {
             this.tagForLivePreview(entry, contentTypeUid);
           }
           return entry;
@@ -263,7 +348,7 @@ export class ContentstackClientService {
         if (entry && access) {
           entry = this.restrictions.sanitizeForTransfer(entry, access.permissions, false);
         }
-        if (entry && this.config.contentstack?.delivery?.livePreview) {
+        if (entry && this.livePreviewActive) {
           this.tagForLivePreview(entry, contentTypeUid);
         }
         return entry;
@@ -275,7 +360,7 @@ export class ContentstackClientService {
    * resolved component entries (delegated to the pure {@link tagEntryTree}
    * helper), so Visual Builder can map on-page elements back to their entries
    * (component-to-entry navigation) and `csEditable` can bind per-field
-   * `data-cslp` attributes. Only invoked when `delivery.livePreview` is on, so
+   * `data-cslp` attributes. Only invoked when Live Preview is active, so
    * pure delivery builds are untouched.
    */
   protected tagForLivePreview(
@@ -285,21 +370,28 @@ export class ContentstackClientService {
     tagEntryTree(entry, contentTypeUid, entry.locale ?? 'en-us');
   }
 
-  /** Fetch a single component/module entry by uid. */
+  /**
+   * Fetch a single component/module entry by uid.
+   * @param includeRefs reference fields of the entry to expand in the same call
+   */
   getEntryByUid(
     contentTypeUid: string,
     uid: string,
     locale?: string,
     access?: EntryAccessOptions,
+    includeRefs: string[] = [],
   ): Observable<ContentstackEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry | undefined>(
-      `cs-entry:${contentTypeUid}:${uid}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
+      `cs-entry:${contentTypeUid}:${uid}:${includeRefs.join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
       )}`,
     );
     return this.withTransferState(key, () => {
       let entry = this.stack.contentType(contentTypeUid).entry(uid);
+      if (includeRefs.length) {
+        entry = entry.includeReference(includeRefs);
+      }
       if (csLocale) {
         entry = entry.locale(csLocale);
         if (this.includeFallback) {
@@ -307,7 +399,7 @@ export class ContentstackClientService {
         }
       }
       return entry.fetch<ContentstackEntry>().then((e) => {
-        let result = e ?? undefined;
+        let result = withContentType(e ?? undefined, contentTypeUid);
         // Filter gated content BEFORE it is persisted to TransferState.
         if (result && access) {
           result = this.restrictions.sanitizeForTransfer(
@@ -321,7 +413,7 @@ export class ContentstackClientService {
         // component reaching an editable renderer through this fetch still
         // carries its `$` field-tag map and stays inline-editable in Visual
         // Builder. Only when live preview is on, so delivery builds are untouched.
-        if (result && this.config.contentstack?.delivery?.livePreview) {
+        if (result && this.livePreviewActive) {
           this.tagForLivePreview(result, contentTypeUid);
         }
         return result;
@@ -329,19 +421,23 @@ export class ContentstackClientService {
     });
   }
 
-  /** Fetch multiple component/module entries of one content type by their uids. */
+  /**
+   * Fetch multiple component/module entries of one content type by their uids.
+   * @param includeRefs reference fields of the entries to expand in the same call
+   */
   getEntriesByUids(
     contentTypeUid: string,
     uids: string[],
     locale?: string,
     access?: EntryAccessOptions,
+    includeRefs: string[] = [],
   ): Observable<ContentstackEntry[]> {
     if (!uids.length) {
       return of([]);
     }
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry[]>(
-      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
+      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${includeRefs.join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
       )}`,
     );
@@ -349,6 +445,9 @@ export class ContentstackClientService {
       key,
       () => {
         let entries = this.stack.contentType(contentTypeUid).entry();
+        if (includeRefs.length) {
+          entries = entries.includeReference(includeRefs);
+        }
         if (csLocale) {
           entries = entries.locale(csLocale);
           if (this.includeFallback) {
@@ -360,7 +459,7 @@ export class ContentstackClientService {
           .where('uid', QueryOperation.INCLUDES, uids)
           .find<ContentstackEntry>()
           .then((res) => {
-            const list = res?.entries ?? [];
+            const list = (res?.entries ?? []).map((e) => withContentType(e, contentTypeUid));
             // Filter gated content BEFORE it is persisted to TransferState:
             // each restricted entry is redacted to a tags-only stub so the adapter
             // still counts it as "found" (no OCC refetch) without shipping content.
@@ -372,7 +471,7 @@ export class ContentstackClientService {
             // Tag adapter-loaded entries in preview so multi-uid reloads (e.g. a
             // language switch) keep their `$` field-tag map and stay editable in
             // Visual Builder — mirrors getEntryByUid and the page path.
-            if (this.config.contentstack?.delivery?.livePreview) {
+            if (this.livePreviewActive) {
               sanitized.forEach((entry) => this.tagForLivePreview(entry, contentTypeUid));
             }
             return sanitized;

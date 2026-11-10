@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-import { ComponentDecorator } from '@spartacus/core';
+import { ComponentDecorator, SlotDecorator } from '@spartacus/core';
 import { ContentstackComponentDecorator } from './contentstack-component.decorator';
+import { ContentstackSlotDecorator } from './contentstack-slot.decorator';
 
 /**
  * Live Preview / Visual Editor bindings. Registers the Contentstack
@@ -22,6 +23,8 @@ import { ContentstackComponentDecorator } from './contentstack-component.decorat
   // single providers for class ComponentDecorator" at render time.
   providers: [
     { provide: ComponentDecorator, useExisting: ContentstackComponentDecorator, multi: true },
+    // Slot decorators are a multi provider too (DynamicAttributeService.addAttributesToSlot).
+    { provide: SlotDecorator, useExisting: ContentstackSlotDecorator, multi: true },
   ],
 })
 export class ContentstackLivePreviewModule {}

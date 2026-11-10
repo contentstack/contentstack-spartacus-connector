@@ -221,6 +221,9 @@ declare module '@spartacus/core' {
       component: ContentSlotComponentData
     ): void;
   }
+  export abstract class SlotDecorator {
+    abstract decorate(element: Element, renderer: unknown, slot: ContentSlotData): void;
+  }
 
   // --- auth (login state; source of the core-only default gating user) ---
   export abstract class AuthService {
@@ -239,6 +242,14 @@ declare module '@spartacus/core' {
   // --- i18n / routing ---
   export abstract class LanguageService {
     abstract getActive(): Observable<string>;
+    abstract setActive(isocode: string): void;
+  }
+  export abstract class CmsService {
+    abstract refreshLatestPage(): void;
+    abstract getComponentData<T extends CmsComponent | null>(
+      uid: string,
+      pageContext?: PageContext,
+    ): Observable<T>;
   }
   export abstract class RoutingService {
     abstract getPageContext(): Observable<PageContext>;

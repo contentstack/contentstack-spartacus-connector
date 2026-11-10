@@ -57,6 +57,7 @@ declare module '@contentstack/delivery-sdk' {
   }
 
   export interface EntryInstance {
+    includeReference(...referenceFieldUid: (string | string[])[]): EntryInstance;
     locale(locale: string): EntryInstance;
     includeFallback(): EntryInstance;
     fetch<T>(): Promise<T>;

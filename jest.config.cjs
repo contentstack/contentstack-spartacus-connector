@@ -44,6 +44,7 @@ module.exports = {
     '**/merge-structures.spec.ts',
     '**/contentstack-field-mapper.spec.ts',
     '**/contentstack-restrictions.service.spec.ts',
+    '**/contentstack-client.by-uid.spec.ts',
     '**/slot-maps.spec.ts',
     '**/contentstack-component-type.registry.spec.ts',
     // DX-31556: starter-pack content-type generator output vs shipped JSON.

@@ -25,3 +25,11 @@ export enum PageRobotsMeta {
 // only stable identity matters here.
 export const HOME_PAGE_CONTEXT = 'homepage';
 export const SMART_EDIT_CONTEXT = 'smartedit-preview';
+
+/** Decorator extension points (Live Preview tagging); abstract bases only. */
+export abstract class ComponentDecorator {
+  abstract decorate(element: unknown, renderer: unknown, component: unknown): void;
+}
+export abstract class SlotDecorator {
+  abstract decorate(element: unknown, renderer: unknown, slot: unknown): void;
+}

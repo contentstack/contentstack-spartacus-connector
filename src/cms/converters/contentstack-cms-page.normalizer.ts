@@ -116,16 +116,34 @@ export class ContentstackCmsPageNormalizer implements Converter<
   } {
     const slots: Record<string, ContentSlotData> = {};
     const components: CmsComponent[] = [];
+    // Live Preview edit tags on the page/shell entry itself (only present when
+    // Live Preview is active). `addEditableTags` gives every reference field a
+    // `field` tag and every item a `field__N` tag; Visual Builder needs both on
+    // the slot element and its children to reorder, add and delete.
+    const tagOf = (key: string): string | undefined =>
+      (source as { $?: Record<string, { 'data-cslp'?: string } | undefined> }).$?.[key]?.[
+        'data-cslp'
+      ];
 
     const slotMap = effectiveSlotMap(this.config.contentstack?.additionalSlotFields);
     for (const [fieldUid, slotName] of Object.entries(slotMap)) {
-      const entries = this.resolvedEntries(source[fieldUid]);
+      const slotTag = tagOf(fieldUid);
+      // Keep each item's ORIGINAL index in the field, so the edit tag still
+      // points at the right array position when unresolved items are skipped
+      // or restricted ones are filtered out below.
+      const entries = this.indexedEntries(source[fieldUid]);
       if (!entries.length) {
+        // An authored-but-empty slot in a preview: emit it so Visual Builder can
+        // show its "add" placeholder. `mergeStructures` never lets it blank a
+        // non-empty OCC slot. Outside preview (no tags) nothing changes.
+        if (slotTag && Array.isArray(source[fieldUid])) {
+          slots[slotName] = { components: [], properties: { cslp: slotTag, csEmpty: true } };
+        }
         continue;
       }
 
       const slotComponents: ContentSlotComponentData[] = [];
-      for (const entry of entries) {
+      for (const { entry, index } of entries) {
         // Presentation-level gating: drop a restricted component from both the
         // slot and the flat components[] in one place. Skipped entirely when
         // `permissions` is undefined (access control off, or the ungated shell
@@ -172,7 +190,7 @@ export class ContentstackCmsPageNormalizer implements Converter<
           // `CMSFlexComponent` that MUST be the real subtype (e.g.
           // `ProductIntroComponent`), not the literal `CMSFlexComponent`.
           flexType: resolveFlexType(entry as Record<string, unknown>, typeCode),
-          properties: entry.$ ? { data: entry } : undefined,
+          properties: this.componentProperties(entry, tagOf(`${fieldUid}__${index}`)),
         });
         const component = this.componentNormalizer.convert(entry);
         if (compUid !== entry.uid) {
@@ -193,10 +211,40 @@ export class ContentstackCmsPageNormalizer implements Converter<
           );
         }
       }
-      slots[slotName] = { components: slotComponents };
+      slots[slotName] = slotTag
+        ? { components: slotComponents, properties: { cslp: slotTag } }
+        : { components: slotComponents };
     }
 
     return { slots, components };
+  }
+
+  /**
+   * Per-component `properties`: the raw tagged entry (field-level edit tags for
+   * the editable renderers) and the slot-position tag `ct.uid.locale.field.N`
+   * the component decorator puts on the component element. Both only exist when
+   * Live Preview is active; otherwise `undefined`, exactly as before.
+   */
+  protected componentProperties(
+    entry: ContentstackEntry,
+    cslp: string | undefined,
+  ): { data?: ContentstackEntry; cslp?: string } | undefined {
+    if (!entry.$ && !cslp) {
+      return undefined;
+    }
+    return { ...(entry.$ ? { data: entry } : {}), ...(cslp ? { cslp } : {}) };
+  }
+
+  /** Resolved entries of a reference field, each with its index in the raw field value. */
+  protected indexedEntries(value: unknown): { entry: ContentstackEntry; index: number }[] {
+    const list = Array.isArray(value) ? value : value != null ? [value] : [];
+    const out: { entry: ContentstackEntry; index: number }[] = [];
+    list.forEach((item, index) => {
+      if (item && typeof item === 'object' && typeof (item as { uid?: unknown }).uid === 'string') {
+        out.push({ entry: item as ContentstackEntry, index });
+      }
+    });
+    return out;
   }
 
   /**
@@ -206,11 +254,7 @@ export class ContentstackCmsPageNormalizer implements Converter<
    * component shell so Spartacus can request it via the component adapter.
    */
   protected resolvedEntries(value: unknown): ContentstackEntry[] {
-    const list = Array.isArray(value) ? value : value != null ? [value] : [];
-    return list.filter(
-      (item): item is ContentstackEntry =>
-        !!item && typeof item === 'object' && typeof (item as { uid?: unknown }).uid === 'string',
-    );
+    return this.indexedEntries(value).map(({ entry }) => entry);
   }
 
   /**

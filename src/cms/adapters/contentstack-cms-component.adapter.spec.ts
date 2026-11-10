@@ -97,7 +97,13 @@ describe('ContentstackCmsComponentAdapter', () => {
         client: { getEntryByUid: jest.fn().mockReturnValue(of({ uid: 'banner1' })) },
       });
       const res = firstValue(adapter.load('banner1', ctx));
-      expect(client.getEntryByUid).toHaveBeenCalledWith('cms_component', 'banner1', 'en');
+      expect(client.getEntryByUid).toHaveBeenCalledWith(
+        'cms_component',
+        'banner1',
+        'en',
+        undefined,
+        [],
+      );
       expect(normalizer.convert).toHaveBeenCalledWith({ uid: 'banner1' });
       expect(res).toEqual({ uid: 'banner1', typeCode: 'CS' });
     });
@@ -184,6 +190,8 @@ describe('ContentstackCmsComponentAdapter', () => {
         'simple_responsive_banner_component',
         'bltbanner123',
         'en',
+        undefined,
+        [],
       );
       expect(normalizer.convert).toHaveBeenCalledWith({ uid: 'bltbanner123' });
       expect(res).toEqual({ uid: 'bltbanner123', typeCode: 'CS' });
@@ -200,6 +208,8 @@ describe('ContentstackCmsComponentAdapter', () => {
         'simple_responsive_banner_component',
         'bltbanner123',
         'de',
+        undefined,
+        [],
       );
     });
   });
@@ -246,15 +256,46 @@ describe('ContentstackCmsComponentAdapter', () => {
         'cms_component',
         ['bltlink', 'QuickOrderLink'],
         'en',
+        undefined,
+        [],
       );
       expect(getEntriesByUids).toHaveBeenCalledWith(
         'simple_responsive_banner_component',
         ['bltbanner'],
         'en',
+        undefined,
+        [],
       );
       // Only the OCC-shaped, unresolved id reaches OCC — never a blt uid.
       expect(occComponentAdapter.findComponentsByIds).toHaveBeenCalledWith(['QuickOrderLink'], ctx);
       expect(res.map((c) => c.uid).sort()).toEqual(['QuickOrderLink', 'bltbanner', 'bltlink']);
+    });
+
+    it('expands the flat-nav pool when reloading a navigation component (language switch)', () => {
+      const getEntriesByUids = jest.fn().mockReturnValue(of([{ uid: 'bltnav' }]));
+      const getEntryByUid = jest.fn().mockReturnValue(of({ uid: 'bltnav' }));
+      const { adapter } = create({
+        locale: 'de',
+        registry: { bltnav: 'category_navigation_flat' },
+        client: { getEntriesByUids, getEntryByUid },
+      });
+      firstValue(adapter.findComponentsByIds(['bltnav'], ctx));
+      firstValue(adapter.load('bltnav', ctx));
+      const refs = ['all_nodes', 'all_nodes.links'];
+      expect(getEntriesByUids).toHaveBeenCalledWith(
+        'category_navigation_flat',
+        ['bltnav'],
+        'de',
+        undefined,
+        refs,
+      );
+      expect(getEntryByUid).toHaveBeenCalledWith(
+        'category_navigation_flat',
+        'bltnav',
+        'de',
+        undefined,
+        refs,
+      );
     });
 
     it('serves unresolved ids from OCC and merges them after the Contentstack ones', () => {
@@ -356,8 +397,14 @@ describe('ContentstackCmsComponentAdapter', () => {
       });
       firstValue(adapter.load('a', ctx));
       firstValue(adapter.findComponentsByIds(['a'], ctx));
-      expect(client.getEntryByUid).toHaveBeenCalledWith('cms_component', 'a', 'de');
-      expect(client.getEntriesByUids).toHaveBeenCalledWith('cms_component', ['a'], 'de');
+      expect(client.getEntryByUid).toHaveBeenCalledWith('cms_component', 'a', 'de', undefined, []);
+      expect(client.getEntriesByUids).toHaveBeenCalledWith(
+        'cms_component',
+        ['a'],
+        'de',
+        undefined,
+        [],
+      );
     });
   });
 

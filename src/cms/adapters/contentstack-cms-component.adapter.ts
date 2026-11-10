@@ -11,7 +11,11 @@ import {
 } from '@spartacus/core';
 import { ContentstackConfig } from '../../config/contentstack-config';
 import { ContentstackClientService } from '../../client/contentstack-client.service';
-import { ContentstackCmsComponentNormalizer } from '../converters/contentstack-cms-component.normalizer';
+import {
+  ContentstackCmsComponentNormalizer,
+  NAVIGATION_TYPE_CODES,
+} from '../converters/contentstack-cms-component.normalizer';
+import { toTypeCode } from '../model/slot-maps';
 import { ContentstackEntry } from '../model/contentstack.model';
 import { ContentstackComponentTypeRegistry } from '../model/contentstack-component-type.registry';
 import { ContentstackRestrictionsService } from '../access/contentstack-restrictions.service';
@@ -36,6 +40,9 @@ import {
  * adapter returns an empty/shell result instead (full-replacement mode), and a
  * standalone lookup then requires `contentstack.componentContentType`.
  */
+/** Flat-nav references relative to the nav component itself (see `navFlatIncludeRefs`). */
+const NAV_FLAT_REFS = ['all_nodes', 'all_nodes.links'];
+
 @Injectable({ providedIn: 'root' })
 export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
   constructor(
@@ -61,6 +68,16 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
    */
   protected resolveType(id: string): string | undefined {
     return this.typeRegistry.get(id) ?? this.componentContentType();
+  }
+
+  /**
+   * Reference fields to expand when a component is fetched on its own (a reload
+   * by uid, e.g. on a language switch). The page fetch expands these through its
+   * slot paths; without them a reloaded navigation component would arrive with
+   * an unresolved `all_nodes` pool and render an empty menu.
+   */
+  protected includeRefsFor(contentType: string): string[] {
+    return NAVIGATION_TYPE_CODES.has(toTypeCode(contentType)) ? NAV_FLAT_REFS : [];
   }
 
   /** Active user's permission tokens, or `of(undefined)` when gating is off. */
@@ -98,32 +115,37 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
     }
     return combineLatest([this.languageService.getActive(), this.permissions()]).pipe(
       switchMap(([locale, permissions]) =>
-        (permissions
-          ? this.client.getEntryByUid(contentType, id, locale, { permissions, gateRoot: true })
-          : this.client.getEntryByUid(contentType, id, locale)
-        ).pipe(
-          switchMap((entry: ContentstackEntry | undefined) => {
-            if (entry) {
-              // Restricted → a bare shell, NOT the OCC fallback: a gated
-              // Contentstack entry must not silently render its OCC twin.
-              if (permissions && !this.restrictions.isEntryAccessible(entry, permissions)) {
-                return of({ uid: id } as T);
+        this.client
+          .getEntryByUid(
+            contentType,
+            id,
+            locale,
+            permissions ? { permissions, gateRoot: true } : undefined,
+            this.includeRefsFor(contentType),
+          )
+          .pipe(
+            switchMap((entry: ContentstackEntry | undefined) => {
+              if (entry) {
+                // Restricted → a bare shell, NOT the OCC fallback: a gated
+                // Contentstack entry must not silently render its OCC twin.
+                if (permissions && !this.restrictions.isEntryAccessible(entry, permissions)) {
+                  return of({ uid: id } as T);
+                }
+                return of(this.normalizer.convert(entry) as T);
               }
-              return of(this.normalizer.convert(entry) as T);
-            }
-            // Still not found — an unlearned Contentstack-native uid that also
-            // isn't under `componentContentType` belongs to some other type OCC
-            // would never have. Forwarding it to OCC would fail a beat later and
-            // mark the component "not found", flipping its already-subscribed
-            // `data$` to `null`; several stock components (e.g. BannerComponent,
-            // SearchBoxComponent) don't null-guard that and throw. A benign shell
-            // is inert and safe — the component's real data already arrived via
-            // the page payload and isn't lost.
-            return occFallback && !this.isContentstackUid(id)
-              ? this.occComponentAdapter.load<T>(id, pageContext)
-              : of({ uid: id } as T);
-          }),
-        ),
+              // Still not found — an unlearned Contentstack-native uid that also
+              // isn't under `componentContentType` belongs to some other type OCC
+              // would never have. Forwarding it to OCC would fail a beat later and
+              // mark the component "not found", flipping its already-subscribed
+              // `data$` to `null`; several stock components (e.g. BannerComponent,
+              // SearchBoxComponent) don't null-guard that and throw. A benign shell
+              // is inert and safe — the component's real data already arrived via
+              // the page payload and isn't lost.
+              return occFallback && !this.isContentstackUid(id)
+                ? this.occComponentAdapter.load<T>(id, pageContext)
+                : of({ uid: id } as T);
+            }),
+          ),
       ),
     );
   }
@@ -168,15 +190,20 @@ export class ContentstackCmsComponentAdapter implements CmsComponentAdapter {
       switchMap(([locale, permissions]) =>
         forkJoin(
           [...byType.entries()].map(([type, uids]) =>
-            (permissions
-              ? this.client.getEntriesByUids(type, uids, locale, { permissions, gateRoot: true })
-              : this.client.getEntriesByUids(type, uids, locale)
-            ).pipe(
-              // Defense in depth: one content-type group failing must not fail the
-              // whole batch (forkJoin errors if any source errors) — degrade that
-              // group to no entries so its ids fall back to OCC/shells below.
-              catchError(() => of([] as ContentstackEntry[])),
-            ),
+            this.client
+              .getEntriesByUids(
+                type,
+                uids,
+                locale,
+                permissions ? { permissions, gateRoot: true } : undefined,
+                this.includeRefsFor(type),
+              )
+              .pipe(
+                // Defense in depth: one content-type group failing must not fail the
+                // whole batch (forkJoin errors if any source errors) — degrade that
+                // group to no entries so its ids fall back to OCC/shells below.
+                catchError(() => of([] as ContentstackEntry[])),
+              ),
           ),
         ).pipe(
           switchMap((groups: ContentstackEntry[][]) => {
