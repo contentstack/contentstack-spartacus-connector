@@ -63,3 +63,12 @@ export function vbLocaleFromMessage(data: unknown): string | undefined {
 export function vbLocaleFromUrl(search: string): string | undefined {
   return new URLSearchParams(search).get('locale') || undefined;
 }
+
+/**
+ * Whether a `message` event comes from the Visual Builder app (`appHost`, e.g.
+ * `app.contentstack.com`). Only that origin may drive the storefront language;
+ * any other page that frames the storefront is ignored.
+ */
+export function isVisualBuilderOrigin(origin: string, appHost: string): boolean {
+  return !!appHost && origin === `https://${appHost}`;
+}

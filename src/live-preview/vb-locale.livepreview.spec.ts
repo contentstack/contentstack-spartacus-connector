@@ -1,4 +1,9 @@
-import { toSiteLanguage, vbLocaleFromMessage, vbLocaleFromUrl } from './vb-locale';
+import {
+  isVisualBuilderOrigin,
+  toSiteLanguage,
+  vbLocaleFromMessage,
+  vbLocaleFromUrl,
+} from './vb-locale';
 
 const mapping = { en: 'en-us', de: 'de-de', ja: 'ja-jp', zh: 'zh-cn' };
 
@@ -47,5 +52,27 @@ describe('vbLocaleFromUrl', () => {
   it('reads the locale param Visual Builder loads the storefront with', () => {
     expect(vbLocaleFromUrl('?live_preview=x&locale=ja-jp')).toBe('ja-jp');
     expect(vbLocaleFromUrl('?live_preview=x')).toBeUndefined();
+  });
+});
+
+describe('isVisualBuilderOrigin', () => {
+  it('accepts only the Visual Builder app origin', () => {
+    expect(isVisualBuilderOrigin('https://app.contentstack.com', 'app.contentstack.com')).toBe(
+      true,
+    );
+    expect(
+      isVisualBuilderOrigin('https://eu-app.contentstack.com', 'eu-app.contentstack.com'),
+    ).toBe(true);
+  });
+
+  it('rejects other origins, look-alikes and plain http', () => {
+    expect(isVisualBuilderOrigin('https://evil.example', 'app.contentstack.com')).toBe(false);
+    expect(
+      isVisualBuilderOrigin('https://app.contentstack.com.evil.example', 'app.contentstack.com'),
+    ).toBe(false);
+    expect(isVisualBuilderOrigin('http://app.contentstack.com', 'app.contentstack.com')).toBe(
+      false,
+    );
+    expect(isVisualBuilderOrigin('https://app.contentstack.com', '')).toBe(false);
   });
 });

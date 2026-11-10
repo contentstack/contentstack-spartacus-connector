@@ -18,7 +18,12 @@ import { ContentstackClientService } from '../client/contentstack-client.service
 import { ContentstackAngularService } from './contentstack-angular.service';
 import { retargetTagLocale } from './tag-entry-tree';
 import { regionHost } from './live-preview-gate';
-import { toSiteLanguage, vbLocaleFromMessage, vbLocaleFromUrl } from './vb-locale';
+import {
+  isVisualBuilderOrigin,
+  toSiteLanguage,
+  vbLocaleFromMessage,
+  vbLocaleFromUrl,
+} from './vb-locale';
 import { tagNavigationDom } from './tag-navigation-dom';
 import {
   CmsNavigationNodeWithTags,
@@ -117,7 +122,7 @@ export class ContentstackLivePreviewService {
           // Preview hash (and Timeline context) in sync on the stack itself, as
           // the kickstarts do.
           stackSdk: (this.client.sdkStack as unknown as { config: unknown }).config,
-          clientUrlHost: delivery?.applicationHost ?? regionHost(delivery?.region, 'application'),
+          clientUrlHost: this.visualBuilderHost(),
           editButton: { enable: true, exclude: ['outsideLivePreviewPortal'] },
         });
         // On any edit in the Visual Builder, re-fetch + re-dispatch (or defer to
@@ -147,12 +152,22 @@ export class ContentstackLivePreviewService {
     return typeof window !== 'undefined' ? vbLocaleFromUrl(window.location.search) : undefined;
   }
 
+  /** Host of the Contentstack app that runs Visual Builder for this stack's region. */
+  protected visualBuilderHost(): string {
+    const delivery = this.config.contentstack?.delivery;
+    return delivery?.applicationHost ?? regionHost(delivery?.region, 'application');
+  }
+
   /** Follow Visual Builder's `get-locale` messages for the rest of the session. */
   protected listenForVisualBuilderLocale(): void {
     if (typeof window === 'undefined') {
       return;
     }
+    const appHost = this.visualBuilderHost();
     window.addEventListener('message', (event: MessageEvent) => {
+      if (!isVisualBuilderOrigin(event.origin, appHost)) {
+        return;
+      }
       const csLocale = vbLocaleFromMessage(event.data);
       if (csLocale) {
         this.languageService
