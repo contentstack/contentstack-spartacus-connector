@@ -40,6 +40,23 @@ export interface EntryAccessOptions {
 import { ContentstackCmsPageEntry, ContentstackEntry } from '../cms/model/contentstack.model';
 
 /**
+ * Stamp the queried content type on an entry fetched by uid. Contentstack only
+ * adds `_content_type_uid` to *referenced* entries, so a direct query result
+ * lacks it, and the component normalizer would resolve an empty typeCode and
+ * skip the banner/carousel/navigation mapping (e.g. after a language switch,
+ * when Spartacus reloads every mounted component by uid).
+ */
+function withContentType<T extends ContentstackEntry | undefined>(
+  entry: T,
+  contentTypeUid: string,
+): T {
+  if (entry && !entry._content_type_uid) {
+    entry._content_type_uid = contentTypeUid;
+  }
+  return entry;
+}
+
+/**
  * The single seam between this library and Contentstack. Every network call to
  * the Delivery API goes through here, which lets us own three concerns in one
  * place:
@@ -353,21 +370,28 @@ export class ContentstackClientService {
     tagEntryTree(entry, contentTypeUid, entry.locale ?? 'en-us');
   }
 
-  /** Fetch a single component/module entry by uid. */
+  /**
+   * Fetch a single component/module entry by uid.
+   * @param includeRefs reference fields of the entry to expand in the same call
+   */
   getEntryByUid(
     contentTypeUid: string,
     uid: string,
     locale?: string,
     access?: EntryAccessOptions,
+    includeRefs: string[] = [],
   ): Observable<ContentstackEntry | undefined> {
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry | undefined>(
-      `cs-entry:${contentTypeUid}:${uid}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
+      `cs-entry:${contentTypeUid}:${uid}:${includeRefs.join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
       )}`,
     );
     return this.withTransferState(key, () => {
       let entry = this.stack.contentType(contentTypeUid).entry(uid);
+      if (includeRefs.length) {
+        entry = entry.includeReference(includeRefs);
+      }
       if (csLocale) {
         entry = entry.locale(csLocale);
         if (this.includeFallback) {
@@ -375,7 +399,7 @@ export class ContentstackClientService {
         }
       }
       return entry.fetch<ContentstackEntry>().then((e) => {
-        let result = e ?? undefined;
+        let result = withContentType(e ?? undefined, contentTypeUid);
         // Filter gated content BEFORE it is persisted to TransferState.
         if (result && access) {
           result = this.restrictions.sanitizeForTransfer(
@@ -397,19 +421,23 @@ export class ContentstackClientService {
     });
   }
 
-  /** Fetch multiple component/module entries of one content type by their uids. */
+  /**
+   * Fetch multiple component/module entries of one content type by their uids.
+   * @param includeRefs reference fields of the entries to expand in the same call
+   */
   getEntriesByUids(
     contentTypeUid: string,
     uids: string[],
     locale?: string,
     access?: EntryAccessOptions,
+    includeRefs: string[] = [],
   ): Observable<ContentstackEntry[]> {
     if (!uids.length) {
       return of([]);
     }
     const csLocale = this.resolveLocale(locale);
     const key = makeStateKey<ContentstackEntry[]>(
-      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
+      `cs-entries:${contentTypeUid}:${[...uids].sort().join(',')}:${includeRefs.join(',')}:${csLocale ?? '*'}${this.restrictions.cacheKeySuffix(
         access?.permissions,
       )}`,
     );
@@ -417,6 +445,9 @@ export class ContentstackClientService {
       key,
       () => {
         let entries = this.stack.contentType(contentTypeUid).entry();
+        if (includeRefs.length) {
+          entries = entries.includeReference(includeRefs);
+        }
         if (csLocale) {
           entries = entries.locale(csLocale);
           if (this.includeFallback) {
@@ -428,7 +459,7 @@ export class ContentstackClientService {
           .where('uid', QueryOperation.INCLUDES, uids)
           .find<ContentstackEntry>()
           .then((res) => {
-            const list = res?.entries ?? [];
+            const list = (res?.entries ?? []).map((e) => withContentType(e, contentTypeUid));
             // Filter gated content BEFORE it is persisted to TransferState:
             // each restricted entry is redacted to a tags-only stub so the adapter
             // still counts it as "found" (no OCC refetch) without shipping content.

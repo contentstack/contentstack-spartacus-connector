@@ -14,7 +14,7 @@ const BANNER_TYPE_CODES = new Set<string>([
   'SimpleBannerComponent',
 ]);
 /** SAP nav typecodes resolved via the flat-nav normalizer (`all_nodes` pool). */
-const NAVIGATION_TYPE_CODES = new Set<string>([
+export const NAVIGATION_TYPE_CODES: ReadonlySet<string> = new Set<string>([
   'CategoryNavigationComponent',
   'FooterNavigationComponent',
   'NavigationComponent',

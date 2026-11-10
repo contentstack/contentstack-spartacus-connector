@@ -246,6 +246,10 @@ declare module '@spartacus/core' {
   }
   export abstract class CmsService {
     abstract refreshLatestPage(): void;
+    abstract getComponentData<T extends CmsComponent | null>(
+      uid: string,
+      pageContext?: PageContext,
+    ): Observable<T>;
   }
   export abstract class RoutingService {
     abstract getPageContext(): Observable<PageContext>;

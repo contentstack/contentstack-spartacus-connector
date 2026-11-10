@@ -334,17 +334,29 @@ export class ContentstackLivePreviewService {
     if (!raw || typeof MutationObserver === 'undefined' || !this.navigationNormalizer) {
       return;
     }
-    const tree = this.navigationNormalizer.convert(raw as never).navigationNode as
+    let tree = this.navigationNormalizer.convert(raw as never).navigationNode as
       CmsNavigationNodeWithTags | undefined;
-    if (!tree) {
-      return;
-    }
     let scheduled = false;
     const apply = () => {
       scheduled = false;
       tagNavigationDom(element, tree, (t) => this.forCurrentLocale(t));
     };
     apply();
+    // Spartacus keeps this component across a language switch and reloads its
+    // data in the new locale. Follow that data, or the labels would be matched
+    // against the init-time locale's texts and most items would lose their tag.
+    if (component.uid) {
+      this.cmsService
+        .getComponentData<CmsComponent & { navigationNode?: CmsNavigationNodeWithTags }>(
+          component.uid,
+        )
+        .subscribe((data) => {
+          if (data?.navigationNode) {
+            tree = data.navigationNode;
+            apply();
+          }
+        });
+    }
     new MutationObserver(() => {
       if (!scheduled) {
         scheduled = true;
