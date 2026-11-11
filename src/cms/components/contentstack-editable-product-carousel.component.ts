@@ -39,6 +39,11 @@ export interface ContentstackEditableProductCarouselData extends CmsProductCarou
  * makes the section selectable/openable in Visual Builder WITHOUT the "Invalid
  * CSLP tag" error — a single valid field tag, no conflicting bare 3-part tag.
  *
+ * The product list sits in an inner `<div>` tagged with the `sap_products` field
+ * (the SAP Commerce Cloud app's product picker), so clicking the products in
+ * Visual Builder opens the picker rather than the title. Stacks without that
+ * field fall back to the legacy `products` field's tag.
+ *
  * The products themselves are unchanged: each SKU in `productCodes` is hydrated
  * live from SAP via Spartacus's `ProductService` (same `LIST`+`STOCK` scopes as
  * the stock component) and rendered with the stock `cx-product-carousel-item`, so
@@ -62,13 +67,18 @@ export interface ContentstackEditableProductCarouselData extends CmsProductCarou
       <h3 *ngIf="data.title" class="cs-editable-carousel-title">
         {{ data.title }}
       </h3>
-      <cx-carousel
-        *ngIf="items$ | async as items"
-        [items]="items"
-        [template]="carouselItem"
-        itemWidth="285px"
-        [title]="''"
-      ></cx-carousel>
+      <div
+        class="cs-editable-carousel-products"
+        [csEditable]="data.$?.['sap_products'] ?? data.$?.['products']"
+      >
+        <cx-carousel
+          *ngIf="items$ | async as items"
+          [items]="items"
+          [template]="carouselItem"
+          itemWidth="285px"
+          [title]="''"
+        ></cx-carousel>
+      </div>
     </div>
 
     <ng-template #carouselItem let-item="item" let-itemIndex="itemIndex">

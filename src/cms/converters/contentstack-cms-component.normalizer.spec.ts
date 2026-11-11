@@ -215,4 +215,18 @@ describe('ContentstackCmsComponentNormalizer', () => {
     expect((component as any).title).toBe('Featured');
     expect((component as any).productCodes).toBe('111 222');
   });
+
+  it('uses SAP picker codes for a carousel and ignores the legacy products field', () => {
+    const component = normalizer.convert({
+      uid: 'blt_carousel_sap',
+      _content_type_uid: 'product_carousel_component',
+      cms_title: 'Featured',
+      sap_products: {
+        type: 'sapcommercecloud_product',
+        data: [{ code: '300938' }, { code: '358639' }],
+      },
+      products: ['111', '222'],
+    });
+    expect((component as any).productCodes).toBe('300938 358639');
+  });
 });
