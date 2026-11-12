@@ -115,7 +115,11 @@ describe('ContentstackCmsProductCarouselComponentNormalizer', () => {
     });
 
     it('falls back to products when the picker field is empty or missing', () => {
-      for (const sap_products of [undefined, null, { type: 'sapcommercecloud_product', data: [] }]) {
+      for (const sap_products of [
+        undefined,
+        null,
+        { type: 'sapcommercecloud_product', data: [] },
+      ]) {
         const component = normalizer.convert({
           uid: 'blt_carousel_9',
           _content_type_uid: 'product_carousel_component',
@@ -132,7 +136,9 @@ describe('ContentstackCmsProductCarouselComponentNormalizer', () => {
         uid: 'blt_carousel_10',
         _content_type_uid: 'product_carousel_component',
         created_at: '2026-01-01T00:00:00.000Z',
-        sap_products: { data: [{ code: '300938' }, { name: 'no code' }, null, { code: 42 }, { code: '' }] },
+        sap_products: {
+          data: [{ code: '300938' }, { name: 'no code' }, null, { code: 42 }, { code: '' }],
+        },
       });
       expect(component.productCodes).toBe('300938');
     });
