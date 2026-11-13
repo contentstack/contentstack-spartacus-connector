@@ -132,5 +132,8 @@ pageTypeMapping: {
 }
 ```
 
-Serving multiple *distinct per-route* content types isn't supported yet; unmapped page types
-fall back to OCC.
+Every per-route content page (home, FAQ, contact, sale, …) is an entry of the one
+`cmsPageContentType` (`landing_page`), matched on its `url`. That is by design: one page type
+keeps the slot fields, Live Preview setup and editor experience the same for every content page.
+`pageTypeMapping` is only for the shared product and category layouts above. Page types with
+no mapping and no matching entry fall back to OCC.
