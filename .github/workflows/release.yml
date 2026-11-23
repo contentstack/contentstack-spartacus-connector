@@ -1,48 +1,47 @@
 name: Publish to npm
 
 # Publishes @contentstack/contentstack-spartacus-connector to the public npm
-# registry whenever a GitHub Release is published. Uses npm's OIDC trusted
-# publisher flow: GitHub issues a short-lived OIDC token that npm exchanges
-# for a publish token at publish time. No token secret is needed for ongoing
-# publishes once bootstrap (below) is complete and removed.
+# registry when a GitHub Release is published, using npm trusted publishing
+# (OIDC): GitHub issues a short-lived OIDC token and npm exchanges it for a
+# publish credential at publish time. No npm token secret is used.
+# Docs: https://docs.npmjs.com/trusted-publishers
 #
-# ONE-TIME BOOTSTRAP INSTRUCTIONS (only needed because the package has never
-# been published before — npm has no page to configure a Trusted Publisher
-# for a package that doesn't exist yet):
-#  1. Add a temporary secret named `NPM_TOKEN` in Repo Settings -> Secrets.
-#  2. Run this workflow manually via Actions -> "Publish to npm" -> "Run workflow".
-#  3. Go to npmjs.com -> package settings -> Publishing access and set up
-#     Trusted Publisher for:
-#       - Repo: contentstack/contentstack-spartacus-connector
-#       - Workflow: release.yml
-#  4. Delete the `NPM_TOKEN` secret from GitHub repository settings.
-#  5. Future publishes will run automatically on GitHub Release via OIDC.
+# npm-side setup (once, by a package maintainer on npmjs.com):
+#   Package settings -> Trusted publishing -> GitHub Actions:
+#     - Organization or user: contentstack
+#     - Repository:           contentstack-spartacus-connector
+#     - Workflow filename:    release.yml   (exact, case-sensitive)
+#     - Environment:          (leave blank)
+#   Then, once a publish through this workflow has worked: Publishing access ->
+#   "Require two-factor authentication and disallow tokens", and revoke old
+#   automation tokens.
+#
+# Requirements (from the npm docs): GitHub-hosted runner, `id-token: write`,
+# npm CLI >= 11.5.1 and Node >= 22.14.0. Provenance is generated
+# automatically for a public repo and package, so `--provenance` is not needed.
 
 on:
   release:
     types: [published]
-  workflow_dispatch: # Allows manual trigger for the one-time bootstrap publish
+  # Manual run, e.g. to publish a version whose release-triggered run failed.
+  # npm refuses to publish a version that already exists, so a re-run can't
+  # overwrite a published version.
+  workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write # required for npm trusted publishing (OIDC)
 
 jobs:
   publish:
     name: Build & publish
     runs-on: ubuntu-latest
-    # secrets.* can't be used directly in `if:` conditionals (GitHub Actions
-    # doesn't recognize the secrets context there), so the bootstrap token's
-    # presence is surfaced as a job-level env var and the steps below branch
-    # on that instead.
-    env:
-      HAS_BOOTSTRAP_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22' # latest 22.x, which meets the >= 22.14.0 requirement
           registry-url: 'https://registry.npmjs.org'
 
       # npm's OIDC trusted-publishing support requires npm >= 11.5.1;
@@ -53,6 +52,11 @@ jobs:
       # tarball URLs, not plain registry packages) — see EALLOWREMOTE.
       - name: Update npm for OIDC trusted publishing
         run: npm install -g npm@^11.5.1
+
+      - name: Show Node and npm versions
+        run: |
+          node --version
+          npm --version
 
       # Configure SAP RBSC registry auth for build dependencies
       - name: Configure SAP RBSC registry auth
@@ -70,19 +74,8 @@ jobs:
       - name: Build library
         run: npm run build
 
-      # Step A: OIDC publish — runs automatically on Release, and on any
-      # manual run once the NPM_TOKEN bootstrap secret has been deleted.
-      - name: Publish to npm (OIDC)
-        if: env.HAS_BOOTSTRAP_TOKEN != 'true'
+      # Trusted publishing: npm detects the GitHub Actions OIDC environment and
+      # authenticates with it. No NODE_AUTH_TOKEN / NPM_TOKEN is passed here.
+      - name: Publish to npm (trusted publishing, OIDC)
         working-directory: dist
-        run: npm publish --access public --provenance
-
-      # Step B: one-time bootstrap publish — runs only while NPM_TOKEN
-      # exists, to claim the package name before a Trusted Publisher can be
-      # configured for it. Delete the secret right after this succeeds.
-      - name: Publish to npm (one-time bootstrap token)
-        if: env.HAS_BOOTSTRAP_TOKEN == 'true'
-        working-directory: dist
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
