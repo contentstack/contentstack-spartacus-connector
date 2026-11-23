@@ -17,8 +17,13 @@ name: Publish to npm
 #   automation tokens.
 #
 # Requirements (from the npm docs): GitHub-hosted runner, `id-token: write`,
-# npm CLI >= 11.5.1 and Node >= 22.14.0. Provenance is generated
-# automatically for a public repo and package, so `--provenance` is not needed.
+# npm CLI >= 11.5.1 and Node >= 22.14.0.
+#
+# Provenance: the publish step passes `--provenance` explicitly. Trusted
+# publishing would add it on its own, but with the flag npm refuses to publish
+# at all if it can't sign the provenance statement, so this public package is
+# never published without one. It needs `id-token: write` and a
+# package.json `repository.url` that matches this repo (both are set).
 
 on:
   release:
@@ -76,6 +81,8 @@ jobs:
 
       # Trusted publishing: npm detects the GitHub Actions OIDC environment and
       # authenticates with it. No NODE_AUTH_TOKEN / NPM_TOKEN is passed here.
-      - name: Publish to npm (trusted publishing, OIDC)
+      # --provenance: sign and attach a provenance statement, and fail the
+      # publish if it can't be generated.
+      - name: Publish to npm (trusted publishing, OIDC, with provenance)
         working-directory: dist
-        run: npm publish --access public
+        run: npm publish --access public --provenance
