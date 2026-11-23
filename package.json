@@ -1,6 +1,6 @@
 {
   "name": "@contentstack/contentstack-spartacus-connector",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Contentstack CMS feature library for SAP Composable Storefront (Spartacus). Overrides the Spartacus CMS layer so page and component content resolve from Contentstack, while SAP OCC remains the commerce engine.",
   "keywords": [
     "spartacus",

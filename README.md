@@ -8,9 +8,11 @@ It overrides Spartacus's CMS adapter layer so page and component content resolve
 from Contentstack's Content Delivery API instead of `/occ/v2/{site}/cms/pages`.
 Product data still hydrates live from SAP at render time.
 
-> Status: `0.1.0` — framework core (validated end-to-end against a real Spartacus
-> app + SAP OCC + Contentstack), Live Preview / Visual Editor bindings, and the
+> Status: `0.2.0` — framework core (validated end-to-end against a real Spartacus
+> app + SAP OCC + Contentstack), Live Preview / Visual Builder bindings, product
+> carousels that read the SAP Commerce Cloud app's product picker, and the
 > `ng add` schematic installer (validated end-to-end against a real Spartacus app).
+> See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 > The content model, a reference storefront, and B2B support remain separate
 > deliverables.
 
