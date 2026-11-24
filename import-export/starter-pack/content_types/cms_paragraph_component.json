@@ -55,6 +55,30 @@
       "field_metadata": {
         "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
       }
+    },
+    {
+      "display_name": "SAP Id",
+      "uid": "sap_uid",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": true,
+      "field_metadata": {
+        "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+      }
+    },
+    {
+      "display_name": "SAP Catalog Version",
+      "uid": "sap_catalog_version",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": true,
+      "field_metadata": {
+        "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+      }
     }
   ],
   "options": {

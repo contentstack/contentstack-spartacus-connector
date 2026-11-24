@@ -167,6 +167,30 @@
         "ref_multiple_content_types": true,
         "instruction": "Maps to SAP slot PlaceholderContentSlot. Leave empty to keep SAP's."
       }
+    },
+    {
+      "display_name": "SAP Id",
+      "uid": "sap_uid",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": true,
+      "field_metadata": {
+        "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+      }
+    },
+    {
+      "display_name": "SAP Catalog Version",
+      "uid": "sap_catalog_version",
+      "data_type": "text",
+      "mandatory": false,
+      "unique": false,
+      "multiple": false,
+      "non_localizable": true,
+      "field_metadata": {
+        "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+      }
     }
   ],
   "options": {

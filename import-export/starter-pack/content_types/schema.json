@@ -1,0 +1,2067 @@
+[
+  {
+    "title": "Simple Responsive Banner Component",
+    "uid": "simple_responsive_banner_component",
+    "description": "A responsive banner with per-breakpoint images and a click-through link. SAP typeCode SimpleResponsiveBannerComponent.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name for this banner."
+        }
+      },
+      {
+        "display_name": "URL Link",
+        "uid": "url_link",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Click-through destination."
+        }
+      },
+      {
+        "display_name": "Media Container",
+        "uid": "media_container",
+        "data_type": "reference",
+        "reference_to": [
+          "media_container"
+        ],
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": false,
+          "ref_multiple_content_types": false,
+          "instruction": "Reusable per-breakpoint image set (desktop/mobile/tablet/widescreen). Takes priority over the direct Media fields below — set this OR them, not both."
+        }
+      },
+      {
+        "display_name": "Media",
+        "uid": "media",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Fallback image, used for any breakpoint without its own image below."
+        }
+      },
+      {
+        "display_name": "Media Mobile",
+        "uid": "media_mobile",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the mobile breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "Media Tablet",
+        "uid": "media_tablet",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the tablet breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "Media Desktop",
+        "uid": "media_desktop",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the desktop breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "Media Widescreen",
+        "uid": "media_widescreen",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the widescreen breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Simple Banner Component",
+    "uid": "simple_banner_component",
+    "description": "A single-image banner with a click-through link. SAP typeCode SimpleBannerComponent.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name for this banner."
+        }
+      },
+      {
+        "display_name": "URL Link",
+        "uid": "url_link",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Click-through destination."
+        }
+      },
+      {
+        "display_name": "Media Container",
+        "uid": "media_container",
+        "data_type": "reference",
+        "reference_to": [
+          "media_container"
+        ],
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": false,
+          "ref_multiple_content_types": false,
+          "instruction": "Reusable media set. Takes priority over Media below — set this OR it, not both."
+        }
+      },
+      {
+        "display_name": "Media",
+        "uid": "media",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Banner image."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Product Carousel Component",
+    "uid": "product_carousel_component",
+    "description": "A carousel of products by SKU; live price/stock/media hydrate from SAP OCC. SAP typeCode ProductCarouselComponent.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Heading shown above the carousel."
+        }
+      },
+      {
+        "display_name": "Products",
+        "uid": "products",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "SAP product codes (SKUs), one per value. Only the code is stored; OCC provides live price/stock/image."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "CMS Paragraph Component",
+    "uid": "cms_paragraph_component",
+    "description": "Rich-text / HTML content block. SAP typeCode CMSParagraphComponent.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name for this paragraph block."
+        }
+      },
+      {
+        "display_name": "Content",
+        "uid": "content",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "allow_rich_text": true,
+          "rich_text_type": "custom",
+          "options": [
+            "html",
+            "bold",
+            "underline",
+            "italic",
+            "deleted",
+            "lists",
+            "link",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6"
+          ],
+          "instruction": "The HTML body shown in the slot. Toolbar: headings (H2-H6), bold, italic, underline, strikethrough, lists, links. Inline styles, embeds, iframes and scripts are removed on the storefront."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "CMS Tab Paragraph Component",
+    "uid": "cms_tab_paragraph_component",
+    "description": "Rich-text / HTML content block, rendered the same way as CMS Paragraph Component (SAP registers both to its stock paragraph renderer). SAP typeCode CMSTabParagraphComponent.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name for this tab content block."
+        }
+      },
+      {
+        "display_name": "Content",
+        "uid": "content",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "allow_rich_text": true,
+          "rich_text_type": "custom",
+          "options": [
+            "html",
+            "bold",
+            "underline",
+            "italic",
+            "deleted",
+            "lists",
+            "link",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6"
+          ],
+          "instruction": "The HTML body shown in the slot. Toolbar: headings (H2-H6), bold, italic, underline, strikethrough, lists, links. Inline styles, embeds, iframes and scripts are removed on the storefront."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Media Container",
+    "uid": "media_container",
+    "description": "A reusable per-breakpoint image set, referenced from the Media Container field on banner components so one asset set can back multiple banners. SAP typeCode MediaContainer.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name for this media set."
+        }
+      },
+      {
+        "display_name": "Desktop",
+        "uid": "desktop",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the desktop breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "Mobile",
+        "uid": "mobile",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the mobile breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "Tablet",
+        "uid": "tablet",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the tablet breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "Widescreen",
+        "uid": "widescreen",
+        "data_type": "file",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Image for the widescreen breakpoint (optional)."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "CMS Tab Paragraph Container",
+    "uid": "cms_tab_paragraph_container",
+    "description": "A strip of tabs whose panels hydrate from SAP OCC by component id (no editorial content lives here). SAP typeCode CMSTabParagraphContainer.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name for this tab set."
+        }
+      },
+      {
+        "display_name": "Component Id",
+        "uid": "component_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional: a stable SAP component id (e.g. \"TabPanelContainer\") used to build the tab-label translation keys. Leave empty to use the id of this entry."
+        }
+      },
+      {
+        "display_name": "Tab Components",
+        "uid": "tab_components",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "multiline": true,
+          "instruction": "Paste a JSON array of the tab panels, in display order, each an existing SAP CMS component reference: [{\"uid\": \"ProductDetailsTabComponent\", \"type_code\": \"ProductDetailsTabComponent\"}, ...]. Each panel content hydrates from SAP OCC by that uid — it is not authored here."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "CMS Link Component",
+    "uid": "cms_link_component",
+    "description": "A single link (used standalone or as a navigation leaf). SAP typeCode CMSLinkComponent.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name for this link."
+        }
+      },
+      {
+        "display_name": "Link Name",
+        "uid": "link_name",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Visible link text."
+        }
+      },
+      {
+        "display_name": "URL",
+        "uid": "url",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Link destination."
+        }
+      },
+      {
+        "display_name": "Target",
+        "uid": "target",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "\"true\" to open in a new tab, else \"false\"."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "CMS Flex Component",
+    "uid": "cms_flex_component",
+    "description": "A functional block selected by its flex type (e.g. ProductIntroComponent). SAP typeCode CMSFlexComponent.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name."
+        }
+      },
+      {
+        "display_name": "Flex Type",
+        "uid": "flex_type",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "The SAP flexType that selects the Angular component (e.g. ProductIntroComponent, PageTitleComponent)."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Nav Node (Flat)",
+    "uid": "nav_node_flat",
+    "description": "Flat navigation node. parent_id is plain text (the parent's node_id, not a reference); the component's all_nodes pool holds every node and the connector rebuilds the tree in code, so menu depth never hits the include-depth cap.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Display label shown in the menu (e.g. \"Power Drills\"). For SAP leaf categories that had no title, seed this from the linked link's name."
+        }
+      },
+      {
+        "display_name": "Node Id",
+        "uid": "node_id",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Stable, unique id for THIS node (e.g. the SAP node id). Other nodes point at it via their Parent Id."
+        }
+      },
+      {
+        "display_name": "Parent Id",
+        "uid": "parent_id",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Node Id of the parent node. Leave EMPTY for a top-level item. Plain text on purpose (not a reference) so building the tree costs zero reference-resolution depth."
+        }
+      },
+      {
+        "display_name": "Sort Order",
+        "uid": "sort_order",
+        "data_type": "number",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Position among siblings (1, 2, 3 ...)."
+        }
+      },
+      {
+        "display_name": "Links",
+        "uid": "links",
+        "data_type": "reference",
+        "reference_to": [
+          "cms_link_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "The clickable link leaf under this node. The only reference in the model — one hop, always resolves. Heading nodes leave this empty."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Category Navigation (Flat)",
+    "uid": "category_navigation_flat",
+    "description": "Header/category navigation (flat model, SAP CategoryNavigationComponent). all_nodes holds every node of the menu; the connector rebuilds the tree from each node's parent_id in one shallow include chain, whatever the depth.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name."
+        }
+      },
+      {
+        "display_name": "Wrap After",
+        "uid": "wrap_after",
+        "data_type": "number",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional: wrap the menu after N items."
+        }
+      },
+      {
+        "display_name": "All Nodes",
+        "uid": "all_nodes",
+        "data_type": "reference",
+        "reference_to": [
+          "nav_node_flat"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "The flat pool of every node in this menu (all levels). The connector builds the tree from each node's parent_id."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Footer Navigation (Flat)",
+    "uid": "footer_navigation_flat",
+    "description": "Footer navigation (flat model, SAP FooterNavigationComponent). all_nodes holds every node; the connector rebuilds the tree from each node's parent_id. Same shape as category_navigation_flat.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Internal name."
+        }
+      },
+      {
+        "display_name": "Wrap After",
+        "uid": "wrap_after",
+        "data_type": "number",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional: wrap the columns after N items."
+        }
+      },
+      {
+        "display_name": "All Nodes",
+        "uid": "all_nodes",
+        "data_type": "reference",
+        "reference_to": [
+          "nav_node_flat"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "The flat pool of every node in this footer menu (all levels). The connector builds the tree from each node's parent_id."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Landing Page",
+    "uid": "landing_page",
+    "description": "Any CMS content page: SAP LandingPage2Template (home / marketing landing) and ContentPage1Template (FAQ, terms, help, campaign pages). Fill only the slots the page's template has.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Page title."
+        }
+      },
+      {
+        "display_name": "URL",
+        "uid": "url",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Route this page resolves at. Use \"/\" for the homepage."
+        }
+      },
+      {
+        "display_name": "Page Type",
+        "uid": "page_type",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "SAP page type discriminator (e.g. ContentPage / ProductPage / CategoryPage)."
+        }
+      },
+      {
+        "display_name": "Template",
+        "uid": "template",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "SAP page template, e.g. \"LandingPage2Template\" (home) or \"ContentPage1Template\" (FAQ, terms). Only that template's slots render."
+        }
+      },
+      {
+        "display_name": "Bottom Header",
+        "uid": "bottom_header_slot",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot BottomHeaderSlot. Under the header, e.g. the page title (a Flex block with flex type PageTitleComponent). Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Homepage Nav Link",
+        "uid": "homepage_nav_link",
+        "data_type": "reference",
+        "reference_to": [
+          "cms_link_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot HomepageNavLink. The link back to the homepage. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Section 1",
+        "uid": "section1",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Section1. Top hero band. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Section 2A",
+        "uid": "section2_a",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Section2A. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Section 2B",
+        "uid": "section2_b",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Section2B. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Section 2C",
+        "uid": "section2_c",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Section2C. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Section 3",
+        "uid": "section3",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Section3. Often a product carousel. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Section 4",
+        "uid": "section4",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Section4. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Section 5",
+        "uid": "section5",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Section5. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Body Content",
+        "uid": "body_content",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot BodyContent. Main content column (ContentPage1Template). Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Side Content",
+        "uid": "side_content",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot SideContent. Sidebar column (ContentPage1Template). Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Access Tags",
+        "uid": "access_tags",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": true,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Optional access-control tokens. Empty = everyone. Use \"_require-login\" (hide from anonymous), \"_require-anonymous\" (hide once logged in), or \"_require-<roleGroupId>\" (e.g. \"_require-b2badmingroup\") to gate by SAP role group. Only enforced when the storefront enables access control."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [
+        "url"
+      ],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Product Page",
+    "uid": "product_page",
+    "description": "CMS overrides for SAP ProductDetailsPageTemplate. One shared entry serves every PDP (product data hydrates from OCC).",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Page title."
+        }
+      },
+      {
+        "display_name": "URL",
+        "uid": "url",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Route this page resolves at. Use \"/\" for the homepage."
+        }
+      },
+      {
+        "display_name": "Page Type",
+        "uid": "page_type",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "SAP page type discriminator (e.g. ContentPage / ProductPage / CategoryPage)."
+        }
+      },
+      {
+        "display_name": "Template",
+        "uid": "template",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "SAP page template. Keep \"ProductDetailsPageTemplate\"."
+        }
+      },
+      {
+        "display_name": "Summary",
+        "uid": "summary",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Summary. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Up Selling",
+        "uid": "up_selling",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot UpSelling. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Cross Selling",
+        "uid": "cross_selling",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot CrossSelling. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Tabs",
+        "uid": "tabs",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component",
+          "cms_tab_paragraph_container"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Tabs. Accepts a Tab Container for a tabbed panel, or any editorial component for a plain block. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Placeholder Content",
+        "uid": "placeholder_content_slot",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot PlaceholderContentSlot. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [
+        "url"
+      ],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Category Page",
+    "uid": "category_page",
+    "description": "CMS overrides for SAP ProductListPageTemplate (category/search). One shared entry serves every PLP (facets/products hydrate from OCC).",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Page title."
+        }
+      },
+      {
+        "display_name": "URL",
+        "uid": "url",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "Route this page resolves at. Use \"/\" for the homepage."
+        }
+      },
+      {
+        "display_name": "Page Type",
+        "uid": "page_type",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "SAP page type discriminator (e.g. ContentPage / ProductPage / CategoryPage)."
+        }
+      },
+      {
+        "display_name": "Template",
+        "uid": "template",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "instruction": "SAP page template. Keep \"ProductListPageTemplate\"."
+        }
+      },
+      {
+        "display_name": "Left Refinements",
+        "uid": "product_left_refinements",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot ProductLeftRefinements. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Product Grid",
+        "uid": "product_grid_slot",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot ProductGridSlot. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Product List",
+        "uid": "product_list_slot",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot ProductListSlot. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Search Results Grid",
+        "uid": "search_results_grid_slot",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot SearchResultsGridSlot. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [
+        "url"
+      ],
+      "title": "title"
+    }
+  },
+  {
+    "title": "Global Slots",
+    "uid": "global_slots",
+    "description": "Shared shell (header/footer/nav) merged into every page. Author this ONLY to take over the shell in Contentstack; otherwise SAP serves it.",
+    "schema": [
+      {
+        "display_name": "Title",
+        "uid": "title",
+        "data_type": "text",
+        "mandatory": true,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "_default": true,
+          "instruction": "Name of this shell entry (e.g. \"Global Slots\")."
+        }
+      },
+      {
+        "display_name": "Site Logo",
+        "uid": "site_logo",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot SiteLogo. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Search Box",
+        "uid": "search_box",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot SearchBox. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Mini Cart",
+        "uid": "mini_cart",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot MiniCart. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Navigation Bar",
+        "uid": "navigation_bar",
+        "data_type": "reference",
+        "reference_to": [
+          "category_navigation_flat",
+          "footer_navigation_flat",
+          "cms_link_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot NavigationBar. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Site Context",
+        "uid": "site_context",
+        "data_type": "reference",
+        "reference_to": [
+          "simple_responsive_banner_component",
+          "simple_banner_component",
+          "product_carousel_component",
+          "cms_paragraph_component",
+          "cms_tab_paragraph_component",
+          "cms_link_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot SiteContext. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Site Links",
+        "uid": "site_links",
+        "data_type": "reference",
+        "reference_to": [
+          "category_navigation_flat",
+          "footer_navigation_flat",
+          "cms_link_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot SiteLinks. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Header Links",
+        "uid": "header_links",
+        "data_type": "reference",
+        "reference_to": [
+          "category_navigation_flat",
+          "footer_navigation_flat",
+          "cms_link_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot HeaderLinks. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "Footer",
+        "uid": "footer",
+        "data_type": "reference",
+        "reference_to": [
+          "category_navigation_flat",
+          "footer_navigation_flat",
+          "cms_link_component",
+          "cms_paragraph_component",
+          "cms_flex_component"
+        ],
+        "mandatory": false,
+        "multiple": true,
+        "unique": false,
+        "non_localizable": false,
+        "field_metadata": {
+          "ref_multiple": true,
+          "ref_multiple_content_types": true,
+          "instruction": "Maps to SAP slot Footer. Leave empty to keep SAP's."
+        }
+      },
+      {
+        "display_name": "SAP Id",
+        "uid": "sap_uid",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP item id this entry was migrated from. Leave as is; empty for content authored here."
+        }
+      },
+      {
+        "display_name": "SAP Catalog Version",
+        "uid": "sap_catalog_version",
+        "data_type": "text",
+        "mandatory": false,
+        "unique": false,
+        "multiple": false,
+        "non_localizable": true,
+        "field_metadata": {
+          "instruction": "Set by the SAP SmartEdit migration: the SAP catalog version (Online or Staged). Leave as is."
+        }
+      }
+    ],
+    "options": {
+      "is_page": false,
+      "singleton": false,
+      "sub_title": [],
+      "title": "title"
+    }
+  }
+]

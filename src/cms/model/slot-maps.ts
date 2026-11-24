@@ -54,6 +54,7 @@ export const TYPECODE_MAP: Readonly<Record<string, string>> = {
 /** `cms_page` slot field uid → real SAP Spartacus slot position name. */
 export const SLOT_FIELD_TO_SAP_NAME: Readonly<Record<string, string>> = {
   bottom_header_slot: 'BottomHeaderSlot',
+  homepage_nav_link: 'HomepageNavLink',
   section1: 'Section1',
   section2: 'Section2',
   section2_a: 'Section2A',
